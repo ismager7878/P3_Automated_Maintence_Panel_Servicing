@@ -33,9 +33,7 @@ def arUco_corner_detection():
         cv.waitKey(0)
         cv.destroyAllWindows()
 
-    
 def cam_cali():
- 
     # Chessboard dimensions
     number_of_squares_X = 8 # Number of chessboard squares along the x-axis
     number_of_squares_Y = 8  # Number of chessboard squares along the y-axis
@@ -63,9 +61,6 @@ def cam_cali():
     
     object_points_3D = object_points_3D * square_size
 
-
-    
-    
     # Image path
     image = cv.imread("Chess_cali\cal-img(2).jpg")
 
@@ -101,18 +96,10 @@ def cam_cali():
         
 
             # Now take a distorted image and undistort it 
-    distorted_image = cv.imread("Iphone_cali\cal-img(2).jpg")
-
-    cv.imshow("distorted image", distorted_image)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
+    distorted_image = cv.imread("Chess_cali\cal-img(2).jpg")
 
     # Perform camera calibration to return the camera matrix, distortion coefficients, rotation and translation vectors etc 
-    ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(object_points, 
-                                                        image_points, 
-                                                        gray.shape[::-1], 
-                                                        None, 
-                                                        None)
+    ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(object_points, image_points, gray.shape[::-1], None, None)
 
     # Get the dimensions of the image 
     height, width = distorted_image.shape[:2]
@@ -127,6 +114,8 @@ def cam_cali():
     # Undistort the image
     undistorted_image = cv.undistort(distorted_image, mtx, dist, None, 
                                         optimal_camera_matrix)
+    
+    und_img_resize = cv.resize(undistorted_image, (768,1024))
 
     # Crop the image. Uncomment these two lines to remove black lines
     # on the edge of the undistorted image.
@@ -148,10 +137,33 @@ def cam_cali():
     print("\n Translation Vectors:") 
     print(tvecs) 
 
-    cv.imshow("undistorted", undistorted_image)
+    cv.imshow("undistorted", und_img_resize)
     # Display the window until any key is pressed
     cv.waitKey(0) 
     # Close all windows
     cv.destroyAllWindows()
 
-cam_cali()
+
+def arUco_pose():
+# ArUco info:
+#----------------------------------------------------------------------------------------------------------------------------
+    #ArUco library name
+    arUco_lib = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_5X5_1000)
+    # ArUco size in meters
+    arUco_size = 0.076
+#----------------------------------------------------------------------------------------------------------------------------
+# Camera calibration info
+#----------------------------------------------------------------------------------------------------------------------------
+    # Camera matrix comes from cam_cali
+    camera_matrix = np.array([[2.24161385e+03, 0, 5.99485425e+02],
+                            [0, 1.84002016e+03, 9.65142764e+02],
+                            [0, 0, 1]])    
+    # Distortion coefficient come from cam_cali
+    distortion_coefficient = np.array([0.48337895, -3.11487545, -0.01358789, -0.03477453,  3.9685751])
+#----------------------------------------------------------------------------------------------------------------------------
+# her skal video filen
+cap = 1
+
+
+
+arUco_pose()
