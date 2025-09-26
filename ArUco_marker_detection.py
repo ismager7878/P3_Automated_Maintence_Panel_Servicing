@@ -7,44 +7,6 @@ import os
 import glob
 
 
-def generate_ArUco():
-    # Define the dictionary we want to use
-    aruco_dict = cv.aruco.getPredefinedDictionary(cv.aruco.DICT_5X5_1000)
-
-    # Generate a marker
-    marker1_id = 0
-    marker2_id = 1
-    marker3_id = 2
-    marker_size = 300  # Size in pixels (generic pixel size)
-    marker_image1 = cv.aruco.generateImageMarker(aruco_dict, marker1_id, marker_size)
-    marker_image2 = cv.aruco.generateImageMarker(aruco_dict, marker2_id, marker_size)
-    marker_image3 = cv.aruco.generateImageMarker(aruco_dict, marker3_id, marker_size)
-
-    # define folder placement
-    mappe = r"C:\Users\hamme\OneDrive\Uni\ROB\Semester_3\Projekt\ArUco-project-markers"
-
-    # Vælger mappe og hvad for et billede der skal sættes i mappen
-    sti1 = os.path.join(mappe, "marker_image1.jpg")
-    sti2 = os.path.join(mappe, "marker_image2.jpg")
-    sti3 = os.path.join(mappe, "marker_image3.jpg")
-
-    # Gem billede i mappen
-    gem1 = cv.imwrite(sti1, marker_image1)
-    gem2 = cv.imwrite(sti2, marker_image2)
-    gem3 = cv.imwrite(sti3, marker_image3)
-
-    if gem1 and gem2 and gem3:
-        print("Saved")
-    else:
-        print("Something went wrong")
-
-
-    cv.imshow("marker 1",marker_image1)
-    cv.imshow("marker 2",marker_image2)
-    cv.imshow("marker 3",marker_image3)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
-
 def arUco_corner_detection():
     img = cv.imread("ArUco-tavle_vinkel.jpg")
 
@@ -105,7 +67,7 @@ def cam_cali():
     
     
     # Image path
-    image = cv.imread("Iphone_cali\cal-img(2).jpg")
+    image = cv.imread("Chess_cali\cal-img(2).jpg")
 
     # Convert the image to grayscale
     gray = cv.cvtColor(image, cv.COLOR_BGR2GRAY)  
@@ -124,7 +86,7 @@ def cam_cali():
         # Append image points
         image_points.append(corners_2)
 
-        """
+        
         # Draw the corners
         cv.drawChessboardCorners(image, (nY, nX), corners, success)
         # resize image for display
@@ -132,14 +94,18 @@ def cam_cali():
         # Display the image 
         cv.imshow("Image", img_resize) 
         # Display the window until any key is pressed
-        cv.waitKey(0) 
+        #cv.waitKey(0) 
         # Close all windows
-        cv.destroyAllWindows()
-        """
+        #cv.destroyAllWindows()
+        
         
 
             # Now take a distorted image and undistort it 
     distorted_image = cv.imread("Iphone_cali\cal-img(2).jpg")
+
+    cv.imshow("distorted image", distorted_image)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
 
     # Perform camera calibration to return the camera matrix, distortion coefficients, rotation and translation vectors etc 
     ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(object_points, 
@@ -181,5 +147,11 @@ def cam_cali():
 
     print("\n Translation Vectors:") 
     print(tvecs) 
+
+    cv.imshow("undistorted", undistorted_image)
+    # Display the window until any key is pressed
+    cv.waitKey(0) 
+    # Close all windows
+    cv.destroyAllWindows()
 
 cam_cali()
