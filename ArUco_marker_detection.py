@@ -5,7 +5,9 @@ import numpy as np
 import matplotlib as plt
 import os
 import glob
-
+import roboticstoolbox as rbt
+from spatialmath import UnitQuaternion
+ 
 
 def arUco_corner_detection():
     img = cv.imread("ArUco-tavle_vinkel.jpg")
@@ -143,6 +145,12 @@ def cam_cali():
     # Close all windows
     cv.destroyAllWindows()
 
+def quaternion2RPY(w,x,y,z):
+    q = UnitQuaternion([w, x, y, z])
+    # RPY (ZYX) from quaternion
+    rpy = q.rpy(unit='rad')    
+    print("RPY:",rpy) 
+    
 
 def arUco_pose():
 # ArUco info:
@@ -162,8 +170,83 @@ def arUco_pose():
     distortion_coefficient = np.array([0.48337895, -3.11487545, -0.01358789, -0.03477453,  3.9685751])
 #----------------------------------------------------------------------------------------------------------------------------
 # her skal video filen
-cap = 1
+    cap = 1
+
+    while(True):
+    
+        # Capture frame-by-frame
+        # This method returns True/False as well
+        # as the video frame.
+        ret, frame = cap.read()  
+        
+        # Detect ArUco markers in the video frame
+        (corners, marker_ids, rejected) = cv.aruco.detectMarkers(frame, this_aruco_dictionary, parameters=this_aruco_parameters,cameraMatrix=mtx, distCoeff=dst)
+        
+        # Check that at least one ArUco marker was detected
+        if marker_ids is not None:
+    
+        # Draw a square around detected markers in the video frame
+            cv.aruco.drawDetectedMarkers(frame, corners, marker_ids)
+        
+        # Get the rotation and translation vectors
+        rvecs, tvecs, obj_points = cv.aruco.estimatePoseSingleMarkers(corners,0.076,mtx,dst)
+            
+        # Print the pose for the ArUco marker
+        # The pose of the marker is with respect to the camera lens frame.
+        # Imagine you are looking through the camera viewfinder, 
+        # the camera lens frame's:
+        # x-axis points to the right
+        # y-axis points straight down towards your toes
+        # z-axis points straight ahead away from your eye, out of the camera
+        for i, marker_id in enumerate(marker_ids):
+        
+            # Store the translation (i.e. position) information
+            transform_translation_x = tvecs[i][0][0]
+            transform_translation_y = tvecs[i][0][1]
+            transform_translation_z = tvecs[i][0][2]
+    
+            # Store the rotation information
+            rotation_matrix = np.eye(4)
+            rotation_matrix[0:3, 0:3] = cv.Rodrigues(np.array(rvecs[i][0]))[0]
+            r = R.from_matrix(rotation_matrix[0:3, 0:3])
+            quat = r.as_quat()   
+            
+            # Quaternion format     
+            transform_rotation_x = quat[0] 
+            transform_rotation_y = quat[1] 
+            transform_rotation_z = quat[2] 
+            transform_rotation_w = quat[3] 
+            
+            # Euler angle format in radians
+            roll_x, pitch_y, yaw_z = euler_from_quaternion(transform_rotation_x, 
+                                                        transform_rotation_y, 
+                                                        transform_rotation_z, 
+                                                        transform_rotation_w)
+            
+            roll_x = math.degrees(roll_x)
+            pitch_y = math.degrees(pitch_y)
+            yaw_z = math.degrees(yaw_z)
+            print("transform_translation_x: {}".format(transform_translation_x))
+            print("transform_translation_y: {}".format(transform_translation_y))
+            print("transform_translation_z: {}".format(transform_translation_z))
+            print("roll_x: {}".format(roll_x))
+            print("pitch_y: {}".format(pitch_y))
+            print("yaw_z: {}".format(yaw_z))
+            print()
+            
+            # Draw the axes on the marker
+            cv.aruco.drawAxis(frame, mtx, dst, rvecs[i], tvecs[i], 0.05)
+        
+            # Display the resulting frame
+            cv.imshow('frame',frame)
+            
+            # If "q" is pressed on the keyboard, 
+            # exit this loop
+            if cv.waitKey(1) & 0xFF == ord('q'):
+                break
+    
+        # Close down the video stream
+        cap.release()
+        cv.destroyAllWindows()
 
 
-
-arUco_pose()
