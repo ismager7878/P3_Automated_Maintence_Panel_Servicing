@@ -145,12 +145,18 @@ def cam_cali():
     # Close all windows
     cv.destroyAllWindows()
 
+# hjælper funktion til omregning :)
 def quaternion2RPY(w,x,y,z):
     q = UnitQuaternion([w, x, y, z])
     # RPY (ZYX) from quaternion
-    rpy = q.rpy(unit='rad')    
-    print("RPY:",rpy) 
-    
+    rpy = q.rpy(unit='deg')    
+    #print("RPY:",rpy) 
+    roll_x = rpy[0]
+    pitch_y = rpy[1]
+    yaw_y = rpy[2]
+    return roll_x, pitch_y, yaw_y
+
+
 
 def arUco_pose():
 # ArUco info:
@@ -180,7 +186,7 @@ def arUco_pose():
         ret, frame = cap.read()  
         
         # Detect ArUco markers in the video frame
-        (corners, marker_ids, rejected) = cv.aruco.detectMarkers(frame, this_aruco_dictionary, parameters=this_aruco_parameters,cameraMatrix=mtx, distCoeff=dst)
+        (corners, marker_ids, rejected) = cv.aruco.detectMarkers(frame, arUco_lib, parameters=arUco_lib,cameraMatrix=camera_matrix, distCoeff=distortion_coefficient)
         
         # Check that at least one ArUco marker was detected
         if marker_ids is not None:
@@ -189,7 +195,7 @@ def arUco_pose():
             cv.aruco.drawDetectedMarkers(frame, corners, marker_ids)
         
         # Get the rotation and translation vectors
-        rvecs, tvecs, obj_points = cv.aruco.estimatePoseSingleMarkers(corners,0.076,mtx,dst)
+        rvecs, tvecs, obj_points = cv.aruco.estimatePoseSingleMarkers(corners,arUco_size,camera_matrix,distortion_coefficient)
             
         # Print the pose for the ArUco marker
         # The pose of the marker is with respect to the camera lens frame.
@@ -212,10 +218,10 @@ def arUco_pose():
             quat = r.as_quat()   
             
             # Quaternion format     
-            transform_rotation_x = quat[0] 
-            transform_rotation_y = quat[1] 
-            transform_rotation_z = quat[2] 
-            transform_rotation_w = quat[3] 
+            q_x = quat[0] 
+            q_y = quat[1] 
+            q_z = quat[2] 
+            q_w = quat[3] 
             
             # Euler angle format in radians
             roll_x, pitch_y, yaw_z = euler_from_quaternion(transform_rotation_x, 
@@ -223,19 +229,22 @@ def arUco_pose():
                                                         transform_rotation_z, 
                                                         transform_rotation_w)
             
-            roll_x = math.degrees(roll_x)
-            pitch_y = math.degrees(pitch_y)
-            yaw_z = math.degrees(yaw_z)
+
+            roll_x, pitch_y, yaw_z = quaternion2RPY(q_x, q_y, q_z, q_w)
+
+
+            quaternion2RPY(q_x, q_y, q_z, q_w)
+
+
             print("transform_translation_x: {}".format(transform_translation_x))
             print("transform_translation_y: {}".format(transform_translation_y))
             print("transform_translation_z: {}".format(transform_translation_z))
             print("roll_x: {}".format(roll_x))
             print("pitch_y: {}".format(pitch_y))
             print("yaw_z: {}".format(yaw_z))
-            print()
             
             # Draw the axes on the marker
-            cv.aruco.drawAxis(frame, mtx, dst, rvecs[i], tvecs[i], 0.05)
+            cv.aruco.drawAxis(frame, camera_matrix, distortion_coefficient, rvecs[i], tvecs[i], 0.05)
         
             # Display the resulting frame
             cv.imshow('frame',frame)
