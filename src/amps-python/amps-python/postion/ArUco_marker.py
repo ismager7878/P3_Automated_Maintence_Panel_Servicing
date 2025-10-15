@@ -1,8 +1,8 @@
-
 import cv2 as cv
 import cv2.aruco as aruco
 import numpy as np
 import os
+import glob
 
 def loadImage(image_path):
     image = cv.imread(image_path)
@@ -13,29 +13,48 @@ def loadImage(image_path):
     return image
 
 
-image1 = loadImage("/home/petur/Documents/Github/P3_Automated_Maintence_Panel_Servicing/src/amps-python/amps-python/data/board2.jpg")
+image = loadImage("/home/petur/Documents/Github/P3_Automated_Maintence_Panel_Servicing/src/amps-python/amps-python/data/board2.jpg")
 
+#Alle aruco dictionaries i opencv:
+#-------------------------------------------------------------------
+arucoDict4x4 = aruco.getPredefinedDictionary(aruco.DICT_4X4_1000)
+arucoDict5x5 = aruco.getPredefinedDictionary(aruco.DICT_5X5_1000)
+arucoDict6x6 = aruco.getPredefinedDictionary(aruco.DICT_6X6_1000)
+arucoDict7x7 = aruco.getPredefinedDictionary(aruco.DICT_7X7_1000)
+#-------------------------------------------------------------------
 
-
+libStorage = [arucoDict4x4, arucoDict5x5, arucoDict6x6, arucoDict7x7] 
 
 def dict_finder(image_path):
-    #Alle aruco dictionaries i opencv:
-    #-------------------------------------------------------------------
-    arucoDict4x4 = aruco.getPredefinedDictionary(aruco.DICT_4X4_1000)
-    arucoDict5x5 = aruco.getPredefinedDictionary(aruco.DICT_5X5_1000)
-    arucoDict6x6 = aruco.getPredefinedDictionary(aruco.DICT_6X6_1000)
-    arucoDict7x7 = aruco.getPredefinedDictionary(aruco.DICT_7X7_1000)
-    #-------------------------------------------------------------------
+    #converte image into grayscale before aruco detection
 
-    libStorage2 = [arucoDict4x4, arucoDict5x5, arucoDict6x6, arucoDict7x7]    
-    
     gray = cv.cvtColor(image_path, cv.COLOR_BGR2GRAY)
 
-    for i in range(len(libStorage2)):
+    for i in range(len(libStorage)):
         parameters = aruco.DetectorParameters()
-        detector = aruco.ArucoDetector(libStorage2[i], parameters)
+        detector = aruco.ArucoDetector(libStorage[i], parameters)
         corner, ids, rejected = detector.detectMarkers(gray)
         
+        if ids is not None and len(ids) > 2 and i == 0:
+            print("4x4 library is a match")    
+            return libStorage[i]
+        
+        if ids is not None and len(ids) > 2 and i == 1:
+            print("5x5 library is a match")
+            return libStorage[i]
+        
+        if ids is not None and len(ids) > 2 and i == 3:
+            print("6x6 library is a match")
+            return libStorage[i]
+        
+        if ids is not None and len(ids) > 2 and i == 4:
+            print("7x7 library is a match")
+            return libStorage[i]
+    
+    print("No matches found")
+
+        #for debugging ->
+"""
         if ids is not None and len(ids) > 2:
             print("---------------------------------------")
             print(f"library: {i}")
@@ -52,18 +71,14 @@ def dict_finder(image_path):
             cv.imshow("Detected Markers",img_resize)
             cv.waitKey(0)
             cv.destroyAllWindows()
-            break
+            return libStorage[i]
         
         else:
             print("---------------------------------------")
             print(f"{i} not a match")
-            print("---------------------------------------")
-
-    return corner
-
-        
-
-dict_finder(image1)
+            print("---------------------------------------")  
+"""      
+dict_finder(image)
 
 def generate_ArUco():
     # Define the dictionary we want to use
@@ -102,3 +117,6 @@ def generate_ArUco():
     cv.imshow("marker 3",marker_image3)
     cv.waitKey(0)
     cv.destroyAllWindows()
+
+
+
