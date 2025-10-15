@@ -1,7 +1,6 @@
 import cv2 as cv
 import cv2.aruco as aruco
 import numpy as np
-import os
 import glob
 
 # cam_cali kan ikke laves før vi har data fra et checker board
