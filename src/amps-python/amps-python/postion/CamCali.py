@@ -1,3 +1,4 @@
+#source /opt/ros/jazzy/setup.bash
 import cv2 as cv
 import cv2.aruco as aruco
 import numpy as np
@@ -11,15 +12,12 @@ class CameraCalibration(Node):
     def __init__(self):
         super().__init__('camera_calibration')
         self.subscription = self.create_subscription(
-            int,               # message type
+            #ingen ide,               # message type
             'videoFeed',            # topic name
             self.listener_callback,  # callback function
             10                    # QoS (queue size)
         )
         self.subscription  # prevent unused variable warning
-
-    def data_collector():
-        pass
 
     # cam_cali kan ikke laves før vi har data fra et checker board
     def cam_cali():
