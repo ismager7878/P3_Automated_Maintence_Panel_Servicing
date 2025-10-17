@@ -1,4 +1,22 @@
-data = {
-  "wish":"fuck me",
-  "depth":"mariana trench"
-}
+datasetsRobot:
+  - id: 1
+    R_gripper2base:
+      - [1, 2, 3]
+      - [4, 5, 6]
+      - [7, 8, 9]
+    t_gripper2base:
+      - [9, 8, 7]
+    other_data:
+      timestamp: "2025-10-17T10:15:00Z"
+
+datasetsCamera:
+  - id: 1
+    R_target2cam:
+      - [1, 2, 3]
+      - [4, 5, 6]
+      - [7, 8, 9]
+    t_target2cam:
+      - [9, 8, 7]
+    other_data:
+      timestamp: "2025-10-17T10:15:00Z"
+
