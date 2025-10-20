@@ -24,7 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'TestPetur = amps_python.position.buildReady.TestPetur:main',
+            'Pose = amps_python.position.buildReady.UR_pose_listener:main',
             'VideoPetur = amps_python.position.buildReady.videoViewer:main'
         ],
     },
