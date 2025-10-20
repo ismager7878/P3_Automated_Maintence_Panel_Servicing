@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            "TestPetur = amps-python.TestPetur:main"
         ],
     },
 )
