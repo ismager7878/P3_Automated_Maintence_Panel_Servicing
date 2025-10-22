@@ -25,7 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'Pose = amps_python.position.buildReady.UR_pose_listener:main',
-            'VideoPetur = amps_python.position.buildReady.videoViewer:main'
+            'CamCali = amps_python.position.buildReady.videoViewer:main'
         ],
     },
 )

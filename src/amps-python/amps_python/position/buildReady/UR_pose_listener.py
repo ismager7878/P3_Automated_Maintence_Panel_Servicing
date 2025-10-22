@@ -37,8 +37,8 @@ class ImagePoseListener(Node):
 
         print(f"Rotation matrix:")
         print(r_mat)
-        print("position vector:")
-        print(p)
+        #print("position vector:")
+        #print(p)
 
 
 
