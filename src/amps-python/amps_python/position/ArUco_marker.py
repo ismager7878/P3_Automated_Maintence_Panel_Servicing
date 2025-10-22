@@ -2,7 +2,6 @@ import cv2 as cv
 import cv2.aruco as aruco
 import numpy as np
 import os
-import CamCali
 
 def loadImage(image_path):
     image = cv.imread(image_path)

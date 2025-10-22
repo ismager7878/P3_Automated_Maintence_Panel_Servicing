@@ -6,14 +6,10 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
 import cv2.aruco as aruco
-import numpy as np
 
-class VideoViewer(Node):
+class Aruco_detector(Node):
     def __init__(self):
         super().__init__('video_viewer')
-
-        self.get_logger().info(f"OpenCV version: {cv2.__version__}")
-        self.get_logger().info(f"OpenCV path: {cv2.__file__}")
 
         # Parametre (du kan override dem fra CLI)
         self.declare_parameter('color_topic', '/camera/camera/color/image_raw')
@@ -28,7 +24,6 @@ class VideoViewer(Node):
         topic = self.get_parameter('color_topic').get_parameter_value().string_value
         self.sub = self.create_subscription(Image, topic, self.on_color, sensor_qos)
         self.sub1 = self.create_subscription(Image, topic, self.dict_finder, sensor_qos)
-        self.sub2 = self.create_subscription(Image, topic, self.undistorted, sensor_qos)
         self.get_logger().info(f'Viser COLOR fra: {topic}')
 
         # Timer til at håndtere cv2.waitKey uden at blokere rclpy
@@ -94,59 +89,9 @@ class VideoViewer(Node):
         except Exception as e:
             self.get_logger().warn(f'Kunne ikke konvertere farvebillede: {e}')
 
-    def undistorted(self, msg: Image):
-        #-------------------------------------------------------------
-        #træk data ud af xml fil
-        calib_data = "/home/petur/Documents/Github/P3_Automated_Maintence_Panel_Servicing/src/amps-python/amps_python/data/calibration-data/cam_calibration.xml"
-        fs = cv2.FileStorage(calib_data, cv2.FILE_STORAGE_READ)
-        K  = fs.getNode("camera_matrix").mat()
-        D  = fs.getNode("distortion_coefficients").mat()
-        fs.release()
-        #-------------------------------------------------------------
-        #Undistort image
-        frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        
-        h, w = frame.shape[:2]
-        newK, roi = cv2.getOptimalNewCameraMatrix(K, D, (w, h), alpha=0.0, newImgSize=(w, h))
-
-        # Precompute mappings
-        map1, map2 = cv2.initUndistortRectifyMap(K, D, None, newK, (w, h), cv2.CV_16SC2)
-
-        und = cv2.remap(frame, map1, map2, interpolation=cv2.INTER_LINEAR)
-        cv2.imshow("Undistorted", und)
-        #-------------------------------------------------------------
-        # Define chess board size:
-        pattern_size = (7, 7)  # antal indre hjørner
-        square_size = 0.025    # 25 mm = 0.025 m
-        #-------------------------------------------------------------
-        # generér 3D-punkterne for alle hjørner i (x,y,z)
-        objectPoints = np.zeros((pattern_size[0]*pattern_size[1], 3), np.float32)
-        objectPoints[:, :2] = np.mgrid[0:pattern_size[0],
-                                    0:pattern_size[1]].T.reshape(-1, 2)
-        objectPoints *= square_size
-        #-------------------------------------------------------------
-        # opencv funktion til at finde image points
-        gray = cv2.cvtColor(und, cv2.COLOR_BGR2GRAY)
-
-        found, corners = cv2.findChessboardCorners(gray, pattern_size)
-        if found:
-            # Forbedr nøjagtigheden
-            corners = cv2.cornerSubPix(
-                gray, corners, (11, 11), (-1, -1),
-                (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-            )
-            imagePoints = corners
-        #-------------------------------------------------------------
-        # camera til board vektor og matrise
-        retval, rvec, tvec = cv2.solvePnP(objectPoints, imagePoints, K, D)
-        R_target2cam, _ = cv2.Rodrigues(rvec)
-        t_target2cam = tvec
-        #-------------------------------------------------------------
-
-
 def main():
     rclpy.init()
-    node = VideoViewer()
+    node = Aruco_detector()
     try:
         rclpy.spin(node)
     finally:

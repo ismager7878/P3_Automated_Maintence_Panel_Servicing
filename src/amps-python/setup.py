@@ -24,7 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'Pose = amps_python.position.buildReady.UR_pose_listener:main',
+            'Aruco = amps_python.position.buildReady.Aruco_detector_node:main',
             'CamCali = amps_python.position.buildReady.videoViewer:main'
         ],
     },
