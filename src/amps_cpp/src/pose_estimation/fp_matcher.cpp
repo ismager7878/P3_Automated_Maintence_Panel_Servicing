@@ -94,14 +94,11 @@ private:
 
         // Remove old poses (keep only recent ones)
         auto now = this->get_clock()->now();
-        poses_between_frames.erase(
-            remove_if(poses_between_frames.begin(), poses_between_frames.end(),
-                [now](const PoseStamped& pose) {
-                    auto pose_time = rclcpp::Time(pose.header.stamp);
-                    return (now - pose_time).seconds() > 1.0; // Remove poses older than 1 second
-                }),
-            poses_between_frames.end()
-        );
+        remove_if(poses_between_frames.begin(), poses_between_frames.end(),
+            [now](const PoseStamped& pose) {
+                auto pose_time = rclcpp::Time(pose.header.stamp);
+                return (now - pose_time).seconds() > 1.0; // Remove poses older than 1 second
+            });
     }
     
     vector<PoseStamped> poses_between_frames = {};
