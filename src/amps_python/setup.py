@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'amps-python'
+package_name = 'amps_python'
 
 setup(
     name=package_name,
