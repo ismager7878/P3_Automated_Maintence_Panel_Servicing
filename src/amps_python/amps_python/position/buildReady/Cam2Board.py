@@ -7,8 +7,9 @@ import cv2
 import cv2.aruco as aruco
 import numpy as np
 import xml.etree.ElementTree as ET
-from geometry_msgs.msg import PoseStamped
+#from geometry_msgs.msg import PoseStamped
 import spatialmath as spm
+from amps_cpp.msg import FrameWithPose
 
 class Cam2Board(Node):
     def __init__(self):
@@ -26,21 +27,10 @@ class Cam2Board(Node):
             history=HistoryPolicy.KEEP_LAST
         )
         #--------------------------------------------------------------------------------
-        #subscription 2 pose topic:
-        self.sub_pose = self.create_subscription(PoseStamped,
-                                                '/tcp_pose_broadcaster/pose',
-                                                self.quaternion2rotationMatrix,
-                                                sensor_qos)
-        self.get_logger().info(f"Viser pose fra: {'/tcp_pose_broadcaster/pose'}")
+        #subscription 2 framwpose topic:
+        self.sub_frame_pose = self.create_subscription(FrameWithPose,'frame_with_pose', self.cam2boardMatrixes, 10)
+        self.sub_quaternion = self.create_subscription(FrameWithPose,'frame_with_pose', self.quaternion2rotationMatrix,10)
         #--------------------------------------------------------------------------------
-        #subscription 2 video topic:
-        video_topic = self.get_parameter('color_topic').get_parameter_value().string_value
-        #self.sub = self.create_subscription(Image, topic, self.on_color, sensor_qos)
-        #self.sub1 = self.create_subscription(Image, topic, self.dict_finder, sensor_qos)
-        self.sub2 = self.create_subscription(Image, video_topic, self.cam2boardMatrixes, sensor_qos)
-        self.get_logger().info(f'Viser COLOR fra: {video_topic}')
-        #--------------------------------------------------------------------------------
-
 
         # Timer til at håndtere cv2.waitKey uden at blokere rclpy
         self.timer = self.create_timer(0.001, self.on_timer)
@@ -80,20 +70,8 @@ class Cam2Board(Node):
         pos = msg.pose.position
         self.t_base2wrist = np.array([[pos.x],[pos.y],[pos.z]], dtype=float)
 
-        #print(f"Rotation matrix:")
-        #print(R_base2wrist)
-        #print("position vector:")
-        #print(p)
     #--------------------------------------------------------------------
     #funktioner til video:
-
-    def on_color(self, msg: Image):
-        try:
-            # typisk encoding: "bgr8" eller "rgb8" -> cv_bridge håndterer det
-            frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-            cv2.imshow('Color', frame)
-        except Exception as e:
-            self.get_logger().warn(f'Kunne ikke konvertere farvebillede: {e}')
     
     def on_timer(self):
         # Luk på ESC eller q
@@ -105,7 +83,7 @@ class Cam2Board(Node):
 
    
     #skal bruges til når vi skifter over til aruco pose estimation
-    def dict_finder(self, msg: Image):
+    def dict_finder(self, msg: FrameWithPose):
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
@@ -147,7 +125,7 @@ class Cam2Board(Node):
         except Exception as e:
             self.get_logger().warn(f'Kunne ikke konvertere farvebillede: {e}')
     
-    def cam2boardMatrixes(self, msg: Image):
+    def cam2boardMatrixes(self, msg: FrameWithPose):
         #-------------------------------------------------------------
         #load image as frame
         frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
@@ -208,8 +186,6 @@ class Cam2Board(Node):
                 self.R_w2b.append(R_w2b)  
                 self.t_w2b.append(t_w2b)
 
-            #print(f"rotation2cam: {self.R_target2cam}")
-            #print(f"translation2cam: {self.t_target2cam}")
             #-------------------------------------------------------------
             cv2.imshow("corners", image)
         if len(self.R_b2c) < 500:   
@@ -220,7 +196,7 @@ class Cam2Board(Node):
             R_c2g, t_c2g = cv2.calibrateHandEye(
             self.R_w2b, self.t_w2b,
             self.R_b2c, self.t_b2c,
-            method=cv2.CALIB_HAND_EYE_TSAI  # eller PARK, DANIILIDIS, HORAUD
+            method=cv2.CALIB_HAND_EYE_TSAI
             )
             
             print("R_cam2gripper:\n", R_c2g)
