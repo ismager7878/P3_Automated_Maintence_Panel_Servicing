@@ -24,8 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'Aruco = amps_python.position.buildReady.Aruco_detector_node:main',
-            'CamCali = amps_python.position.buildReady.videoViewer:main'
+            'Handeye = amps_python.position.buildReady.Cam2Board:main',
         ],
     },
 )

@@ -1,4 +1,3 @@
-#Chat genereret til test
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
@@ -7,13 +6,15 @@ from cv_bridge import CvBridge
 import cv2
 import cv2.aruco as aruco
 import numpy as np
+import xml.etree.ElementTree as ET
+from geometry_msgs.msg import PoseStamped
+import spatialmath as spm
 
-class VideoViewer(Node):
+class Cam2Board(Node):
     def __init__(self):
-        super().__init__('video_viewer')
+        super().__init__('Cam2Board')
 
         self.get_logger().info(f"OpenCV version: {cv2.__version__}")
-        self.get_logger().info(f"OpenCV path: {cv2.__file__}")
 
         # Parametre (du kan override dem fra CLI)
         self.declare_parameter('color_topic', '/camera/camera/color/image_raw')
@@ -24,15 +25,59 @@ class VideoViewer(Node):
             reliability=ReliabilityPolicy.BEST_EFFORT,
             history=HistoryPolicy.KEEP_LAST
         )
-        
-        topic = self.get_parameter('color_topic').get_parameter_value().string_value
-        self.sub = self.create_subscription(Image, topic, self.on_color, sensor_qos)
-        self.sub1 = self.create_subscription(Image, topic, self.dict_finder, sensor_qos)
-        self.sub2 = self.create_subscription(Image, topic, self.undistorted, sensor_qos)
-        self.get_logger().info(f'Viser COLOR fra: {topic}')
+        #--------------------------------------------------------------------------------
+        #subscription 2 pose topic:
+        self.sub_pose = self.create_subscription(PoseStamped,
+                                                '/tcp_pose_broadcaster/pose',
+                                                self.quaternion2rotationMatrix,
+                                                sensor_qos)
+        self.get_logger().info(f"Viser pose fra: {'/tcp_pose_broadcaster/pose'}")
+        #--------------------------------------------------------------------------------
+        #subscription 2 video topic:
+        video_topic = self.get_parameter('color_topic').get_parameter_value().string_value
+        #self.sub = self.create_subscription(Image, topic, self.on_color, sensor_qos)
+        #self.sub1 = self.create_subscription(Image, topic, self.dict_finder, sensor_qos)
+        self.sub2 = self.create_subscription(Image, video_topic, self.cam2boardMatrixes, sensor_qos)
+        self.get_logger().info(f'Viser COLOR fra: {video_topic}')
+        #--------------------------------------------------------------------------------
+
 
         # Timer til at håndtere cv2.waitKey uden at blokere rclpy
         self.timer = self.create_timer(0.001, self.on_timer)
+
+        #-------------------------------------------------------------
+        #træk data ud af xml fil
+        xml = "/home/petur/Documents/Github/P3_Automated_Maintence_Panel_Servicing/src/amps-python/amps_python/data/calibration-data/cam_calibration.xml"
+        tree = ET.parse(xml)
+
+        root = tree.getroot()
+        self.K = np.array(root.find('camera_matrix/data').text.split(), float).reshape(3,3)
+        self.D = np.array(root.find('distortion_coefficients/data').text.split(), float).reshape(1,5)
+        #---------------------------------------------------------------
+        # stop the iteration when specified
+        # accuracy, epsilon, is reached or
+        # specified number of iterations are completed.
+        self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+        #----------------------------------------------------------------
+
+    #--------------------------------------------------------------------
+    # funktioner til pose:
+    def quaternion2rotationMatrix(self, msg):
+        ori = msg.pose.orientation
+        self.t_base2wrist = msg.pose.position
+        q = spm.UnitQuaternion([ori.w, ori.x, ori.y, ori.z])
+        R = q.R
+
+        np.set_printoptions(precision=4, suppress=True)  # Set print options for better readability
+
+        self.R_base2wrist = spm.SO3(R)
+
+        #print(f"Rotation matrix:")
+        #print(R_base2wrist)
+        #print("position vector:")
+        #print(p)
+    #--------------------------------------------------------------------
+    #funktioner til video:
 
     def on_color(self, msg: Image):
         try:
@@ -41,7 +86,7 @@ class VideoViewer(Node):
             cv2.imshow('Color', frame)
         except Exception as e:
             self.get_logger().warn(f'Kunne ikke konvertere farvebillede: {e}')
-
+    
     def on_timer(self):
         # Luk på ESC eller q
         k = cv2.waitKey(1) & 0xFF
@@ -51,7 +96,7 @@ class VideoViewer(Node):
             rclpy.shutdown()
 
    
-
+    #skal bruges til når vi skifter over til aruco pose estimation
     def dict_finder(self, msg: Image):
         try:
             frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
@@ -93,27 +138,11 @@ class VideoViewer(Node):
         
         except Exception as e:
             self.get_logger().warn(f'Kunne ikke konvertere farvebillede: {e}')
-
-    def undistorted(self, msg: Image):
+    
+    def cam2boardMatrixes(self, msg: Image):
         #-------------------------------------------------------------
-        #træk data ud af xml fil
-        calib_data = "/home/petur/Documents/Github/P3_Automated_Maintence_Panel_Servicing/src/amps-python/amps_python/data/calibration-data/cam_calibration.xml"
-        fs = cv2.FileStorage(calib_data, cv2.FILE_STORAGE_READ)
-        K  = fs.getNode("camera_matrix").mat()
-        D  = fs.getNode("distortion_coefficients").mat()
-        fs.release()
-        #-------------------------------------------------------------
-        #Undistort image
+        #load image as frame
         frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        
-        h, w = frame.shape[:2]
-        newK, roi = cv2.getOptimalNewCameraMatrix(K, D, (w, h), alpha=0.0, newImgSize=(w, h))
-
-        # Precompute mappings
-        map1, map2 = cv2.initUndistortRectifyMap(K, D, None, newK, (w, h), cv2.CV_16SC2)
-
-        und = cv2.remap(frame, map1, map2, interpolation=cv2.INTER_LINEAR)
-        cv2.imshow("Undistorted", und)
         #-------------------------------------------------------------
         # Define chess board size:
         pattern_size = (7, 7)  # antal indre hjørner
@@ -126,27 +155,47 @@ class VideoViewer(Node):
         objectPoints *= square_size
         #-------------------------------------------------------------
         # opencv funktion til at finde image points
-        gray = cv2.cvtColor(und, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        found, corners = cv2.findChessboardCorners(gray, pattern_size)
-        if found:
+        ret, corners = cv2.findChessboardCorners(gray, pattern_size)
+        if ret:
             # Forbedr nøjagtigheden
             corners = cv2.cornerSubPix(
                 gray, corners, (11, 11), (-1, -1),
                 (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
             )
+
+            # Refining pixel coordinates
+            # for given 2d points.
+            corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), self.criteria)
+
+            # Draw and display the corners
+            image = cv2.drawChessboardCorners(gray, pattern_size, corners2, ret)
+
             imagePoints = corners
-        #-------------------------------------------------------------
-        # camera til board vektor og matrise
-        retval, rvec, tvec = cv2.solvePnP(objectPoints, imagePoints, K, D)
-        R_target2cam, _ = cv2.Rodrigues(rvec)
-        t_target2cam = tvec
-        #-------------------------------------------------------------
+            #-------------------------------------------------------------
+            # camera til board vektor og matrise
+            retval, rvec, tvec = cv2.solvePnP(objectPoints, imagePoints, self.K, self.D)
+            self.R_target2cam, _ = cv2.Rodrigues(rvec)
+            self.t_target2cam = tvec
+
+            self.handEye()
+
+            #print(f"rotation2cam: {self.R_target2cam}")
+            #print(f"translation2cam: {self.t_target2cam}")
+            #-------------------------------------------------------------
+            cv2.imshow("corners", image)
+    
+    def handEye(self):
+        print(f"R_target2cam: {self.R_target2cam}")
+        print(f"t_target2cam: {self.t_target2cam}")
+        print(f"base2wrist: {self.R_base2wrist}")
+        print(f"t_base2wrist: {self.t_base2wrist}")
 
 
 def main():
     rclpy.init()
-    node = VideoViewer()
+    node = Cam2Board()
     try:
         rclpy.spin(node)
     finally:
