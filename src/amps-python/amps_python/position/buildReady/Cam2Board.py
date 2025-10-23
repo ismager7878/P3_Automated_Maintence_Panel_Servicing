@@ -59,18 +59,26 @@ class Cam2Board(Node):
         # specified number of iterations are completed.
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
         #----------------------------------------------------------------
+        #lister til at gemme transformationer:
+        self.R_w2b = []  # wrist->base
+        self.t_w2b = []
+        self.R_b2c = []  # board->camera
+        self.t_b2c = []
+
 
     #--------------------------------------------------------------------
     # funktioner til pose:
     def quaternion2rotationMatrix(self, msg):
+        #orientation:
         ori = msg.pose.orientation
-        self.t_base2wrist = msg.pose.position
         q = spm.UnitQuaternion([ori.w, ori.x, ori.y, ori.z])
         R = q.R
-
         np.set_printoptions(precision=4, suppress=True)  # Set print options for better readability
-
         self.R_base2wrist = spm.SO3(R)
+
+        #position:
+        pos = msg.pose.position
+        self.t_base2wrist = np.array([[pos.x],[pos.y],[pos.z]], dtype=float)
 
         #print(f"Rotation matrix:")
         #print(R_base2wrist)
@@ -176,21 +184,49 @@ class Cam2Board(Node):
             #-------------------------------------------------------------
             # camera til board vektor og matrise
             retval, rvec, tvec = cv2.solvePnP(objectPoints, imagePoints, self.K, self.D)
-            self.R_target2cam, _ = cv2.Rodrigues(rvec)
-            self.t_target2cam = tvec
+            self.R_board2cam, _ = cv2.Rodrigues(rvec)
+            self.t_board2cam = tvec
 
-            self.handEye()
+            # tilføjer værdier til lister, til handeye calibration:
+            #-------------------------------------------------------------
+            #board til camera transformation
+            self.R_b2c.append(self.R_board2cam)
+            self.t_b2c.append(self.t_board2cam)
+            #-------------------------------------------------------------
+            #
+            if retval == True:
+                #----------------------------------------------------------------
+                #klargøring af poses til handeye:
+                # du har R_base2wrist (SO3) og t_base2wrist (3x1) fra PoseStamped
+                R_b2w = self.R_base2wrist.R                 # numpy 3x3
+                t_b2w = self.t_base2wrist
+
+                # invertér: T_g2b = (T_b2g)^-1
+                R_w2b = R_b2w.T
+                t_w2b = -R_b2w.T @ t_b2w
+                #----------------------------------------------------------------
+                self.R_w2b.append(R_w2b)  
+                self.t_w2b.append(t_w2b)
 
             #print(f"rotation2cam: {self.R_target2cam}")
             #print(f"translation2cam: {self.t_target2cam}")
             #-------------------------------------------------------------
             cv2.imshow("corners", image)
-    
-    def handEye(self):
-        print(f"R_target2cam: {self.R_target2cam}")
-        print(f"t_target2cam: {self.t_target2cam}")
-        print(f"base2wrist: {self.R_base2wrist}")
-        print(f"t_base2wrist: {self.t_base2wrist}")
+        if len(self.R_b2c) < 500:   
+            print(f"image list lenght: {len(self.R_b2c)}")
+        
+        if len(self.R_b2c) == 500:
+            print("calibrating")
+            R_c2g, t_c2g = cv2.calibrateHandEye(
+            self.R_w2b, self.t_w2b,
+            self.R_b2c, self.t_b2c,
+            method=cv2.CALIB_HAND_EYE_TSAI  # eller PARK, DANIILIDIS, HORAUD
+            )
+            
+            print("R_cam2gripper:\n", R_c2g)
+            print("t_cam2gripper:\n", t_c2g)
+            print("all done :)")
+            
 
 
 def main():
