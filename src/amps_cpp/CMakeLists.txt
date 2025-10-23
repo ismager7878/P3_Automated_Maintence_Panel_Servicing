@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(amps-cpp)
+project(amps_cpp)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -15,6 +15,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(control_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(ur_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 ## Action Client
 add_library(action_client SHARED
@@ -46,9 +47,32 @@ target_include_directories(ur_wrapper PUBLIC
 ament_target_dependencies(ur_wrapper ur_client_library ur_msgs std_srvs rclcpp geometry_msgs tf2 tf2_geometry_msgs control_msgs rclcpp_action rclcpp_components)
 rclcpp_components_register_node(ur_wrapper PLUGIN "ur_script_wrapper::UrScriptWrapper" EXECUTABLE ur_wrapper_node)
 
+
+##Frame and Pose Matcher
+add_executable(fp_matcher src/pose_estimation/fp_matcher.cpp)
+ament_target_dependencies(fp_matcher rclcpp geometry_msgs sensor_msgs) 
+
+
+## Custom Interfaces
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/FrameWithPose.msg"
+  DEPENDENCIES geometry_msgs sensor_msgs
+)
+
+rosidl_get_typesupport_target(cpp_typesupport_target
+  ${PROJECT_NAME} rosidl_typesupport_cpp)
+target_link_libraries(fp_matcher "${cpp_typesupport_target}")
+
+
 ## Directories to include
 #include_directories(resources)
 
+## Install executables
+install(TARGETS 
+  fp_matcher
+  DESTINATION lib/${PROJECT_NAME})
+
+## Install libraries
 install(TARGETS
   action_client
   ur_wrapper
