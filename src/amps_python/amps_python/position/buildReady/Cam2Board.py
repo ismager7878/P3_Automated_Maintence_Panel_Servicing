@@ -1,7 +1,6 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
-from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
 import cv2.aruco as aruco
@@ -49,6 +48,7 @@ class Cam2Board(Node):
         try:
             pkg_share = get_package_share_directory('amps_python')
             xml = os.path.join(pkg_share, 'data', 'calibration-data', 'cam_calibration.xml')
+            xml_factory = os.path.join(pkg_share, 'data', 'calibration-data', 'factory_settings.xml')
         except Exception as e:
             self.get_logger().error(f"Could not find package share directory: {e}")
             raise
@@ -57,11 +57,14 @@ class Cam2Board(Node):
             self.get_logger().error(f"Calibration file not found: {xml}")
             raise FileNotFoundError(f"Calibration file not found: {xml}")
         
+     
+       
         tree = ET.parse(xml)
-
         root = tree.getroot()
         self.K = np.array(root.find('camera_matrix/data').text.split(), float).reshape(3,3)
         self.D = np.array(root.find('distortion_coefficients/data').text.split(), float).reshape(1,5)
+
+        
         #---------------------------------------------------------------
         # stop the iteration when specified
         # accuracy, epsilon, is reached or
@@ -96,7 +99,6 @@ class Cam2Board(Node):
 
     #--------------------------------------------------------------------
     #funktioner til video:
-    
     def on_timer(self):
         # Luk på ESC eller q
         k = cv2.waitKey(1) & 0xFF
@@ -163,6 +165,10 @@ class Cam2Board(Node):
         pos = msg.pose.pose.position
         self.t_base2wrist = np.array([[pos.x],[pos.y],[pos.z]], dtype=float)
         
+        # Debug: log first pose to check units
+        self.get_logger().info(f"Robot pose (x,y,z): ({pos.x:.4f}, {pos.y:.4f}, {pos.z:.4f})", once=True)
+        
+
         #-------------------------------------------------------------
         #load image as frame from the FrameWithPose message
         frame = self.bridge.imgmsg_to_cv2(msg.frame, desired_encoding="bgr8")
@@ -198,9 +204,15 @@ class Cam2Board(Node):
             imagePoints = corners
             #-------------------------------------------------------------
             # camera til board vektor og matrise
+            # Use the correct calibration matrices based on dist_cali flag
+           
             retval, rvec, tvec = cv2.solvePnP(objectPoints, imagePoints, self.K, self.D)
             self.R_board2cam, _ = cv2.Rodrigues(rvec)
             self.t_board2cam = tvec
+
+           
+            # Debug: log first tvec to check camera-to-board distance
+            self.get_logger().info(f"Camera to board distance: {np.linalg.norm(tvec):.4f} meters", once=True)
 
             # tilføjer værdier til lister, til handeye calibration:
             #-------------------------------------------------------------
