@@ -94,6 +94,7 @@ private:
 
         // Remove old poses (keep only recent ones)
         auto now = this->get_clock()->now();
+        
         poses_between_frames.erase(
             remove_if(poses_between_frames.begin(), poses_between_frames.end(),
                 [now](const PoseStamped& pose) {

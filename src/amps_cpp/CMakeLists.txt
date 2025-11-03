@@ -16,6 +16,8 @@ find_package(control_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(ur_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
 
 ## Action Client
 add_library(action_client SHARED
@@ -52,6 +54,11 @@ rclcpp_components_register_node(ur_wrapper PLUGIN "ur_script_wrapper::UrScriptWr
 add_executable(fp_matcher src/pose_estimation/fp_matcher.cpp)
 ament_target_dependencies(fp_matcher rclcpp geometry_msgs sensor_msgs) 
 
+##Pose Estimation - Aruco Detection
+add_executable(pose_estimation src/pose_estimation/pose_estimator.cpp)
+ament_target_dependencies(pose_estimation rclcpp geometry_msgs sensor_msgs cv_bridge OpenCV)
+
+
 
 ## Custom Interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -61,7 +68,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 rosidl_get_typesupport_target(cpp_typesupport_target
   ${PROJECT_NAME} rosidl_typesupport_cpp)
+  
 target_link_libraries(fp_matcher "${cpp_typesupport_target}")
+target_link_libraries(pose_estimation "${cpp_typesupport_target}")
 
 
 ## Directories to include
@@ -70,6 +79,7 @@ target_link_libraries(fp_matcher "${cpp_typesupport_target}")
 ## Install executables
 install(TARGETS 
   fp_matcher
+  pose_estimation
   DESTINATION lib/${PROJECT_NAME})
 
 ## Install libraries
