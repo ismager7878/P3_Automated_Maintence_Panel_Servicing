@@ -1,14 +1,16 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
-from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
 import cv2.aruco as aruco
 import numpy as np
 import xml.etree.ElementTree as ET
-from geometry_msgs.msg import PoseStamped
+import os
+from ament_index_python.packages import get_package_share_directory
+#from geometry_msgs.msg import PoseStamped
 import spatialmath as spm
+from amps_cpp.msg import FrameWithPose
 
 class Cam2Board(Node):
     def __init__(self):
@@ -26,33 +28,43 @@ class Cam2Board(Node):
             history=HistoryPolicy.KEEP_LAST
         )
         #--------------------------------------------------------------------------------
-        #subscription 2 pose topic:
-        self.sub_pose = self.create_subscription(PoseStamped,
-                                                '/tcp_pose_broadcaster/pose',
-                                                self.quaternion2rotationMatrix,
-                                                sensor_qos)
-        self.get_logger().info(f"Viser pose fra: {'/tcp_pose_broadcaster/pose'}")
+        #subscription 2 framwpose topic:
+        # fp_matcher publishes to 'amps_cpp/pose_estimation/rgb_frame_with_pose'
+        # This single subscription handles both frame and pose
+        self.sub_frame_pose = self.create_subscription(
+            FrameWithPose,
+            'amps_cpp/pose_estimation/rgb_frame_with_pose',
+            self.cam2boardMatrixes,
+            10
+        )
+        self.get_logger().info("Subscribed to 'amps_cpp/pose_estimation/rgb_frame_with_pose' topic. Waiting for messages...")
         #--------------------------------------------------------------------------------
-        #subscription 2 video topic:
-        video_topic = self.get_parameter('color_topic').get_parameter_value().string_value
-        #self.sub = self.create_subscription(Image, topic, self.on_color, sensor_qos)
-        #self.sub1 = self.create_subscription(Image, topic, self.dict_finder, sensor_qos)
-        self.sub2 = self.create_subscription(Image, video_topic, self.cam2boardMatrixes, sensor_qos)
-        self.get_logger().info(f'Viser COLOR fra: {video_topic}')
-        #--------------------------------------------------------------------------------
-
 
         # Timer til at håndtere cv2.waitKey uden at blokere rclpy
         self.timer = self.create_timer(0.001, self.on_timer)
 
         #-------------------------------------------------------------
-        #træk data ud af xml fil
-        xml = "/home/petur/Documents/Github/P3_Automated_Maintence_Panel_Servicing/src/amps-python/amps_python/data/calibration-data/cam_calibration.xml"
+        # Find calibration XML file from installed package share directory
+        try:
+            pkg_share = get_package_share_directory('amps_python')
+            xml = os.path.join(pkg_share, 'data', 'calibration-data', 'cam_calibration.xml')
+            xml_factory = os.path.join(pkg_share, 'data', 'calibration-data', 'factory_settings.xml')
+        except Exception as e:
+            self.get_logger().error(f"Could not find package share directory: {e}")
+            raise
+        
+        if not os.path.exists(xml):
+            self.get_logger().error(f"Calibration file not found: {xml}")
+            raise FileNotFoundError(f"Calibration file not found: {xml}")
+        
+     
+       
         tree = ET.parse(xml)
-
         root = tree.getroot()
         self.K = np.array(root.find('camera_matrix/data').text.split(), float).reshape(3,3)
         self.D = np.array(root.find('distortion_coefficients/data').text.split(), float).reshape(1,5)
+
+        
         #---------------------------------------------------------------
         # stop the iteration when specified
         # accuracy, epsilon, is reached or
@@ -64,37 +76,29 @@ class Cam2Board(Node):
         self.t_w2b = []
         self.R_b2c = []  # board->camera
         self.t_b2c = []
+        
+        # Initialize pose variables (will be set when first message arrives)
+        self.R_base2wrist = None
+        self.t_base2wrist = None
 
 
     #--------------------------------------------------------------------
     # funktioner til pose:
     def quaternion2rotationMatrix(self, msg):
+        self.get_logger().info("Received pose data", once=True)
         #orientation:
-        ori = msg.pose.orientation
+        ori = msg.pose.pose.orientation
         q = spm.UnitQuaternion([ori.w, ori.x, ori.y, ori.z])
         R = q.R
         np.set_printoptions(precision=4, suppress=True)  # Set print options for better readability
         self.R_base2wrist = spm.SO3(R)
 
         #position:
-        pos = msg.pose.position
+        pos = msg.pose.pose.position
         self.t_base2wrist = np.array([[pos.x],[pos.y],[pos.z]], dtype=float)
 
-        #print(f"Rotation matrix:")
-        #print(R_base2wrist)
-        #print("position vector:")
-        #print(p)
     #--------------------------------------------------------------------
     #funktioner til video:
-
-    def on_color(self, msg: Image):
-        try:
-            # typisk encoding: "bgr8" eller "rgb8" -> cv_bridge håndterer det
-            frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-            cv2.imshow('Color', frame)
-        except Exception as e:
-            self.get_logger().warn(f'Kunne ikke konvertere farvebillede: {e}')
-    
     def on_timer(self):
         # Luk på ESC eller q
         k = cv2.waitKey(1) & 0xFF
@@ -105,9 +109,9 @@ class Cam2Board(Node):
 
    
     #skal bruges til når vi skifter over til aruco pose estimation
-    def dict_finder(self, msg: Image):
+    def dict_finder(self, msg: FrameWithPose):
         try:
-            frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+            frame = self.bridge.imgmsg_to_cv2(msg.frame, desired_encoding="bgr8")
 
             
             #Alle aruco dictionaries i opencv:
@@ -147,10 +151,27 @@ class Cam2Board(Node):
         except Exception as e:
             self.get_logger().warn(f'Kunne ikke konvertere farvebillede: {e}')
     
-    def cam2boardMatrixes(self, msg: Image):
+    def cam2boardMatrixes(self, msg: FrameWithPose):
+        self.get_logger().info("Received frame_with_pose message", once=True)
+        
         #-------------------------------------------------------------
-        #load image as frame
-        frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        # First, extract pose data from the message
+        # msg.pose is a PoseStamped, so we need msg.pose.pose.orientation
+        ori = msg.pose.pose.orientation
+        q = spm.UnitQuaternion([ori.w, ori.x, ori.y, ori.z])
+        R = q.R
+        self.R_base2wrist = spm.SO3(R)
+        
+        pos = msg.pose.pose.position
+        self.t_base2wrist = np.array([[pos.x],[pos.y],[pos.z]], dtype=float)
+        
+        # Debug: log first pose to check units
+        self.get_logger().info(f"Robot pose (x,y,z): ({pos.x:.4f}, {pos.y:.4f}, {pos.z:.4f})", once=True)
+        
+
+        #-------------------------------------------------------------
+        #load image as frame from the FrameWithPose message
+        frame = self.bridge.imgmsg_to_cv2(msg.frame, desired_encoding="bgr8")
         #-------------------------------------------------------------
         # Define chess board size:
         pattern_size = (7, 7)  # antal indre hjørner
@@ -183,9 +204,15 @@ class Cam2Board(Node):
             imagePoints = corners
             #-------------------------------------------------------------
             # camera til board vektor og matrise
+            # Use the correct calibration matrices based on dist_cali flag
+           
             retval, rvec, tvec = cv2.solvePnP(objectPoints, imagePoints, self.K, self.D)
             self.R_board2cam, _ = cv2.Rodrigues(rvec)
             self.t_board2cam = tvec
+
+           
+            # Debug: log first tvec to check camera-to-board distance
+            self.get_logger().info(f"Camera to board distance: {np.linalg.norm(tvec):.4f} meters", once=True)
 
             # tilføjer værdier til lister, til handeye calibration:
             #-------------------------------------------------------------
@@ -208,8 +235,6 @@ class Cam2Board(Node):
                 self.R_w2b.append(R_w2b)  
                 self.t_w2b.append(t_w2b)
 
-            #print(f"rotation2cam: {self.R_target2cam}")
-            #print(f"translation2cam: {self.t_target2cam}")
             #-------------------------------------------------------------
             cv2.imshow("corners", image)
         if len(self.R_b2c) < 500:   
@@ -220,7 +245,7 @@ class Cam2Board(Node):
             R_c2g, t_c2g = cv2.calibrateHandEye(
             self.R_w2b, self.t_w2b,
             self.R_b2c, self.t_b2c,
-            method=cv2.CALIB_HAND_EYE_TSAI  # eller PARK, DANIILIDIS, HORAUD
+            method=cv2.CALIB_HAND_EYE_TSAI
             )
             
             print("R_cam2gripper:\n", R_c2g)
