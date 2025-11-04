@@ -80,8 +80,36 @@ class Cam2Board(Node):
         # Initialize pose variables (will be set when first message arrives)
         self.R_base2wrist = None
         self.t_base2wrist = None
+        
+        # Sample filtering parameters
+        self.min_translation_diff = 0.03  # 3cm minimum movement
+        self.min_rotation_diff = 0.08     # ~5 degrees minimum rotation change
 
 
+    #--------------------------------------------------------------------
+    def is_pose_different_enough(self, R_new, t_new):
+        """Check if new pose is sufficiently different from recent poses"""
+        if len(self.R_w2b) == 0:
+            return True
+        
+        # Check against last 5 poses
+        check_count = min(5, len(self.R_w2b))
+        for i in range(1, check_count + 1):
+            R_old = self.R_w2b[-i]
+            t_old = self.t_w2b[-i]
+            
+            # Check translation difference
+            t_diff = np.linalg.norm(t_new - t_old)
+            
+            # Check rotation difference (Frobenius norm)
+            R_diff = np.linalg.norm(R_new - R_old, 'fro')
+            
+            # If too similar to any recent pose, reject
+            if t_diff < self.min_translation_diff and R_diff < self.min_rotation_diff:
+                return False
+        
+        return True
+    
     #--------------------------------------------------------------------
     # funktioner til pose:
     def quaternion2rotationMatrix(self, msg):
@@ -201,55 +229,87 @@ class Cam2Board(Node):
             # Draw and display the corners
             image = cv2.drawChessboardCorners(gray, pattern_size, corners2, ret)
 
-            imagePoints = corners
+            imagePoints = corners2
             #-------------------------------------------------------------
             # camera til board vektor og matrise
-            # Use the correct calibration matrices based on dist_cali flag
            
             retval, rvec, tvec = cv2.solvePnP(objectPoints, imagePoints, self.K, self.D)
             self.R_board2cam, _ = cv2.Rodrigues(rvec)
             self.t_board2cam = tvec
 
-           
-            # Debug: log first tvec to check camera-to-board distance
-            self.get_logger().info(f"Camera to board distance: {np.linalg.norm(tvec):.4f} meters", once=True)
-
-            # tilføjer værdier til lister, til handeye calibration:
             #-------------------------------------------------------------
-            #board til camera transformation
-            self.R_b2c.append(self.R_board2cam)
-            self.t_b2c.append(self.t_board2cam)
-            #-------------------------------------------------------------
-            #
+            # Prepare robot pose
             if retval == True:
-                #----------------------------------------------------------------
-                #klargøring af poses til handeye:
-                # du har R_base2wrist (SO3) og t_base2wrist (3x1) fra PoseStamped
                 R_b2w = self.R_base2wrist.R                 # numpy 3x3
                 t_b2w = self.t_base2wrist
 
                 # invertér: T_g2b = (T_b2g)^-1
                 R_w2b = R_b2w.T
                 t_w2b = -R_b2w.T @ t_b2w
-                #----------------------------------------------------------------
-                self.R_w2b.append(R_w2b)  
-                self.t_w2b.append(t_w2b)
+                
+                # Check if this pose is different enough from recent poses
+                if self.is_pose_different_enough(R_w2b, t_w2b):
+                    # Save both board→cam and wrist→base transformations
+                    self.R_b2c.append(self.R_board2cam)
+                    self.t_b2c.append(self.t_board2cam)
+                    self.R_w2b.append(R_w2b)  
+                    self.t_w2b.append(t_w2b)
+                    
+                    if len(self.R_b2c) % 10 == 0:  # Print every 10 samples
+                        self.get_logger().info(f"Samples collected: {len(self.R_b2c)}")
+                else:
+                    self.get_logger().info("Pose too similar to recent samples, skipping...", throttle_duration_sec=1.0)
 
             #-------------------------------------------------------------
             cv2.imshow("corners", image)
-        if len(self.R_b2c) < 500:   
-            print(f"image list lenght: {len(self.R_b2c)}")
+        #if len(self.R_b2c) < 400:   
+            #print(f"image list lenght: {len(self.R_b2c)}")
+            #print(f"current R_pose: {self.R_base2wrist}")
+            #print(f"current t_pose: {self.t_base2wrist} ")
         
-        if len(self.R_b2c) == 500:
+        if len(self.R_b2c) == 50:
             print("calibrating")
             R_c2g, t_c2g = cv2.calibrateHandEye(
             self.R_w2b, self.t_w2b,
             self.R_b2c, self.t_b2c,
-            method=cv2.CALIB_HAND_EYE_TSAI
-            )
-            
-            print("R_cam2gripper:\n", R_c2g)
-            print("t_cam2gripper:\n", t_c2g)
+            method=cv2.CALIB_HAND_EYE_TSAI)
+
+            print("translation:")
+            print(t_c2g)
+            print("Rotation:")
+            print(R_c2g)
+
+            #print("translation board2cam:")
+            #print(self.t_b2c)
+
+            print("calculation on 50 samples")
+
+        if len(self.R_b2c) == 70:
+            print("calibrating")
+            R_c2g, t_c2g = cv2.calibrateHandEye(
+            self.R_w2b, self.t_w2b,
+            self.R_b2c, self.t_b2c,
+            method=cv2.CALIB_HAND_EYE_TSAI)
+
+            print("translation:")
+            print(t_c2g)
+            print("Rotation:")
+            print(R_c2g)
+
+            print("calculation on 70 samples")
+
+        if len(self.R_b2c) == 400:
+            print("calibrating")
+            R_c2g, t_c2g = cv2.calibrateHandEye(
+            self.R_w2b, self.t_w2b,
+            self.R_b2c, self.t_b2c,
+            method=cv2.CALIB_HAND_EYE_TSAI)
+
+            print("translation:")
+            print(t_c2g)
+            print("Rotation:")
+            print(R_c2g)
+
             print("all done :)")
             
 

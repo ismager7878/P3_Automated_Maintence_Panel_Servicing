@@ -31,6 +31,8 @@ setup(
     entry_points={
         'console_scripts': [
             'Handeye = amps_python.position.buildReady.Cam2Board:main',
+            'Test = amps_python.position.buildReady.BoardTest:main',
+            'Pose = amps_python.position.buildReady.PoseListener:main',
         ],
     },
 )
