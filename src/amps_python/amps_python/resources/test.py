@@ -18,21 +18,21 @@ with open("datasets/test_images_dataset/training_paths.csv", "r") as file:
 print("\nDone reading CSV file")
 
 # Load images from paths
-color_images = np.array([])
-depth_images = np.array([])
+color_images = []
+depth_images = []
 
 print("Loading color images")
 for i, path in enumerate(color_paths):
     print(f"{i+1} of {len(color_paths)}", end="\r")
     img = cv.imread(path)
-    color_images = np.append(color_images, img)
+    color_images.append(img)
 print()
 
 print("Loading depth images")
 for i, path in enumerate(depth_paths):
     print(f"{i+1} of {len(depth_paths)}", end="\r")
     img = cv.imread(path)
-    depth_images = np.append(depth_images, img) 
+    depth_images.append(img)
 print()
 
 #Load ground truths
