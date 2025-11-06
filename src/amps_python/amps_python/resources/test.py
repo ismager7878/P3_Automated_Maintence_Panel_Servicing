@@ -1,4 +1,4 @@
-from border_detector_color import detect_border
+from border_detector_color import detect_border, calculate_intersection
 import csv, os, json
 import numpy as np
 import cv2 as cv
@@ -52,5 +52,3 @@ print("Done loading ground truth data")
 if __name__ == "__main__":
     for image in color_images:
         detect_border(image, True)
-
-
