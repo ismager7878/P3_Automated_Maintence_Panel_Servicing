@@ -1,10 +1,7 @@
 import cv2 as cv
 import numpy as np
 
-max_line_angle_deviation = np.deg2rad(0.5)
-
-
-def detect_border(img, show=False):
+def transformed_color(img, max_line_angle_deviation, show=False):
     # Preprocessing
     imgHSV = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     mask = cv.inRange(imgHSV, (0, 0, 120), (255, 77, 255))
@@ -16,65 +13,29 @@ def detect_border(img, show=False):
 
     # Segmentation
     lines = cv.HoughLines(canny, 3, np.deg2rad(1), 200, None, 0, 0).tolist()
-    lines = sanitize_lines(lines)
+    lines = sanitize_lines(lines, max_line_angle_deviation)
     
     # Identification
     points = convert_lines_to_points(img, lines)
     corner_points = calculate_corner_points(points)
-    # Draw corner points
-    cv.circle(img, corner_points[0], 10, (255,0,0), -1)
-    cv.circle(img, corner_points[1], 10, (0,255,0), -1)
-    cv.circle(img, corner_points[2], 10, (0,0,255), -1)
-    cv.circle(img, corner_points[3], 10, (255,255,0), -1)
     
+    # Draw corner points
+    if show:
+        cv.circle(img, corner_points[0], 10, (255,0,0), -1)
+        cv.circle(img, corner_points[1], 10, (0,255,0), -1)
+        cv.circle(img, corner_points[2], 10, (0,0,255), -1)
+        cv.circle(img, corner_points[3], 10, (255,255,0), -1)
+        
     # Transformation
     corner_points = np.array(corner_points, dtype="float32")
     dst_points = np.array([[680,930],[680,0],[0,0],[0,930]],dtype="float32")
     transform_matrix = cv.getPerspectiveTransform(corner_points, dst_points)
-    warped = cv.warpPerspective(img, transform_matrix, (680, 930))
-    imshow(warped)
+    warped_img = cv.warpPerspective(img, transform_matrix, (680, 930))
+    if show:
+        imshow(warped_img)
+    return warped_img, transform_matrix
 
-
-def imshow(img):
-    cv.imshow('Image', img)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
-    
-def calculate_intersection(line1, line2):
-    x1, y1 = line1[0]
-    x2, y2 = line1[1]
-    x3, y3 = line2[0]
-    x4, y4 = line2[1]
-
-    denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
-    if denominator == 0:
-        return None  # Lines are parallel
-
-    px = ((x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4)) / denominator
-    py = ((x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4)) / denominator
-    return int(px), int(py)
-
-def calculate_corner_points(points):    
-    # Sort points by horizontal and vertical positions
-    horizontals = points[0]
-    verticals = points[1]
-    horizontals = sorted(horizontals, key=lambda point: (point[0][1], point[1][1]))
-    verticals = sorted(verticals, key=lambda point: (point[0][0], point[1][0]))
-
-    border_lines = []
-    border_lines.append(horizontals[0])
-    border_lines.append(verticals[0])
-    border_lines.append(horizontals[-1])
-    border_lines.append(verticals[-1])
-
-    corners = []
-    for i in range(len(border_lines)):
-        intersection = calculate_intersection(border_lines[i], border_lines[i-1])
-        if intersection is not None:
-            corners.append(intersection)
-    return corners
-
-def sanitize_lines(lines):
+def sanitize_lines(lines, max_line_angle_deviation):
     """Returns: (horizontals, verticals, others)"""
     horizontals = []
     verticals = []
@@ -114,9 +75,45 @@ def convert_lines_to_points(img, lines):
                 points[category].append((pt1, pt2))
     return points
 
+def calculate_corner_points(points):    
+    # Sort points by horizontal and vertical positions
+    horizontals = points[0]
+    verticals = points[1]
+    horizontals = sorted(horizontals, key=lambda point: (point[0][1], point[1][1]))
+    verticals = sorted(verticals, key=lambda point: (point[0][0], point[1][0]))
 
+    border_lines = []
+    border_lines.append(horizontals[0])
+    border_lines.append(verticals[0])
+    border_lines.append(horizontals[-1])
+    border_lines.append(verticals[-1])
+
+    corners = []
+    for i in range(len(border_lines)):
+        intersection = calculate_intersection(border_lines[i], border_lines[i-1])
+        if intersection is not None:
+            corners.append(intersection)
+    return corners
+
+def calculate_intersection(line1, line2):
+    x1, y1 = line1[0]
+    x2, y2 = line1[1]
+    x3, y3 = line2[0]
+    x4, y4 = line2[1]
+
+    denominator = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+    if denominator == 0:
+        return None  # Lines are parallel
+
+    px = ((x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4)) / denominator
+    py = ((x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4)) / denominator
+    return int(px), int(py)
+
+def imshow(img):
+    cv.imshow('Image', img)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
 
 if __name__ == "__main__":
     img = cv.imread('datasets/test_images_dataset/btn_config_1/rosbag2_2025_10_30-14_13_08_0/color.png')
-    border_points = detect_border(img, show=True)
-    print("Detected border points:", border_points)
+    transformed_color(img, np.deg2rad(0.5), show=True)
