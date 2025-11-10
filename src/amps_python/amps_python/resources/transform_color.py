@@ -116,5 +116,5 @@ def imshow(img):
 
 if __name__ == "__main__":
     img = cv.imread('datasets/test_images_dataset/btn_config_1/rosbag2_2025_10_30-14_13_08_0/color.png')
-    img, m = transformed_color(img, np.deg2rad(0.5))
+    img, M = transformed_color(img, np.deg2rad(0.5))
     cv.imwrite("datasets/test_images_dataset/btn_config_1/rosbag2_2025_10_30-14_13_08_0/transformed_color.png", img)

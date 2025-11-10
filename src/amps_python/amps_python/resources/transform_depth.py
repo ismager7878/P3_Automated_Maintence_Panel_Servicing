@@ -2,10 +2,7 @@ import cv2 as cv
 import numpy as np
 from transform_color import sanitize_lines, convert_lines_to_points, calculate_corner_points
 
-def transformed_depth(img, show=False):
-    pass
-
-def improve_depth_image(img):
+def transform_depth(img, max_line_angle_deviation, show=False):
     # Calculate median of ROI
     adjustedImg = np.array(img, dtype=np.uint16)
     vals = adjustedImg[250:350, 250:350]
@@ -25,9 +22,7 @@ def improve_depth_image(img):
     adjustedImg[adjustedImg < 0] = 0
     adjustedImg[adjustedImg > 255] = 0
     adjustedImg = adjustedImg.astype(np.uint8)
-    
-    max_line_angle_deviation = np.deg2rad(0.5)
-    
+        
      # Segmentation
     lines = cv.HoughLines(adjustedImg, 3, np.deg2rad(1), 200, None, 0, 0).tolist()
     lines = sanitize_lines(lines, max_line_angle_deviation)
@@ -42,11 +37,11 @@ def improve_depth_image(img):
     transform_matrix = cv.getPerspectiveTransform(corner_points, dst_points)
     warped_img = cv.warpPerspective(adjustedImg, transform_matrix, (680, 930))
 
-    return warped_img
+    return warped_img, transform_matrix
     
 if __name__ == "__main__":
     img = cv.imread('datasets/test_images_dataset/btn_config_1/rosbag2_2025_10_30-14_13_08_0/depth.png', cv.IMREAD_UNCHANGED)
-    improved = improve_depth_image(img)
+    improved, M = transform_depth(img, np.deg2rad(0.5))
     #improved = cv.dilate(improved, np.ones((4,4), np.uint8), iterations=1)
     improved_colored = cv.applyColorMap(improved, cv.COLORMAP_JET)
     cv.imwrite("datasets/test_images_dataset/btn_config_1/rosbag2_2025_10_30-14_13_08_0/transformed_depth.png", improved_colored)
