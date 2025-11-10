@@ -1,4 +1,5 @@
-from amps_python.amps_python.resources.transform_color import transformed_color, calculate_intersection
+from transform_color import transformed_color
+from transform_depth import improve_depth_image
 import csv, os, json
 import numpy as np
 import cv2 as cv
@@ -31,7 +32,7 @@ print()
 print("Loading depth images")
 for i, path in enumerate(depth_paths):
     print(f"{i+1} of {len(depth_paths)}", end="\r")
-    img = cv.imread(path)
+    img = cv.imread(path, cv.IMREAD_UNCHANGED)
     depth_images.append(img)
 print()
 
@@ -50,7 +51,11 @@ with open("datasets/test_images_dataset/btn_config_5/ground_truth.json", "r") as
 print("Done loading ground truth data")
 
 if __name__ == "__main__":
-    for image in color_images:
-        warped, matrix = transformed_color(image, np.deg2rad(0.5), False)
-        print("Transformation matrix:")
-        print(matrix)
+    for img in depth_images:
+        improved = improve_depth_image(img)
+        # improved = cv.erode(improved, np.ones((9,9), np.uint8), iterations=1)
+        improved = cv.dilate(improved, np.ones((4,4), np.uint8), iterations=1)
+        improved_colored = cv.applyColorMap(improved, cv.COLORMAP_JET)
+        cv.imshow("Improved Depth Image", improved_colored)
+        cv.waitKey(0)
+        cv.destroyAllWindows()
