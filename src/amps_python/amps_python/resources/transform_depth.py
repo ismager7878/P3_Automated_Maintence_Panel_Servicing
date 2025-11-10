@@ -1,6 +1,6 @@
 import cv2 as cv
 import numpy as np
-from transform_color import sanitize_lines, convert_lines_to_points, calculate_corner_points, imshow, calculate_intersection
+from transform_color import sanitize_lines, convert_lines_to_points, calculate_corner_points
 
 def transformed_depth(img, show=False):
     pass
