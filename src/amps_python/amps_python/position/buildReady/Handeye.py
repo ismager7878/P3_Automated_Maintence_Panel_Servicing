@@ -11,9 +11,9 @@ from amps_cpp.msg import FrameWithPose  # antager at msg.frame er sensor_msgs/Im
 import math
 import spatialmath as spm
 
-class ImageSelector(Node):
+class Handeye(Node):
     def __init__(self):
-        super().__init__('image_selector')
+        super().__init__('Handeye')
         self.get_logger().info(f"OpenCV version: {cv2.__version__}")
         
         # Use simple highgui backend to avoid Qt threading issues
@@ -123,9 +123,10 @@ class ImageSelector(Node):
             cv2.imshow("RGB (press 's' to save, 'q'/ESC to quit)", self.image)
 
         k = cv2.waitKey(1) & 0xFF
+        
         if k == ord('s'):
             self.save_requested = True  # gem næste modtagne frame
-            print(len(self.saved_pos))
+            print(f"rob pose: {len(self.saved_pos)}, frame: {len(self.saved_imgs)}")
         
         if k == ord("b"):
             self.calculate = True # kører kamera kinematik funktion
@@ -142,7 +143,8 @@ class ImageSelector(Node):
             cv2.destroyAllWindows()
             rclpy.shutdown()
     #---------------------------------------------------------------------------------------------------------------
-    
+   
+
     
     # Funktion til at få rotation og translation ud fra billede
     def show_corner(self, msg: FrameWithPose):
@@ -274,8 +276,11 @@ class ImageSelector(Node):
 
                     self.saved_cam_oris.append(R_board2cam)
                     self.saved_cam_pos.append(t_board2cam)
-
-        print(f"Calculated img pose {len(self.saved_cam_pos)}")
+        print("------------------------------------------------------------------------")
+        print(f"img pose: {len(self.saved_cam_pos)} img rot: {len(self.saved_cam_oris)}")
+        print(f"rob pose: {len(self.saved_pos)} rob rot: {len(self.saved_oris)}")
+        print(f"rotation matrix; {len(self.saved_rotmat)}")
+        print("------------------------------------------------------------------------")
 
     def handEye(self):
         if self.cal_handeye == True:
@@ -303,12 +308,13 @@ class ImageSelector(Node):
                     self.saved_cam_oris, self.saved_cam_pos,
                     R_b2w_list, t_b2w_list,
                     method=cv2.CALIB_HAND_EYE_TSAI)
-                
+                print("------------------------------------------------------------------------")
                 print("translation:")
                 print(t_c2g)
                 print("Rotation:")
                 print(R_c2g)
-                
+                print("------------------------------------------------------------------------")
+
             else:
                 print("transformation arrays are not the same lenght :(")
 
@@ -316,7 +322,7 @@ class ImageSelector(Node):
 
 def main():
     rclpy.init()
-    node = ImageSelector()
+    node = Handeye()
     try:
         rclpy.spin(node)
     finally:

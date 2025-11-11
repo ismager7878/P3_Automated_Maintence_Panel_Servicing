@@ -30,7 +30,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'Snap = amps_python.position.buildReady.ImageSelector:main',
+            'Handeye = amps_python.position.buildReady.Handeye:main',
         ],
     },
 )
