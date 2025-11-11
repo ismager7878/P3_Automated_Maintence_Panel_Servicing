@@ -168,6 +168,8 @@ namespace ur_script_wrapper{
             result->error_string = "Error: Pose outside of workspace limits";
             result->error_code = ExcecuteMotion::Result::INVALID_GOAL;
             RCLCPP_ERROR(this->get_logger(), "Motion Failed with error: Pose outside of workspace limits");
+            RCLCPP_ERROR(this->get_logger(), "Pose Position - x: %.2f, y: %.2f, z: %.2f", 
+              moiton.poses.back().pose.position.x, moiton.poses.back().pose.position.y, moiton.poses.back().pose.position.z);
             goal_handle->abort(result);
             return;
           }
@@ -317,7 +319,7 @@ namespace ur_script_wrapper{
 
         message.data = {
           string("def myProg():\n") + 
-          "  " + moveFunction + "(p[" + to_string(pose.position.x/1000) + "," + to_string(pose.position.y/1000) +","+ to_string(pose.position.z/1000) +","+to_string(ex)+","+to_string(ey)+","+to_string(ez)+"]" + accArg + velArg + ", r=0)\n"+
+          "  " + moveFunction + "(p[" + to_string(pose.position.x) + "," + to_string(pose.position.y) +","+ to_string(pose.position.z) +","+to_string(ex)+","+to_string(ey)+","+to_string(ez)+"]" + accArg + velArg + ", r=0)\n"+
           "  set_standard_digital_out(1, False)\n"+
           "end\n"
         };

@@ -475,9 +475,9 @@ private:
 
         cv::Rodrigues(correctionMoveT(cv::Rect(0,0,3,3)), rvec);
         tvec = cv::Vec3d(
-            correctionMoveT.at<double>(3, 0),
-            correctionMoveT.at<double>(3, 1),
-            correctionMoveT.at<double>(3, 2)
+            correctionMoveT.at<double>(0, 3),
+            correctionMoveT.at<double>(1, 3),
+            correctionMoveT.at<double>(2, 3)
         );
     }
 

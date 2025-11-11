@@ -54,9 +54,9 @@ namespace ur_script_wrapper{
         
             geometry_msgs::msg::Pose target_pose;
             target_pose.orientation = tf2::toMsg(q);
-            target_pose.position.x = static_cast<double>(x);
-            target_pose.position.y = static_cast<double>(y);
-            target_pose.position.z = static_cast<double>(z);
+            target_pose.position.x = static_cast<double>(x/1000.0);
+            target_pose.position.y = static_cast<double>(y/1000.0);
+            target_pose.position.z = static_cast<double>(z/1000.0);
 
             control_msgs::msg::MotionPrimitive motion_primitive;
             motion_primitive.type = control_msgs::msg::MotionPrimitive::LINEAR_JOINT;
@@ -85,9 +85,9 @@ namespace ur_script_wrapper{
                     , static_cast<double>(rz) * M_PI / 180.0);
         
             target_pose.orientation = tf2::toMsg(q);
-            target_pose.position.x = static_cast<double>(x);
-            target_pose.position.y = static_cast<double>(y);
-            target_pose.position.z = static_cast<double>(z);
+            target_pose.position.x = static_cast<double>(x/1000.0);
+            target_pose.position.y = static_cast<double>(y/1000.0);
+            target_pose.position.z = static_cast<double>(z/1000.0);
 
             motion_primitive.type = control_msgs::msg::MotionPrimitive::LINEAR_JOINT;
             pose_stamped.pose = target_pose;
