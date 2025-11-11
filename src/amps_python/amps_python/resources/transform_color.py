@@ -1,8 +1,16 @@
 import cv2 as cv
 import numpy as np
 
+calibration_matrix_color = np.array([[606.0675048828125, 0.0, 328.137939453125],
+                                     [0.0, 605.00048828125, 247.38954162597656],
+                                     [0.0, 0.0, 1.0]])
+
+distortion_coefficients_color = np.array([0, 0, 0, 0, 0])
+
 def transformed_color(img, max_line_angle_deviation, show=False):
     # Preprocessing
+    # apply the calibration matrix to the image
+    img = cv.undistort(img, calibration_matrix_color, distortion_coefficients_color)
     imgHSV = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     mask = cv.inRange(imgHSV, (0, 0, 120), (255, 77, 255))
     mask = cv.medianBlur(mask, 9)

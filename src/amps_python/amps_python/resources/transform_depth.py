@@ -2,7 +2,14 @@ import cv2 as cv
 import numpy as np
 from transform_color import sanitize_lines, convert_lines_to_points, calculate_corner_points
 
+calibration_matrix_depth = np.array([[384.3314208984375, 0.0, 321.20361328125],
+                                     [0.0, 384.3314208984375, 235.78701782226562],
+                                     [0.0, 0.0, 1.0]])
+
+distortion_coefficients_depth = np.array([0, 0, 0, 0, 0])
+
 def transform_depth(img, max_line_angle_deviation, show=False):
+    img = cv.undistort(img, calibration_matrix_depth, distortion_coefficients_depth)
     # Calculate median of ROI
     adjustedImg = np.array(img, dtype=np.uint16)
     vals = adjustedImg[250:350, 250:350]
@@ -45,6 +52,6 @@ if __name__ == "__main__":
     #improved = cv.dilate(improved, np.ones((4,4), np.uint8), iterations=1)
     improved_colored = cv.applyColorMap(improved, cv.COLORMAP_JET)
     cv.imwrite("datasets/test_images_dataset/btn_config_1/rosbag2_2025_10_30-14_13_08_0/transformed_depth.png", improved_colored)
-    cv.imshow("Improved Depth Image", improved_colored)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
+    # cv.imshow("Improved Depth Image", improved_colored)
+    # cv.waitKey(0)
+    # cv.destroyAllWindows()
