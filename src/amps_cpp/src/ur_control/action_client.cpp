@@ -6,6 +6,7 @@
 
 #include "control_msgs/action/execute_motion_primitive_sequence.hpp"
 #include "geometry_msgs/msg/pose.hpp"
+#include "amps_cpp/msg/program_state.hpp"
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
@@ -19,6 +20,7 @@ namespace ur_script_wrapper{
     public:
         using ExcecuteMotion = control_msgs::action::ExecuteMotionPrimitiveSequence;
         using GoalHandleExcecuteMotion = rclcpp_action::ClientGoalHandle<ExcecuteMotion>;
+        using ProgramStateMsg = amps_cpp::msg::ProgramState;
 
         explicit ActionClient(const rclcpp::NodeOptions &options)
         : Node("action_client", options)
@@ -120,10 +122,6 @@ namespace ur_script_wrapper{
             this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
         }
 
-        rclcpp_action::Client<ExcecuteMotion>::SharedPtr get_client(){
-            return this->client_ptr_;
-        }
-
     private:
 
         rclcpp_action::Client<ExcecuteMotion>::SharedPtr client_ptr_;
@@ -164,9 +162,9 @@ namespace ur_script_wrapper{
             }
 
             RCLCPP_INFO(this->get_logger(), "Motions executed successfully");
-            rclcpp::shutdown();
         }
     };
+
 
     RCLCPP_COMPONENTS_REGISTER_NODE(ur_script_wrapper::ActionClient);
 }

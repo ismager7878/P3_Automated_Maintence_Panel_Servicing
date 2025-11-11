@@ -1,0 +1,11 @@
+int8 FINDING_PANEL = 1
+int8 APPROACHING_PANEL = 2
+int8 SERVICING_PANEL = 3
+int8 RETREATING = 4
+int8 MISSION_COMPLETE = 5
+
+int8 ERROR_STATE = -1
+int8 MANUAL_CONTROL = 0
+
+int8 state 0
+string state_str

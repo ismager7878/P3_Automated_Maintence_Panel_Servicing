@@ -1,5 +1,6 @@
 
 #include "rclcpp/rclcpp.hpp"
+
 #include <vector>
 #include <algorithm>
 
@@ -58,7 +59,7 @@ private:
     }
 
     void processFrame(const Image::SharedPtr msg, 
-                     rclcpp::Publisher<FrameWithPose>::SharedPtr pub,
+                     rclcpp::Publisher<FrameWithPose>::SharedPtr& pub,
                      const string& frame_type)
     {
         RCLCPP_INFO(this->get_logger(), "Received %s Frame of size: %zu", 
