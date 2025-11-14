@@ -73,6 +73,7 @@ class Handeye(Node):
         self.save_requested = False
         self.calculate = False
         self.cal_handeye = False
+        self.corner_detection = False
 
         self.saved_oris = []  # liste af np.array([w,x,y,z])
         self.saved_pos  = []  # liste af np.array([x,y,z])
@@ -117,16 +118,20 @@ class Handeye(Node):
 
     def on_timer(self):
         # Vis billede kun hvis vi har modtaget et
+
         if self.img_pose is not None:
             cv2.imshow("RGB (press 's' to save, 'q'/ESC to quit)", self.img_pose)
-        elif self.image is not None:
-            cv2.imshow("RGB (press 's' to save, 'q'/ESC to quit)", self.image)
+        #elif self.image is not None:
+            #cv2.imshow("RGB (press 's' to save, 'q'/ESC to quit)", self.image)
 
         k = cv2.waitKey(1) & 0xFF
         
-        if k == ord('s'):
+        if k == ord('s') and self.corner_detection == True:
             self.save_requested = True  # gem næste modtagne frame
             print(f"rob pose: {len(self.saved_pos)}, frame: {len(self.saved_imgs)}")
+
+        if k == ord("s") and self.corner_detection == False:
+            print("No corners found")
         
         if k == ord("b"):
             self.calculate = True # kører kamera kinematik funktion
@@ -145,7 +150,6 @@ class Handeye(Node):
     #---------------------------------------------------------------------------------------------------------------
    
 
-    
     # Funktion til at få rotation og translation ud fra billede
     def show_corner(self, msg: FrameWithPose):
         try:
@@ -168,9 +172,12 @@ class Handeye(Node):
         # opencv funktion til at finde image points
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
+        self.corner_detection = False
+
         ret, corners = cv2.findChessboardCorners(gray, pattern_size)
         if ret:
             # Forbedr nøjagtigheden
+            self.corner_detection = True
             corners = cv2.cornerSubPix(
                 gray, corners, (11, 11), (-1, -1),
                 (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -201,7 +208,6 @@ class Handeye(Node):
             s = square_size
             axis = np.float32([[s,0,0], [0,s,0], [0,0,-s]])
             imgpts, jac = cv2.projectPoints(axis, rvec, tvec, self.K, self.D)
-
 
             #-------------------------------------------------------------
             def draw(img, corners, imgpts):
@@ -317,7 +323,6 @@ class Handeye(Node):
 
             else:
                 print("transformation arrays are not the same lenght :(")
-
 
 
 def main():
