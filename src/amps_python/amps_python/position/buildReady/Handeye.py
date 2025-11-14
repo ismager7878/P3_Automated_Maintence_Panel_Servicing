@@ -10,6 +10,7 @@ from ament_index_python.packages import get_package_share_directory
 from amps_cpp.msg import FrameWithPose  # antager at msg.frame er sensor_msgs/Image
 import math
 import spatialmath as spm
+import threading
 
 class Handeye(Node):
     def __init__(self):
@@ -29,13 +30,6 @@ class Handeye(Node):
             depth=10,
             reliability=ReliabilityPolicy.BEST_EFFORT,
             history=HistoryPolicy.KEEP_LAST
-        )
-
-        self.sub_pose = self.create_subscription(
-            FrameWithPose,
-            'amps_cpp/pose_estimation/rgb_frame_with_pose',
-            self.show_corner,
-            sensor_qos
         )
         
         # Subscriber til pose data for snapper funktionen
@@ -83,55 +77,26 @@ class Handeye(Node):
         self.saved_cam_oris = []
         self.saved_cam_pos = []
 
+        self.logger = self.get_logger()
+
+        self._lock = threading.Lock()
+
     #---------------------------------------------------------------------------------------------------------------
-    # funktioner bliver brugt til at gemme billede, roation og position fra robot
-    def snapper(self, msg: FrameWithPose):
-        q = msg.pose.pose.orientation
-        p = msg.pose.pose.position
-        ori = np.array([q.w, q.x, q.y, q.z], dtype=np.float64)
-        pos = np.array([p.x, p.y, p.z], dtype=np.float64)
-
-        try:
-            self.image  = self.bridge.imgmsg_to_cv2(msg.frame, desired_encoding='bgr8')
-        except Exception as e:
-            self.get_logger().warn(f"Failed to convert image: {e}")
-            return
-
-        cv_img = self.image
-
-        # 3) Hvis bruger har trykket 's', gem denne frame + pose
-        if self.save_requested:
-            self.saved_imgs.append(cv_img.copy())
-            #konverter quaternion til roatationsmatrix
-            ori_c = ori.copy()
-            q = spm.UnitQuaternion([ori_c[0], ori_c[1], ori_c[2], ori_c[3]])
-            R = q.R
-            np.set_printoptions(precision=4, suppress=True)  # Set print options for better readability
-            R_base2wrist = spm.SO3(R)
-
-            self.saved_rotmat.append(R_base2wrist)
-            self.saved_pos.append(pos.copy())
-            self.saved_oris.append(ori.copy())
-            self.save_requested = False
-            self.get_logger().info(f"Gemt sample #{len(self.saved_imgs)}")
-
 
     def on_timer(self):
         # Vis billede kun hvis vi har modtaget et
 
         if self.img_pose is not None:
             cv2.imshow("RGB (press 's' to save, 'q'/ESC to quit)", self.img_pose)
-        #elif self.image is not None:
-            #cv2.imshow("RGB (press 's' to save, 'q'/ESC to quit)", self.image)
 
         k = cv2.waitKey(1) & 0xFF
         
         if k == ord('s') and self.corner_detection == True:
             self.save_requested = True  # gem næste modtagne frame
-            print(f"rob pose: {len(self.saved_pos)}, frame: {len(self.saved_imgs)}")
+            self.logger.info(f"rob pose: {len(self.saved_pos)}, frame: {len(self.saved_imgs)}")
 
         if k == ord("s") and self.corner_detection == False:
-            print("No corners found")
+            self.logger.info("No corners found")
         
         if k == ord("b"):
             self.calculate = True # kører kamera kinematik funktion
@@ -149,14 +114,37 @@ class Handeye(Node):
             rclpy.shutdown()
     #---------------------------------------------------------------------------------------------------------------
    
+    # funktioner bliver brugt til at gemme billede, roation og position fra robot
+    def snapper(self, msg: FrameWithPose):
+        q = msg.pose.pose.orientation
+        p = msg.pose.pose.position
+        ori = np.array([q.w, q.x, q.y, q.z], dtype=np.float64)
+        pos = np.array([p.x, p.y, p.z], dtype=np.float64)
 
-    # Funktion til at få rotation og translation ud fra billede
-    def show_corner(self, msg: FrameWithPose):
         try:
-            frame  = self.bridge.imgmsg_to_cv2(msg.frame, desired_encoding='bgr8')
+            self.image  = self.bridge.imgmsg_to_cv2(msg.frame, desired_encoding='bgr8')
         except Exception as e:
             self.get_logger().warn(f"Failed to convert image: {e}")
             return
+
+        frame = self.image
+
+        # 3) Hvis bruger har trykket 's', gem denne frame + pose
+        if self.save_requested:
+            with self._lock:
+                self.saved_imgs.append(frame.copy())
+                #konverter quaternion til roatationsmatrix
+                ori_c = ori.copy()
+                q = spm.UnitQuaternion([ori_c[0], ori_c[1], ori_c[2], ori_c[3]])
+                R = q.R
+                np.set_printoptions(precision=4, suppress=True)  # Set print options for better readability
+                R_base2wrist = spm.SO3(R)
+
+                self.saved_rotmat.append(R_base2wrist)
+                self.saved_pos.append(pos.copy())
+                self.saved_oris.append(ori.copy())
+                self.save_requested = False
+                self.get_logger().info(f"Gemt sample #{len(self.saved_imgs)}")
             
         #-------------------------------------------------------------
         # Define chess board size:
@@ -215,6 +203,7 @@ class Handeye(Node):
                 c = np.array(corners[0]).ravel()
                 corner = (int(round(float(c[0]))), int(round(float(c[1]))))
 
+                self.logger.info(f"rotation: x: {rotx} y: {roty} z: {rotz}")
                 def to_pt(p):
                     a = np.array(p).ravel()
                     return (int(round(float(a[0]))), int(round(float(a[1]))))
@@ -229,16 +218,10 @@ class Handeye(Node):
                 return img
 
             self.img_pose = draw(frame.copy(), corners2[0], imgpts)
-            """
-            print("------------------------------------------")
-            print(f"rotation: x: {rotx} y: {roty} z: {rotz}")
-            print(f"translation: x : {tvec[0]} y: {tvec[1]} z: {tvec[2]}")
-            print("------------------------------------------")
-            """
 
     def generate_img_kinematic(self):
         if self.calculate == True:
-            print("Calculating kinematics")
+            self.logger.info("Calculating kinematics")
             for i in range(len(self.saved_imgs)):
                 frame = self.saved_imgs[i]
                     
@@ -282,15 +265,15 @@ class Handeye(Node):
 
                     self.saved_cam_oris.append(R_board2cam)
                     self.saved_cam_pos.append(t_board2cam)
-        print("------------------------------------------------------------------------")
-        print(f"img pose: {len(self.saved_cam_pos)} img rot: {len(self.saved_cam_oris)}")
-        print(f"rob pose: {len(self.saved_pos)} rob rot: {len(self.saved_oris)}")
-        print(f"rotation matrix; {len(self.saved_rotmat)}")
-        print("------------------------------------------------------------------------")
+        self.logger.info("------------------------------------------------------------------------")
+        self.logger.info(f"img pose: {len(self.saved_cam_pos)} img rot: {len(self.saved_cam_oris)}")
+        self.logger.info(f"rob pose: {len(self.saved_pos)} rob rot: {len(self.saved_oris)}")
+        self.logger.info(f"rotation matrix; {len(self.saved_rotmat)}")
+        self.logger.info("------------------------------------------------------------------------")
 
     def handEye(self):
         if self.cal_handeye == True:
-            print(f"cam pos: {self.saved_cam_pos} rob pos: {self.saved_pos}")
+            self.logger.info(f"cam pos: {self.saved_cam_pos} rob pos: {self.saved_pos}")
             if len(self.saved_cam_oris) == len(self.saved_cam_pos) == len(self.saved_pos) == len(self.saved_rotmat):
                 
                 # Konverter SO3 objekter til numpy arrays
@@ -309,20 +292,20 @@ class Handeye(Node):
                     R_b2w_list.append(R_w2b)
                     t_b2w_list.append(t_w2b)
                 
-                print("calibrating")
+                self.logger.info("calibrating")
                 R_c2g, t_c2g = cv2.calibrateHandEye(
                     self.saved_cam_oris, self.saved_cam_pos,
                     R_b2w_list, t_b2w_list,
                     method=cv2.CALIB_HAND_EYE_TSAI)
-                print("------------------------------------------------------------------------")
-                print("translation:")
-                print(t_c2g)
-                print("Rotation:")
-                print(R_c2g)
-                print("------------------------------------------------------------------------")
+                self.logger.info("------------------------------------------------------------------------")
+                self.logger.info("translation:")
+                self.logger.info(t_c2g)
+                self.logger.info("Rotation:")
+                self.logger.info(R_c2g)
+                self.logger.info("------------------------------------------------------------------------")
 
             else:
-                print("transformation arrays are not the same lenght :(")
+                self.logger.info("transformation arrays are not the same lenght :(")
 
 
 def main():
