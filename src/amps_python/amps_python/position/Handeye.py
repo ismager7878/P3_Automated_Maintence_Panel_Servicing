@@ -203,7 +203,7 @@ class Handeye(Node):
                 c = np.array(corners[0]).ravel()
                 corner = (int(round(float(c[0]))), int(round(float(c[1]))))
 
-                self.logger.info(f"rotation: x: {rotx} y: {roty} z: {rotz}")
+                #self.logger.info(f"rotation: x: {rotx} y: {roty} z: {rotz}")
                 def to_pt(p):
                     a = np.array(p).ravel()
                     return (int(round(float(a[0]))), int(round(float(a[1]))))
@@ -299,9 +299,9 @@ class Handeye(Node):
                     method=cv2.CALIB_HAND_EYE_TSAI)
                 self.logger.info("------------------------------------------------------------------------")
                 self.logger.info("translation:")
-                self.logger.info(t_c2g)
+                self.logger.info(f"{t_c2g}")
                 self.logger.info("Rotation:")
-                self.logger.info(R_c2g)
+                self.logger.info(f"{R_c2g}")
                 self.logger.info("------------------------------------------------------------------------")
 
             else:

@@ -30,7 +30,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'Handeye = amps_python.position.buildReady.Handeye:main',
+            'Handeye = amps_python.position.Handeye:main',
         ],
     },
 )
