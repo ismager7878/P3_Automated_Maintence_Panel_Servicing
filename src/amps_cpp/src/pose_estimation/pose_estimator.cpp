@@ -16,9 +16,15 @@
 #include "amps_cpp/msg/program_state.hpp"
 #include "control_msgs/action/execute_motion_primitive_sequence.hpp"
 #include "geometry_msgs/msg/pose.hpp"
-#include <tf2/LinearMath/Quaternion.h>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include "sensor_msgs/msg/camera_info.hpp"
 
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.hpp>
+#include <tf2_ros/buffer.hpp>
 
 using std::placeholders::_1;
 using namespace std;
@@ -27,6 +33,7 @@ using ProgramState = amps_cpp::msg::ProgramState;
 using ExcecuteMotion = control_msgs::action::ExecuteMotionPrimitiveSequence;
 using GoalHandleExcecuteMotion = rclcpp_action::ClientGoalHandle<ExcecuteMotion>;
 using ProgramStateMsg = amps_cpp::msg::ProgramState;
+using TransformStamped = geometry_msgs::msg::TransformStamped;
 
 
 class PoseEstimation : public rclcpp::Node
@@ -44,80 +51,109 @@ public:
             std::bind(&PoseEstimation::programStateCallback, this, _1)
         );
 
+        this->cameraInfoSub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
+            "/camera/camera/color/camera_info",
+            10,
+            std::bind(&PoseEstimation::cameraInfoCallback, this, _1)
+        );
+
         // Action Client for robot movement
         this->moveClient_ = rclcpp_action::create_client<ExcecuteMotion>(
             this,
             "/ur_control_test/ur_wrapper/execute_motion");
         this->correctionActive = false;
 
+        // TF Broadcaster
+        this->addToBroadcastPub_ = this->create_publisher<TransformStamped>("amps_cpp/pose_estimation/broadcast_transform", 10);
+
+        this->tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+        this->tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
         // Initialize ArUco variables
         this->parameters = cv::aruco::DetectorParameters::create();
         this->dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_250);
-        this->markerSize = 0.05f; // 5 cm markers
+        this->markerSize = 0.076f; // 5 cm markers
         this->calFileName = "src/amps_python/amps_python/data/calibration-data/cam_calibration.xml";
 
         // Define goal pose and thresholds
         this-> goalPose = {
-            cv::Vec3d(0.034034, 0.048081, -1.556074),  // rvec
-            cv::Vec3d(-0.156284, 0.001369, -0.234390)   // tvec
+            cv::Vec3d(0.0059, 0.0052, -1.5278),  // rvec
+            cv::Vec3d(-0.2038, 0.1605, 0.5347)   // tvec
         };
         this->goalPoseTreshold = {
             cv::Vec3d(0.05, 0.05, 0.05),  // rvec threshold
             cv::Vec3d(0.02, 0.02, 0.02)   // tvec threshold
         };
 
+        // Load camera parameters
         RCLCPP_INFO(this->get_logger(), "Camera Variables initialzied");
 
-        if (!loadCameraParameters(this->calFileName, this->cameraMatrix, this->distCoeffs)) {
-            RCLCPP_ERROR(this->get_logger(), "Failed to load camera parameters from: %s", this->calFileName);
-            RCLCPP_WARN(this->get_logger(), "Continuing without camera calibration");
-        } else {
-            RCLCPP_INFO(this->get_logger(), "Camera parameters loaded successfully");
-            RCLCPP_INFO(this->get_logger(), "Camera Matrix: ");
-            for(int i = 0; i < this->cameraMatrix.rows; i++){
-                string row = "";
-                for(int j = 0; j < this->cameraMatrix.cols; j++){
-                    row += std::to_string(this->cameraMatrix.at<double>(i,j)) + " ";      }
-                RCLCPP_INFO(this->get_logger(), "%s", row.c_str());
-            }
+        // if (!loadCameraParameters(this->calFileName, this->cameraMatrix, this->distCoeffs)) {
+        //     RCLCPP_ERROR(this->get_logger(), "Failed to load camera parameters from: %s", this->calFileName);
+        //     RCLCPP_WARN(this->get_logger(), "Continuing without camera calibration");
+        // } else {
+        //     RCLCPP_INFO(this->get_logger(), "Camera parameters loaded successfully");
+        //     RCLCPP_INFO(this->get_logger(), "Camera Matrix: ");
+        //     for(int i = 0; i < this->cameraMatrix.rows; i++){
+        //         string row = "";
+        //         for(int j = 0; j < this->cameraMatrix.cols; j++){
+        //             row += std::to_string(this->cameraMatrix.at<double>(i,j)) + " ";      }
+        //         RCLCPP_INFO(this->get_logger(), "%s", row.c_str());
+        //     }
 
-            RCLCPP_INFO(this->get_logger(), "Distortion Coefficients: ");
-            for(int i = 0; i < this->distCoeffs.rows; i++){
-                string row = "";
-                for(int j = 0; j < this->distCoeffs.cols; j++){
-                    row += std::to_string(this->distCoeffs.at<double>(i,j)) + " ";
-                }
-                RCLCPP_INFO(this->get_logger(), "%s", row.c_str());
-            }
-        }
+        //     RCLCPP_INFO(this->get_logger(), "Distortion Coefficients: ");
+        //     for(int i = 0; i < this->distCoeffs.rows; i++){
+        //         string row = "";
+        //         for(int j = 0; j < this->distCoeffs.cols; j++){
+        //             row += std::to_string(this->distCoeffs.at<double>(i,j)) + " ";
+        //         }
+        //         RCLCPP_INFO(this->get_logger(), "%s", row.c_str());
+        //     }
+        // }
 
         this->setProgramState(ProgramState::FINDING_PANEL);
 
         //Load image from file for testing
+
+        // RCLCPP_INFO(this->get_logger(), "Starting test image pose estimation");
         // cv::Vec3d rvec, tvec;
         // cv::Mat img = cv::imread("src/amps_cpp/src/color.png");
+        // while(this->cameraMatrix.empty() || this->distCoeffs.empty()){
+        //     rclcpp::spin_some(this->get_node_base_interface());
+        //     rclcpp::sleep_for(std::chrono::milliseconds(100));
+        // }
         // this->detectAndEstimatePose(img, rvec, tvec);
+        // this->logPosition(rvec, tvec);
     }
 private:
     void send_goal(const control_msgs::action::ExecuteMotionPrimitiveSequence_Goal & goal_msg){
-            using namespace std::placeholders;
+        using namespace std::placeholders;
 
-            if (!this->moveClient_->wait_for_action_server(std::chrono::seconds(10))) {
-                RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
-                return;
-            }
+        if (!this->moveClient_->wait_for_action_server(std::chrono::seconds(10))) {
+            RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
+            return;
+        }
 
-            auto send_goal_options = rclcpp_action::Client<ExcecuteMotion>::SendGoalOptions();
-            send_goal_options.goal_response_callback =
-                std::bind(&PoseEstimation::goal_response_callback, this, _1);
-            send_goal_options.feedback_callback =
-                std::bind(&PoseEstimation::feedback_callback, this, _1, _2);
-            send_goal_options.result_callback =
-                std::bind(&PoseEstimation::result_callback, this, _1);
+        auto send_goal_options = rclcpp_action::Client<ExcecuteMotion>::SendGoalOptions();
+        send_goal_options.goal_response_callback =
+            std::bind(&PoseEstimation::goal_response_callback, this, _1);
+        send_goal_options.feedback_callback =
+            std::bind(&PoseEstimation::feedback_callback, this, _1, _2);
+        send_goal_options.result_callback =
+            std::bind(&PoseEstimation::result_callback, this, _1);
 
-            RCLCPP_INFO(this->get_logger(), "Sending goal");
-        
-            this->moveClient_->async_send_goal(goal_msg, send_goal_options);
+        RCLCPP_INFO(this->get_logger(), "Sending goal");
+    
+        this->moveClient_->async_send_goal(goal_msg, send_goal_options);
+    }
+
+    void cameraInfoCallback(const sensor_msgs::msg::CameraInfo::SharedPtr msg){
+        this->cameraMatrix = cv::Mat(3, 3, CV_64F, const_cast<double*>(msg->k.data())).clone();
+        this->distCoeffs = cv::Mat(msg->d.size(), 1, CV_64F, const_cast<double*>(msg->d.data())).clone();
+
+        RCLCPP_INFO(this->get_logger(), "Camera Info received from topic");
+
+        this->cameraInfoSub_.reset(); // Unsubscribe after receiving the first message
     }
 
     void goal_response_callback(const GoalHandleExcecuteMotion::SharedPtr &goal_handle)
@@ -168,6 +204,20 @@ private:
         }
 
         RCLCPP_INFO(this->get_logger(), "Motions executed successfully");
+        setProgramState(ProgramState::SERVICING_PANEL);
+    }
+
+    void getTransformBroadcast(tf2::Transform& transformOut, const std::string& targetFrame, const std::string& sourceFrame){
+        geometry_msgs::msg::TransformStamped transformPoseMsg;
+
+        try {
+            transformPoseMsg = this->tf_buffer_->lookupTransform(targetFrame, sourceFrame, tf2::TimePointZero);
+        } catch (tf2::TransformException &ex) {
+            RCLCPP_WARN(this->get_logger(), "Could not get camera pose: %s", ex.what());
+            return;
+        }
+
+        tf2::fromMsg(transformPoseMsg.transform, transformOut);
     }
     
     void setProgramState(int state){
@@ -239,10 +289,6 @@ private:
 
         (void)imgOut; // Unused variable
 
-        // for(size_t i = 0; i < this->markerIds.size(); i++){
-        //     cv::drawFrameAxes(imgOut, this->cameraMatrix, this->distCoeffs, rvecs[i], tvecs[i], 0.05f);
-        // }
-
         if(rvecs.size() != 3){
             RCLCPP_ERROR(this->get_logger(), "Error: Detected %zu markers, need exactly 3 markers for pose estimation", rvecs.size());
             return false;
@@ -252,28 +298,32 @@ private:
 
         cv::Vec3d vecX, vecY, vecZ;
 
-        for(size_t i = 0; i < rvecs.size(); i++){
-            vecX = tvecs[0] - tvecs[1];
-            vecY = tvecs[0] - tvecs[2];
-            vecY[0] = (-vecY[1]*vecX[1]-vecY[2]*vecX[2])/vecX[0];
-            vecZ = vecX.cross(vecY);
+        // Define X-axis from marker 0 to marker 1
+        vecX = tvecs[1] - tvecs[0];
+        vecX = vecX / cv::norm(vecX);
 
-            vecX = vecX / cv::norm(vecX);
-            vecY = vecY / cv::norm(vecY);
-            vecZ = vecZ / cv::norm(vecZ);
-
-            cv::Mat rotMat(3,3,CV_64F);
-            rotMat.at<double>(0,0) = vecX[0];rotMat.at<double>(0,1) = vecY[0];rotMat.at<double>(0,2) = vecZ[0];
-            rotMat.at<double>(1,0) = vecX[1];rotMat.at<double>(1,1) = vecY[1];rotMat.at<double>(1,2) = vecZ[1];
-            rotMat.at<double>(2,0) = vecX[2];rotMat.at<double>(2,1) = vecY[2];rotMat.at<double>(2,2) = vecZ[2];
-
-            cv::Rodrigues(rotMat, rvecOut);
-            tvecOut = tvecs[0];
-            return true;
-        }
-
-        return false;
+        // Define Y-axis from marker 0 to marker 2
+        vecY = tvecs[2] - tvecs[0];
         
+        // Z-axis is the cross product of X and Y (right-hand rule)
+        vecZ = vecX.cross(vecY);
+        vecZ = vecZ / cv::norm(vecZ);
+
+        // Recompute Y-axis to ensure orthogonality
+        vecY = vecZ.cross(vecX);
+        vecY = vecY / cv::norm(vecY);
+
+        // Build rotation matrix with column vectors
+        cv::Mat rotMat = cv::Mat::eye(3, 3, CV_64F);
+        rotMat.at<double>(0,0) = vecX[0]; rotMat.at<double>(0,1) = vecY[0]; rotMat.at<double>(0,2) = vecZ[0];
+        rotMat.at<double>(1,0) = vecX[1]; rotMat.at<double>(1,1) = vecY[1]; rotMat.at<double>(1,2) = vecZ[1];
+        rotMat.at<double>(2,0) = vecX[2]; rotMat.at<double>(2,1) = vecY[2]; rotMat.at<double>(2,2) = vecZ[2];
+
+        cv::Rodrigues(rotMat, rvecOut);
+
+        tvecOut = tvecs[0];
+        
+        return true;
     }
 
     bool loadCameraParameters(const char* filename, cv::Mat& camMatrix, cv::Mat& distCoeffs){
@@ -374,8 +424,19 @@ private:
         }
     }
 
+    void logPosition(const cv::Vec3d& rvec, const cv::Vec3d& tvec){
+       
+        RCLCPP_INFO(this->get_logger(), "Camera Position (in board frame): X: %.4f Y: %.4f Z: %.4f", 
+                    tvec[0], tvec[1], tvec[2]);
+        RCLCPP_INFO(this->get_logger(), "Camera Orientation (in board frame): Rx: %.4f Ry: %.4f Rz: %.4f", 
+                    rvec[0], rvec[1], rvec[2]);
+    }
+
     bool detectAndEstimatePose(cv::Mat& img, cv::Vec3d& rvec, cv::Vec3d& tvec){
         cv::Mat imgOut = img.clone();
+        // cv::flip(imgOut, imgOut, 1); // Flip image for correct orientation
+        // cv::imshow("Input Image", imgOut);
+        // cv::waitKey(1);
 
         cv::aruco::detectMarkers(img, this->dictionary, this->markerCorners, this->markerIds, this->parameters, this->rejectedCandidates);
         cv::aruco::drawDetectedMarkers(imgOut, this->markerCorners, this->markerIds);
@@ -385,14 +446,14 @@ private:
             return false;   
         }
 
-        RCLCPP_INFO(this->get_logger(), "Detected %zu markers", this->markerIds.size());
+        //RCLCPP_INFO(this->get_logger(), "Detected %zu markers", this->markerIds.size());
 
         if(!this->estimateBoardPose(imgOut, rvec, tvec)){
             RCLCPP_WARN(this->get_logger(), "Failed to estimate board pose");
             return false;
         }
 
-        RCLCPP_INFO(this->get_logger(), "Estimated board pose successfully");
+        //RCLCPP_INFO(this->get_logger(), "Estimated board pose successfully");
 
         cv::drawFrameAxes(imgOut, this->cameraMatrix, this->distCoeffs, rvec, tvec, 0.1f);
 
@@ -421,7 +482,7 @@ private:
 
         control_msgs::msg::MotionPrimitive motion;
 
-        motion.type = control_msgs::msg::MotionPrimitive::LINEAR_CARTESIAN;
+        motion.type = control_msgs::msg::MotionPrimitive::LINEAR_JOINT;
 
         geometry_msgs::msg::PoseStamped poseStamped;
         poseStamped.pose.position.x = tvec[0];
@@ -433,53 +494,95 @@ private:
         goal_msg.trajectory.motions.push_back(motion);
     }
 
-    void calculateCorrectionMove(const amps_cpp::msg::FrameWithPose::SharedPtr msg, cv::Vec3d& rvec, cv::Vec3d& tvec){
-        cv::Mat rotMat, goalRotMat;
-        cv::Rodrigues(rvec, rotMat);
-        cv::Rodrigues(this->goalPose[0], goalRotMat);
+    void broadcastTransform(tf2::Transform transform, const std::string& parent_frame, const std::string& child_frame){
+        geometry_msgs::msg::TransformStamped tfStamped;
 
-        cv::Mat transformMat = cv::Mat::eye(4,4,CV_64F);
-        cv::Mat goalTBoardToCam = cv::Mat::eye(4,4,CV_64F);
+        tfStamped.header.stamp = this->get_clock()->now();
+        tfStamped.header.frame_id = parent_frame;
+        tfStamped.child_frame_id = child_frame;
 
-        for(int i = 0; i < 3; i++){
-            for(int j = 0; j < 3; j++){
-                transformMat.at<double>(i,j) = rotMat.at<double>(i,j);
-                goalTBoardToCam.at<double>(i,j) = goalRotMat.at<double>(i,j);
-            }
-            transformMat.at<double>(i,3) = tvec[i];
-            goalTBoardToCam.at<double>(i,3) = this->goalPose[1][i];
-        }
+        tfStamped.transform = tf2::toMsg(transform);
 
-        cv::Mat currentTBoardToCam = transformMat.inv();
-        cv::Mat correctionT = currentTBoardToCam.inv() * goalTBoardToCam;
-
-        tf2::Quaternion tfOrientation;
-        tf2::convert(msg->pose.pose.orientation, tfOrientation);
-        tf2::Vector3 tfRotVec = tfOrientation.getAxis()*tfOrientation.getAngle();
-        
-        cv::Vec3d cvRotVec(tfRotVec.x(), tfRotVec.y(), tfRotVec.z());
-        cv::Mat currentRotMat, currentPoseMat;
-        cv::Rodrigues(cvRotVec, currentRotMat);
-
-        currentPoseMat = cv::Mat::eye(4, 4, CV_64F);
-
-        for(int i = 0; i < 3; i++){
-            for(int j = 0; j < 3; j++){
-                currentPoseMat.at<double>(i,j) = currentRotMat.at<double>(i,j);
-            }
-            
-            currentPoseMat.at<double>(i,3) = (i == 0 ? msg->pose.pose.position.x : i == 1 ? msg->pose.pose.position.y : msg->pose.pose.position.z);
-        }
-        
-        cv::Mat correctionMoveT = currentPoseMat * correctionT;
-
-        cv::Rodrigues(correctionMoveT(cv::Rect(0,0,3,3)), rvec);
-        tvec = cv::Vec3d(
-            correctionMoveT.at<double>(0, 3),
-            correctionMoveT.at<double>(1, 3),
-            correctionMoveT.at<double>(2, 3)
-        );
+        this->addToBroadcastPub_->publish(tfStamped);
     }
+
+    void calculateCorrectionMove(const amps_cpp::msg::FrameWithPose::SharedPtr msg, cv::Vec3d& rvec, cv::Vec3d& tvec){
+        tf2::Transform currentCamToBoardT, goalCamToBoardT, correctionT, currentBaseToCamT;
+        tf2::Quaternion currentOrientation, goalOrientation;
+
+        this->getTransformBroadcast(currentBaseToCamT, "base", "camera");
+
+        //Build current transform
+        currentOrientation.setRotation(
+            tf2::Vector3(rvec[0], rvec[1], rvec[2]),
+            cv::norm(rvec)
+        );
+        currentCamToBoardT.setOrigin(tf2::Vector3(tvec[0], tvec[1], tvec[2]));
+        currentCamToBoardT.setRotation(currentOrientation);
+
+        this->broadcastTransform(currentCamToBoardT, "camera", "board_current");
+
+
+        //Build goal transform
+        goalOrientation.setRotation(
+            tf2::Vector3(this->goalPose[0][0], this->goalPose[0][1], this->goalPose[0][2]),
+            cv::norm(this->goalPose[0])
+        );
+        goalCamToBoardT.setOrigin(tf2::Vector3(this->goalPose[1][0], this->goalPose[1][1], this->goalPose[1][2]));
+        goalCamToBoardT.setRotation(goalOrientation);
+
+        this->broadcastTransform(goalCamToBoardT.inverse(), "board_current", "board_goal");
+
+        //Calculate correction transform
+        correctionT = currentCamToBoardT * goalCamToBoardT.inverse();
+
+        this->broadcastTransform(correctionT, "camera", "correction");
+        
+
+        //Get current Base to Tool transform from message
+        tf2::Transform currentBaseToToolT;
+        tf2::Quaternion baseToToolOrientation;
+        tf2::fromMsg(msg->pose.pose.orientation, baseToToolOrientation);
+        currentBaseToToolT.setOrigin(
+            tf2::Vector3(
+                msg->pose.pose.position.x,
+                msg->pose.pose.position.y,
+                msg->pose.pose.position.z
+            )
+        );
+        currentBaseToToolT.setRotation(baseToToolOrientation);
+
+        broadcastTransform(currentBaseToToolT, "base", "tool0_current");
+
+        //Get Tool to Cam transform
+        tf2::Transform toolToCamT;
+        this->getTransformBroadcast(toolToCamT, "tool0", "camera");
+
+
+        //Calculate new Base to Tool transform
+        tf2::Transform correctionBaseToToolT = currentBaseToToolT * toolToCamT * correctionT * toolToCamT.inverse();
+
+        broadcastTransform(correctionBaseToToolT, "base", "tool0_goal");
+        
+        //Extract new rvec and tvec
+        tf2::Vector3 corrTransVec = correctionBaseToToolT.getOrigin();
+
+        tf2::Quaternion corrOrientation;
+        correctionBaseToToolT.getBasis().getRotation(corrOrientation);
+        tf2::Vector3 corrRotVec = corrOrientation.getAxis() * corrOrientation.getAngle();
+
+        rvec[0] = corrRotVec.x();
+        rvec[1] = corrRotVec.y();
+        rvec[2] = corrRotVec.z();
+        
+        tvec[0] = corrTransVec.x();
+        tvec[1] = corrTransVec.y();
+        tvec[2] = corrTransVec.z();
+
+    //     RCLCPP_INFO(this->get_logger(), "New Target Pose Calculated:");
+    //     RCLCPP_INFO(this->get_logger(), "Target Position: X: %.4f Y: %.4f Z: %.4f", tvec[0], tvec[1], tvec[2]);
+    //     RCLCPP_INFO(this->get_logger(), "Target Orientation: Rx: %.4f Ry: %.4f Rz: %.4f", rvec[0], rvec[1], rvec[2]);  
+}
 
     bool checkPosition(cv::Vec3d& rvec, cv::Vec3d& tvec){
         return (
@@ -493,6 +596,11 @@ private:
     }
 
     void frameCallback(const amps_cpp::msg::FrameWithPose::SharedPtr msg){
+
+        if(this->cameraMatrix.empty() || this->distCoeffs.empty()){
+            RCLCPP_WARN(this->get_logger(), "Camera parameters not set yet, cannot process frame");
+            return;
+        }
 
         if(!this->estimationActive || this->correctionActive){
             return;
@@ -520,6 +628,7 @@ private:
         cv::Vec3d rvec, tvec;
 
         if(!this->detectAndEstimatePose(cv_img, rvec, tvec)){
+            this->correctionActive = false;
             return;
         }
 
@@ -568,6 +677,11 @@ private:
     rclcpp::Publisher<ProgramState>::SharedPtr programStatePub_;
     rclcpp::Subscription<ProgramState>::SharedPtr programStateSub_;
     rclcpp_action::Client<ExcecuteMotion>::SharedPtr moveClient_;
+    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cameraInfoSub_;
+
+    rclcpp::Publisher<TransformStamped>::SharedPtr addToBroadcastPub_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
+    std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
 };
 
 int main(int argc, char const *argv[])

@@ -151,6 +151,15 @@ namespace ur_script_wrapper{
       void execute(const std::shared_ptr<GoalHandleExcecuteMotion> goal_handle){
         auto const goal = goal_handle->get_goal();
 
+        geometry_msgs::msg::PoseStamped currentTargetPose;
+        currentTargetPose.pose = goal->trajectory.motions.back().poses.back().pose;
+        currentTargetPose.header.stamp = this->now();
+        currentTargetPose.header.frame_id = "base_link";
+        
+        this->currentTargetTimer_ = this->create_wall_timer(100ms, [this, currentTargetPose]() {
+          this->publishCurrentTargetPose(currentTargetPose);
+        });
+
         RCLCPP_INFO(this->get_logger(), "Checking motion goal...");
 
         for(control_msgs::msg::MotionPrimitive moiton: goal->trajectory.motions){
@@ -231,7 +240,7 @@ namespace ur_script_wrapper{
             return arg.name == "acc";
           });
 
-          double vel = 0.01;
+          double vel = 0.1;
           double acc = 0.0;
 
           if(velPtr != motion.additional_arguments.end()){
@@ -290,6 +299,12 @@ namespace ur_script_wrapper{
           RCLCPP_INFO(this->get_logger(), "Motion Succesful");
         }
       }
+
+      void publishCurrentTargetPose(const geometry_msgs::msg::PoseStamped &pose){
+        //RCLCPP_INFO(this->get_logger(), "Publishing Current Target Pose");
+        this->currentTargetPub_->publish(pose);
+        //This function is currently not used, as the current target pose is published when sending a new pose to URScript
+      }
     
       void setPoseToURScript(const geometry_msgs::msg::Pose &pose, double speed = 0.0, double acceleration = 0.0, uint8_t type = 0) {
         auto message = std_msgs::msg::String();
@@ -326,12 +341,15 @@ namespace ur_script_wrapper{
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Publishing TCP Pose as URScript: '%s'", message.data.c_str());
 
-        geometry_msgs::msg::PoseStamped currentTargetPose;
-        currentTargetPose.pose = pose;
-        currentTargetPose.header.stamp = this->now();
+        // geometry_msgs::msg::PoseStamped currentTargetPose;
+        // currentTargetPose.pose = pose;
+        // currentTargetPose.header.stamp = this->now();
+        // currentTargetPose.header.frame_id = "base_link";
         
-        currentTargetPub_->publish(currentTargetPose);
-        //this->urScriptPub_->publish(message);
+        // this->currentTargetTimer_ = this->create_wall_timer(100ms, [this, currentTargetPose]() {
+        //   this->publishCurrentTargetPose(currentTargetPose);
+        // });
+        this->urScriptPub_->publish(message);
         
       }
 
@@ -340,7 +358,11 @@ namespace ur_script_wrapper{
     rclcpp::Client<ur_msgs::srv::SetIO>::SharedPtr digitalOutClient_;
     rclcpp::Subscription<ur_msgs::msg::IOStates>::SharedPtr ioStatesSub_;
     rclcpp::Subscription<ur_dashboard_msgs::msg::SafetyMode>::SharedPtr safetyModeSub_;
+
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr currentTargetPub_;
+  
+    //Timer for current target pose publishing
+    rclcpp::TimerBase::SharedPtr currentTargetTimer_;
 
     int workspaceSphereRadius = 500; //in mm
     bool digitalOutState_ = false;

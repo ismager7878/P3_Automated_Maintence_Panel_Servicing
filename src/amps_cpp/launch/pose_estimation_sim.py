@@ -38,9 +38,15 @@ def generate_launch_description():
         output='screen'
     )
 
+    frame_broadcaster = Node(
+        package='amps_cpp',
+        executable='frame_broadcaster',
+        name='frame_broadcaster',
+    )
+
     # Wait for driver to be ready, then set tcp_pose_broadcaster state
     delayed_controller_disable = TimerAction(
-        period=15.0,  # Wait 15 seconds after launch for driver to be ready
+        period=10.0,  # Wait 15 seconds after launch for driver to be ready
         actions=[
             ExecuteProcess(
                 cmd=['ros2', 'control', 'set_controller_state', 'tcp_pose_broadcaster', LaunchConfiguration('tcp_broadcaster_state')],
@@ -54,15 +60,27 @@ def generate_launch_description():
         actions=[
             fp_matcher,
             ur_wrapper,
-            pose_estimator
+            pose_estimator,
+            frame_broadcaster
         ]
     )
+
+    staticCamFrameBroadcaster = Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            arguments=[
+                '--x', '0.02', '--y', '-0.057', '--z', '0.02',
+                '--yaw', '0', '--pitch', '0', '--roll',
+                '0', '--frame-id', 'tool0', '--child-frame-id', 'camera']
+    )
+
 
     return LaunchDescription([
         DeclareLaunchArgument('robot_ip', default_value='192.168.56.101'),
         DeclareLaunchArgument('ur_type', default_value='ur3e'),
         DeclareLaunchArgument('tcp_broadcaster_state', default_value='inactive'),
         ur_driver,
+        staticCamFrameBroadcaster,
         delayed_controller_disable,
         delayed_nodes_start,
     ])

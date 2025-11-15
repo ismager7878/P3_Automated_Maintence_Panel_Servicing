@@ -62,7 +62,9 @@ ament_target_dependencies(fp_matcher rclcpp geometry_msgs sensor_msgs)
 add_executable(pose_estimation src/pose_estimation/pose_estimator.cpp)
 ament_target_dependencies(pose_estimation rclcpp geometry_msgs sensor_msgs cv_bridge OpenCV TinyXML2 rclcpp_action control_msgs tf2 tf2_geometry_msgs)
 
-
+##Frame Broadcaster
+add_executable(frame_broadcaster src/pose_estimation/frame_broadcaster.cpp)
+ament_target_dependencies(frame_broadcaster rclcpp geometry_msgs tf2 tf2_geometry_msgs)
 
 ## Custom Interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -87,6 +89,7 @@ target_link_libraries(ur_wrapper "${cpp_typesupport_target}")
 install(TARGETS 
   fp_matcher
   pose_estimation
+  frame_broadcaster
   DESTINATION lib/${PROJECT_NAME})
 
 ## Install libraries
