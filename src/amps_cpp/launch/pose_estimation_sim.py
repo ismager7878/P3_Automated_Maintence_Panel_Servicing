@@ -8,6 +8,11 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     ur_driver_launch_dir = PathJoinSubstitution([FindPackageShare('ur_robot_driver'), 'launch', 'ur_control.launch.py'])
+    fox_glove_launch_dir = PathJoinSubstitution([FindPackageShare('foxglove_bridge'), 'launch', 'foxglove_bridge_launch.xml'])
+
+    fox_glove = IncludeLaunchDescription(
+        fox_glove_launch_dir,
+    )
 
     # Start the UR driver
     ur_driver = IncludeLaunchDescription(
@@ -46,7 +51,7 @@ def generate_launch_description():
 
     # Wait for driver to be ready, then set tcp_pose_broadcaster state
     delayed_controller_disable = TimerAction(
-        period=10.0,  # Wait 15 seconds after launch for driver to be ready
+        period=7.0,  # Wait 15 seconds after launch for driver to be ready
         actions=[
             ExecuteProcess(
                 cmd=['ros2', 'control', 'set_controller_state', 'tcp_pose_broadcaster', LaunchConfiguration('tcp_broadcaster_state')],
@@ -56,7 +61,7 @@ def generate_launch_description():
     )
 
     delayed_nodes_start = TimerAction(
-        period=18.0,  # Start nodes after controller state change
+        period=10.0,  # Start nodes after controller state change
         actions=[
             fp_matcher,
             ur_wrapper,
@@ -70,8 +75,9 @@ def generate_launch_description():
             executable='static_transform_publisher',
             arguments=[
                 '--x', '0.02', '--y', '-0.057', '--z', '0.02',
-                '--yaw', '0', '--pitch', '0', '--roll',
-                '0', '--frame-id', 'tool0', '--child-frame-id', 'camera']
+                '--roll', '0', '--pitch', '0', '--yaw', '0',
+                '--frame-id', 'tool0', '--child-frame-id', 'camera'
+            ]
     )
 
 
@@ -80,6 +86,7 @@ def generate_launch_description():
         DeclareLaunchArgument('ur_type', default_value='ur3e'),
         DeclareLaunchArgument('tcp_broadcaster_state', default_value='inactive'),
         ur_driver,
+        fox_glove,
         staticCamFrameBroadcaster,
         delayed_controller_disable,
         delayed_nodes_start,

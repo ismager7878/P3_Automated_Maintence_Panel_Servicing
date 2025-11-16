@@ -19,6 +19,7 @@
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include "sensor_msgs/msg/camera_info.hpp"
+#include "std_msgs/msg/bool.hpp"
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
@@ -50,12 +51,14 @@ public:
             10,
             std::bind(&PoseEstimation::programStateCallback, this, _1)
         );
-
         this->cameraInfoSub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(
             "/camera/camera/color/camera_info",
             10,
             std::bind(&PoseEstimation::cameraInfoCallback, this, _1)
         );
+        this->isBoardReachablePub_ = this->create_publisher<std_msgs::msg::Bool>("amps_cpp/pose_estimation/is_board_reachable", 10);
+        this->isBoardReachablePub_->publish(std_msgs::msg::Bool().set__data(false));
+        this->arucoDetectionPub_ = this->create_publisher<sensor_msgs::msg::Image>("amps_cpp/pose_estimation/aruco_detection_image", 10);
 
         // Action Client for robot movement
         this->moveClient_ = rclcpp_action::create_client<ExcecuteMotion>(
@@ -65,7 +68,6 @@ public:
 
         // TF Broadcaster
         this->addToBroadcastPub_ = this->create_publisher<TransformStamped>("amps_cpp/pose_estimation/broadcast_transform", 10);
-
         this->tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
         this->tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
@@ -88,33 +90,10 @@ public:
         // Load camera parameters
         RCLCPP_INFO(this->get_logger(), "Camera Variables initialzied");
 
-        // if (!loadCameraParameters(this->calFileName, this->cameraMatrix, this->distCoeffs)) {
-        //     RCLCPP_ERROR(this->get_logger(), "Failed to load camera parameters from: %s", this->calFileName);
-        //     RCLCPP_WARN(this->get_logger(), "Continuing without camera calibration");
-        // } else {
-        //     RCLCPP_INFO(this->get_logger(), "Camera parameters loaded successfully");
-        //     RCLCPP_INFO(this->get_logger(), "Camera Matrix: ");
-        //     for(int i = 0; i < this->cameraMatrix.rows; i++){
-        //         string row = "";
-        //         for(int j = 0; j < this->cameraMatrix.cols; j++){
-        //             row += std::to_string(this->cameraMatrix.at<double>(i,j)) + " ";      }
-        //         RCLCPP_INFO(this->get_logger(), "%s", row.c_str());
-        //     }
-
-        //     RCLCPP_INFO(this->get_logger(), "Distortion Coefficients: ");
-        //     for(int i = 0; i < this->distCoeffs.rows; i++){
-        //         string row = "";
-        //         for(int j = 0; j < this->distCoeffs.cols; j++){
-        //             row += std::to_string(this->distCoeffs.at<double>(i,j)) + " ";
-        //         }
-        //         RCLCPP_INFO(this->get_logger(), "%s", row.c_str());
-        //     }
-        // }
-
         this->setProgramState(ProgramState::FINDING_PANEL);
 
-        //Load image from file for testing
-
+        //# ------- Load image from file for testing --------
+        
         // RCLCPP_INFO(this->get_logger(), "Starting test image pose estimation");
         // cv::Vec3d rvec, tvec;
         // cv::Mat img = cv::imread("src/amps_cpp/src/color.png");
@@ -152,6 +131,22 @@ private:
         this->distCoeffs = cv::Mat(msg->d.size(), 1, CV_64F, const_cast<double*>(msg->d.data())).clone();
 
         RCLCPP_INFO(this->get_logger(), "Camera Info received from topic");
+        RCLCPP_INFO(this->get_logger(), "Camera Matrix: ");
+        for(int i = 0; i < this->cameraMatrix.rows; i++){
+            string row = "";
+            for(int j = 0; j < this->cameraMatrix.cols; j++){
+                row += std::to_string(this->cameraMatrix.at<double>(i,j)) + " ";      }
+            RCLCPP_INFO(this->get_logger(), "%s", row.c_str());
+        }
+
+        RCLCPP_INFO(this->get_logger(), "Distortion Coefficients: ");
+        for(int i = 0; i < this->distCoeffs.rows; i++){
+            string row = "";
+            for(int j = 0; j < this->distCoeffs.cols; j++){
+                row += std::to_string(this->distCoeffs.at<double>(i,j)) + " ";
+            }
+            RCLCPP_INFO(this->get_logger(), "%s", row.c_str());
+        }
 
         this->cameraInfoSub_.reset(); // Unsubscribe after receiving the first message
     }
@@ -204,7 +199,6 @@ private:
         }
 
         RCLCPP_INFO(this->get_logger(), "Motions executed successfully");
-        setProgramState(ProgramState::SERVICING_PANEL);
     }
 
     void getTransformBroadcast(tf2::Transform& transformOut, const std::string& targetFrame, const std::string& sourceFrame){
@@ -228,15 +222,9 @@ private:
 
     void programStateCallback(const ProgramState::SharedPtr msg){
 
-        RCLCPP_INFO(this->get_logger(), "Received Program State: %i", msg->state);
-        
-        if(msg->state == ProgramState::FINDING_PANEL){
-            this->estimationActive = true;
-            RCLCPP_INFO(this->get_logger(), "Pose Estimation Activated");
-        } else {
-            this->estimationActive = false;
-            RCLCPP_INFO(this->get_logger(), "Pose Estimation Deactivated");
-        }
+        RCLCPP_INFO(this->get_logger(), "Received New Program State: %i", msg->state);
+
+        this->programState = msg->state;
     }
 
     bool threeMarkerSort(vector<cv::Vec3d>& rvecs, vector<cv::Vec3d>& tvecs){
@@ -305,123 +293,25 @@ private:
         // Define Y-axis from marker 0 to marker 2
         vecY = tvecs[2] - tvecs[0];
         
-        // Z-axis is the cross product of X and Y (right-hand rule)
+        // Calculate Z-axis
         vecZ = vecX.cross(vecY);
         vecZ = vecZ / cv::norm(vecZ);
 
-        // Recompute Y-axis to ensure orthogonality
+        // Calculate corrected Y-axis
         vecY = vecZ.cross(vecX);
         vecY = vecY / cv::norm(vecY);
 
-        // Build rotation matrix with column vectors
+        // Build rotation matrix
         cv::Mat rotMat = cv::Mat::eye(3, 3, CV_64F);
         rotMat.at<double>(0,0) = vecX[0]; rotMat.at<double>(0,1) = vecY[0]; rotMat.at<double>(0,2) = vecZ[0];
         rotMat.at<double>(1,0) = vecX[1]; rotMat.at<double>(1,1) = vecY[1]; rotMat.at<double>(1,2) = vecZ[1];
         rotMat.at<double>(2,0) = vecX[2]; rotMat.at<double>(2,1) = vecY[2]; rotMat.at<double>(2,2) = vecZ[2];
 
+        // Save as rotation and translation vectors
         cv::Rodrigues(rotMat, rvecOut);
-
         tvecOut = tvecs[0];
         
         return true;
-    }
-
-    bool loadCameraParameters(const char* filename, cv::Mat& camMatrix, cv::Mat& distCoeffs){
-
-        tinyxml2::XMLDocument doc;
-        if(doc.LoadFile(filename) != tinyxml2::XML_SUCCESS){
-            RCLCPP_ERROR(this->get_logger(), "Error loading XML file: %s (Error: %s)", 
-                        filename, doc.ErrorStr());
-            return false;
-        }
-
-        tinyxml2::XMLNode* storage_node = doc.FirstChild();
-
-        if(doc.NoChildren()){
-            RCLCPP_ERROR(this->get_logger(), "Error Parsing XML file: Check valid path or file condition");
-            return false;
-        }
-
-        const tinyxml2::XMLElement* cam_matrix_raw = storage_node->FirstChildElement("camera_matrix");
-        const tinyxml2::XMLElement* dist_coeffs_raw = storage_node->FirstChildElement("distortion_coefficients");
-
-        if(!cam_matrix_raw){
-            RCLCPP_ERROR(this->get_logger(), "Error: Can't find camera matrix");
-            return false;
-        }
-        if(!dist_coeffs_raw){
-            RCLCPP_ERROR(this->get_logger(), "Error: Can't find distrotion coeificents");
-            return false;
-        }
-
-        try {
-            // Parse camera matrix
-            const tinyxml2::XMLElement* rows_elem = cam_matrix_raw->FirstChildElement("rows");
-            const tinyxml2::XMLElement* cols_elem = cam_matrix_raw->FirstChildElement("cols");
-            const tinyxml2::XMLElement* data_elem = cam_matrix_raw->FirstChildElement("data");
-            
-            if (!rows_elem || !cols_elem || !data_elem) {
-                RCLCPP_ERROR(this->get_logger(), "Missing rows/cols/data in camera_matrix");
-                return false;
-            }
-            
-            int rows = std::stoi(rows_elem->GetText());
-            int cols = std::stoi(cols_elem->GetText());
-
-            std::vector<double> cam_data;
-            std::stringstream cam_data_stream(data_elem->GetText());
-            double value;
-
-            while (cam_data_stream >> value) {
-                cam_data.push_back(value);
-            }
-            
-            if (cam_data.size() != static_cast<size_t>(rows * cols)) {
-                RCLCPP_ERROR(this->get_logger(), 
-                            "Camera matrix size mismatch: expected %d, got %zu", 
-                            rows * cols, cam_data.size());
-                return false;
-            }
-            
-            camMatrix = cv::Mat(rows, cols, CV_64F);
-            memcpy(camMatrix.data, cam_data.data(), cam_data.size() * sizeof(double));
-
-            // Parse distortion coefficients
-            rows_elem = dist_coeffs_raw->FirstChildElement("rows");
-            cols_elem = dist_coeffs_raw->FirstChildElement("cols");
-            data_elem = dist_coeffs_raw->FirstChildElement("data");
-            
-            if (!rows_elem || !cols_elem || !data_elem) {
-                RCLCPP_ERROR(this->get_logger(), "Missing rows/cols/data in distortion_coefficients");
-                return false;
-            }
-            
-            rows = std::stoi(rows_elem->GetText());
-            cols = std::stoi(cols_elem->GetText());
-
-            std::vector<double> dist_coeffs;
-            std::stringstream coeffs_stream(data_elem->GetText());
-
-            while (coeffs_stream >> value) {
-                dist_coeffs.push_back(value);
-            }
-            
-            if (dist_coeffs.size() != static_cast<size_t>(rows * cols)) {
-                RCLCPP_ERROR(this->get_logger(), 
-                            "Distortion coefficients size mismatch: expected %d, got %zu", 
-                            rows * cols, dist_coeffs.size());
-                return false;
-            }
-
-            distCoeffs = cv::Mat(rows, cols, CV_64F);
-            memcpy(distCoeffs.data, dist_coeffs.data(), dist_coeffs.size() * sizeof(double));
-            
-            return true;
-            
-        } catch (const std::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "Exception parsing XML: %s", e.what());
-            return false;
-        }
     }
 
     void logPosition(const cv::Vec3d& rvec, const cv::Vec3d& tvec){
@@ -432,16 +322,24 @@ private:
                     rvec[0], rvec[1], rvec[2]);
     }
 
+    void publishArucoDetectionImage(const cv::Mat& img){
+        cv_bridge::CvImage cvImg;
+        cvImg.encoding = "bgr8";
+        cvImg.image = img;
+
+        sensor_msgs::msg::Image::SharedPtr imgMsg = cvImg.toImageMsg();
+
+        this->arucoDetectionPub_->publish(*imgMsg);
+    }
+
     bool detectAndEstimatePose(cv::Mat& img, cv::Vec3d& rvec, cv::Vec3d& tvec){
         cv::Mat imgOut = img.clone();
-        // cv::flip(imgOut, imgOut, 1); // Flip image for correct orientation
-        // cv::imshow("Input Image", imgOut);
-        // cv::waitKey(1);
 
         cv::aruco::detectMarkers(img, this->dictionary, this->markerCorners, this->markerIds, this->parameters, this->rejectedCandidates);
         cv::aruco::drawDetectedMarkers(imgOut, this->markerCorners, this->markerIds);
 
         if(this->markerIds.size() == 0){
+            this->isBoardReachablePub_->publish(std_msgs::msg::Bool().set__data(false));
             RCLCPP_INFO(this->get_logger(), "No markers detected");
             return false;   
         }
@@ -449,6 +347,7 @@ private:
         //RCLCPP_INFO(this->get_logger(), "Detected %zu markers", this->markerIds.size());
 
         if(!this->estimateBoardPose(imgOut, rvec, tvec)){
+            this->isBoardReachablePub_->publish(std_msgs::msg::Bool().set__data(false));
             RCLCPP_WARN(this->get_logger(), "Failed to estimate board pose");
             return false;
         }
@@ -457,17 +356,7 @@ private:
 
         cv::drawFrameAxes(imgOut, this->cameraMatrix, this->distCoeffs, rvec, tvec, 0.1f);
 
-        // if(checkPosition(rvec, tvec)){
-        //     RCLCPP_INFO(this->get_logger(), "Goal Pose Reached within Thresholds");
-        //     this->setProgramState(ProgramState::SERVICING_PANEL);
-        //     this->estimationActive = false;
-        //     this->correctionActive = false;
-        // }else{
-        //     RCLCPP_INFO(this->get_logger(), "Goal Pose Not Reached, Sending Correction Move");
-        // }
-
-        cv::imshow("Aruco Detection", imgOut);
-        cv::waitKey(1);
+        this->publishArucoDetectionImage(imgOut);
 
         return true;
     }
@@ -520,8 +409,8 @@ private:
         currentCamToBoardT.setOrigin(tf2::Vector3(tvec[0], tvec[1], tvec[2]));
         currentCamToBoardT.setRotation(currentOrientation);
 
-        this->broadcastTransform(currentCamToBoardT, "camera", "board_current");
-
+        //Broadcast current board pose to TF
+        this->broadcastTransform(currentBaseToCamT*currentCamToBoardT, "base", "board_current");
 
         //Build goal transform
         goalOrientation.setRotation(
@@ -531,15 +420,17 @@ private:
         goalCamToBoardT.setOrigin(tf2::Vector3(this->goalPose[1][0], this->goalPose[1][1], this->goalPose[1][2]));
         goalCamToBoardT.setRotation(goalOrientation);
 
+        //Broadcast goal cam pose to TF
         this->broadcastTransform(goalCamToBoardT.inverse(), "board_current", "board_goal");
 
         //Calculate correction transform
         correctionT = currentCamToBoardT * goalCamToBoardT.inverse();
 
+        //Broadcast correction transform to TF for visualization 
+        //*NOTE: This should be in the same global frame as goal pose in RViz
         this->broadcastTransform(correctionT, "camera", "correction");
         
-
-        //Get current Base to Tool transform from message
+        //Get current Base to Tool transform from TCP pose in message
         tf2::Transform currentBaseToToolT;
         tf2::Quaternion baseToToolOrientation;
         tf2::fromMsg(msg->pose.pose.orientation, baseToToolOrientation);
@@ -552,16 +443,18 @@ private:
         );
         currentBaseToToolT.setRotation(baseToToolOrientation);
 
-        broadcastTransform(currentBaseToToolT, "base", "tool0_current");
+        //* Used for debugging - should be the same as the TF published by UR-Driver
+        //broadcastTransform(currentBaseToToolT, "base", "tool0_current");
 
-        //Get Tool to Cam transform
+
+        //Get Tool to Cam transform from static broadcaster
         tf2::Transform toolToCamT;
         this->getTransformBroadcast(toolToCamT, "tool0", "camera");
 
-
-        //Calculate new Base to Tool transform
+        //Calculate new Base to Tool transform with correction applied
         tf2::Transform correctionBaseToToolT = currentBaseToToolT * toolToCamT * correctionT * toolToCamT.inverse();
 
+        //Broadcast new Base to Tool transform
         broadcastTransform(correctionBaseToToolT, "base", "tool0_goal");
         
         //Extract new rvec and tvec
@@ -571,6 +464,7 @@ private:
         correctionBaseToToolT.getBasis().getRotation(corrOrientation);
         tf2::Vector3 corrRotVec = corrOrientation.getAxis() * corrOrientation.getAngle();
 
+        //Set output rvec and tvec
         rvec[0] = corrRotVec.x();
         rvec[1] = corrRotVec.y();
         rvec[2] = corrRotVec.z();
@@ -578,10 +472,6 @@ private:
         tvec[0] = corrTransVec.x();
         tvec[1] = corrTransVec.y();
         tvec[2] = corrTransVec.z();
-
-    //     RCLCPP_INFO(this->get_logger(), "New Target Pose Calculated:");
-    //     RCLCPP_INFO(this->get_logger(), "Target Position: X: %.4f Y: %.4f Z: %.4f", tvec[0], tvec[1], tvec[2]);
-    //     RCLCPP_INFO(this->get_logger(), "Target Orientation: Rx: %.4f Ry: %.4f Rz: %.4f", rvec[0], rvec[1], rvec[2]);  
 }
 
     bool checkPosition(cv::Vec3d& rvec, cv::Vec3d& tvec){
@@ -595,17 +485,58 @@ private:
         );
     }
 
+    void vecsToTransform(const cv::Vec3d& rvec, const cv::Vec3d& tvec, tf2::Transform& transformOut){
+        tf2::Quaternion orientation;
+        double angle = cv::norm(rvec);
+        cv::Vec3d axisVec = rvec / angle;
+        orientation.setRotation(tf2::Vector3(axisVec[0], axisVec[1], axisVec[2]), angle);
+
+        transformOut.setOrigin(tf2::Vector3(tvec[0], tvec[1], tvec[2]));
+        transformOut.setRotation(orientation);
+    }
+
+    bool checkReachability(cv::Vec3d& rvec, cv::Vec3d& tvec){ //TODO: IMPLEMENT DIRECTION GUIDANCE
+        tf2::Transform approachTransform;
+        this->vecsToTransform(rvec, tvec, approachTransform);
+
+        tf2::Transform toolToCamT;
+        this->getTransformBroadcast(toolToCamT, "tool0", "camera");
+
+        bool approachReachable = approachTransform.getOrigin().length() < this->workspaceSphereRadius;
+
+        if(!approachReachable){
+            return false;
+        }
+
+        for(int i = 0; i < 4; i++){
+            cv::Vec3d camToCornerTvec = i == 0 ? goalPose[1] : cv::Vec3d(
+                this->goalPose[1][0] * pow(-1, i&2),
+                this->goalPose[1][1] * pow(-1, int(i/2)),
+                this->goalPose[1][2]
+            );
+            tf2::Transform cornerTransform;
+            this->vecsToTransform(rvec, camToCornerTvec, cornerTransform);
+            int transformDist = (approachTransform * toolToCamT * cornerTransform).getOrigin().length();
+            if(transformDist > this->workspaceSphereRadius){
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     void frameCallback(const amps_cpp::msg::FrameWithPose::SharedPtr msg){
 
+        // Early exit conditions - camera parameters not set or not in correct program state
         if(this->cameraMatrix.empty() || this->distCoeffs.empty()){
             RCLCPP_WARN(this->get_logger(), "Camera parameters not set yet, cannot process frame");
             return;
         }
-
-        if(!this->estimationActive || this->correctionActive){
+        if(this->programState != ProgramState::FINDING_PANEL || this->programState == ProgramState::APPROACHING_PANEL || this->correctionActive){
             return;
         }
 
+        // Set correction active flag
         this->correctionActive = true;
         
         RCLCPP_INFO(this->get_logger(), "Processeing Frame for Aruco Detection");
@@ -634,10 +565,20 @@ private:
 
         this->calculateCorrectionMove(msg, rvec, tvec);
 
+        if(!this->checkReachability(rvec, tvec)){
+            RCLCPP_ERROR(this->get_logger(), "Calculated correction move is out of reach, aborting correction");
+            this->correctionActive = false;
+            return;
+        }
+
+        //Early exit if panel approach hasn't been started yet
+        if(this->programState != ProgramState::APPROACHING_PANEL){
+            return;
+        }
+
         if(checkPosition(rvec, tvec)){
             RCLCPP_INFO(this->get_logger(), "Goal Pose Reached within Thresholds");
             this->setProgramState(ProgramState::SERVICING_PANEL);
-            this->estimationActive = false;
             this->correctionActive = false;
             return;
         }
@@ -646,18 +587,6 @@ private:
 
         this->prepareMotionPrimitiveSequence(rvec, tvec, goal_msg);
         this->send_goal(goal_msg);
-
-        // cv::Vec3d currentRVec, currentTVec;
-        // cv::Mat currentRotMat = currentTBoardToCam(cv::Rect(0,0,3,3));
-        // cv::Rodrigues(currentRotMat, currentRVec);
-
-        // currentTVec[0] = currentTBoardToCam.at<double>(0,3);
-        // currentTVec[1] = currentTBoardToCam.at<double>(1,3);
-        // currentTVec[2] = currentTBoardToCam.at<double>(2,3);
-        
-        // RCLCPP_INFO(this->get_logger(), "Aruco Board Pose Estimated:");
-        // RCLCPP_INFO(this->get_logger(), "RVec: [%f, %f, %f]", currentRVec[0], currentRVec[1], currentRVec[2]);
-        // RCLCPP_INFO(this->get_logger(), "TVec: [%f, %f, %f]", currentTVec[0], currentTVec[1], currentTVec[2]);
     }
 
     vector<int> markerIds;
@@ -668,16 +597,19 @@ private:
     cv::Mat cameraMatrix, distCoeffs;
     cv::Ptr<cv::aruco::Board> board;
     double markerSize;
-    bool estimationActive;
+    int programState;
     vector<cv::Vec3d> goalPose;
     vector<cv::Vec3d> goalPoseTreshold;
     bool correctionActive;
+    const double workspaceSphereRadius = .5; // meters
 
     rclcpp::Subscription<amps_cpp::msg::FrameWithPose>::SharedPtr frameSub_;
     rclcpp::Publisher<ProgramState>::SharedPtr programStatePub_;
     rclcpp::Subscription<ProgramState>::SharedPtr programStateSub_;
     rclcpp_action::Client<ExcecuteMotion>::SharedPtr moveClient_;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cameraInfoSub_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr isBoardReachablePub_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr arucoDetectionPub_;
 
     rclcpp::Publisher<TransformStamped>::SharedPtr addToBroadcastPub_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
