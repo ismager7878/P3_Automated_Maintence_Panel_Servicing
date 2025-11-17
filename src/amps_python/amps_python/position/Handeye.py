@@ -178,7 +178,7 @@ class Handeye(Node):
             # Draw and display the corners
             image_w_corners = cv2.drawChessboardCorners(gray, pattern_size, corners2, ret)
 
-            imagePoints = corners2
+            imagePoints = corners2.reshape(-1, 2).astype(np.float32)
             #-------------------------------------------------------------
             # camera til board vektor and matrise
             # Use the correct calibration matrices based on dist_cali flag
@@ -188,10 +188,6 @@ class Handeye(Node):
             
             self.R_board2cam, _ = cv2.Rodrigues(rvec)
             self.t_board2cam = tvec
-
-            rotx = rvec[0] * 180/math.pi
-            roty = rvec[1] * 180/math.pi
-            rotz = rvec[2] * 180/math.pi
 
             s = square_size
             axis = np.float32([[s,0,0], [0,s,0], [0,0,-s]])
@@ -252,7 +248,7 @@ class Handeye(Node):
                     # Draw and display the corners
                     image_w_corners = cv2.drawChessboardCorners(gray, pattern_size, corners2, ret)
 
-                    imagePoints = corners2
+                    imagePoints = corners2.reshape(-1, 2).astype(np.float32)
                     #-------------------------------------------------------------
                     # camera til board vektor og matrise
                     # Use the correct calibration matrices based on dist_cali flag
@@ -292,10 +288,11 @@ class Handeye(Node):
                     R_b2w_list.append(R_w2b)
                     t_b2w_list.append(t_w2b)
                 
+                
                 self.logger.info("calibrating")
                 R_c2g, t_c2g = cv2.calibrateHandEye(
-                    self.saved_cam_oris, self.saved_cam_pos,
                     R_b2w_list, t_b2w_list,
+                    self.saved_cam_oris, self.saved_cam_pos,
                     method=cv2.CALIB_HAND_EYE_TSAI)
                 
                 self.logger.info("------------------------------------------------------------------------")
