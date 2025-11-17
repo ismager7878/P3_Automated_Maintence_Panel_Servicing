@@ -16,6 +16,8 @@ setup(
         (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
         (os.path.join('share', package_name, 'data', 'calibration-data'),
             glob('amps_python/data/calibration-data/*.xml')),
+        (os.path.join('share', package_name, 'launch'),
+            glob('amps_python/launch_files/*.launch.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,

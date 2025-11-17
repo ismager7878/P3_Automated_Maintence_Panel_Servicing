@@ -297,6 +297,7 @@ class Handeye(Node):
                     self.saved_cam_oris, self.saved_cam_pos,
                     R_b2w_list, t_b2w_list,
                     method=cv2.CALIB_HAND_EYE_TSAI)
+                
                 self.logger.info("------------------------------------------------------------------------")
                 self.logger.info("translation:")
                 self.logger.info(f"{t_c2g}")
