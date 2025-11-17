@@ -532,7 +532,7 @@ private:
             RCLCPP_WARN(this->get_logger(), "Camera parameters not set yet, cannot process frame");
             return;
         }
-        if(this->programState != ProgramState::FINDING_PANEL || this->programState == ProgramState::APPROACHING_PANEL || this->correctionActive){
+        if((this->programState != ProgramState::FINDING_PANEL && this->programState != ProgramState::APPROACHING_PANEL) || this->correctionActive){
             return;
         }
 
@@ -565,14 +565,18 @@ private:
 
         this->calculateCorrectionMove(msg, rvec, tvec);
 
+
         if(!this->checkReachability(rvec, tvec)){
             RCLCPP_ERROR(this->get_logger(), "Calculated correction move is out of reach, aborting correction");
             this->correctionActive = false;
             return;
         }
 
+        this->setProgramState(ProgramState::APPROACHING_PANEL);
+
         //Early exit if panel approach hasn't been started yet
         if(this->programState != ProgramState::APPROACHING_PANEL){
+            this->correctionActive = false;
             return;
         }
 
