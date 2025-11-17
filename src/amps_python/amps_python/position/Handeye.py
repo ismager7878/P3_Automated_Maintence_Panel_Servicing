@@ -59,6 +59,9 @@ class Handeye(Node):
         self.K = np.array(root.find('camera_matrix/data').text.split(), float).reshape(3,3)
         self.D = np.array(root.find('distortion_coefficients/data').text.split(), float).reshape(1,5)
 
+        self.get_logger().info(f"Camera intrinsics K:\n{self.K}")
+        self.get_logger().info(f"Distortion coefficients D: {self.D}")
+
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
         # --- Buffere og state
@@ -144,7 +147,11 @@ class Handeye(Node):
                 self.saved_pos.append(pos.copy())
                 self.saved_oris.append(ori.copy())
                 self.save_requested = False
-                self.get_logger().info(f"Gemt sample #{len(self.saved_imgs)}")
+                
+                # Debug logging
+                self.get_logger().info(f"=== Gemt sample #{len(self.saved_imgs)} ===")
+                self.get_logger().info(f"Robot position [m]: X={pos[0]:.4f}, Y={pos[1]:.4f}, Z={pos[2]:.4f}")
+                self.get_logger().info(f"Robot quaternion: w={ori[0]:.4f}, x={ori[1]:.4f}, y={ori[2]:.4f}, z={ori[3]:.4f}")
             
         #-------------------------------------------------------------
         # Define chess board size:
@@ -257,10 +264,14 @@ class Handeye(Node):
                     
                     
                     R_board2cam, _ = cv2.Rodrigues(rvec)
-                    t_board2cam = tvec
+                    t_board2cam = tvec.reshape(3, 1)  # Ensure (3,1) shape
 
                     self.saved_cam_oris.append(R_board2cam)
                     self.saved_cam_pos.append(t_board2cam)
+                    
+                    # Debug logging for board→cam transform
+                    # Note: OpenCV chessboard frame: origin at top-left corner, X right, Y down, Z towards camera
+                    self.logger.info(f"Sample {i}: board→cam translation [m]: X={t_board2cam[0][0]:.4f}, Y={t_board2cam[1][0]:.4f}, Z={t_board2cam[2][0]:.4f}")
         self.logger.info("------------------------------------------------------------------------")
         self.logger.info(f"img pose: {len(self.saved_cam_pos)} img rot: {len(self.saved_cam_oris)}")
         self.logger.info(f"rob pose: {len(self.saved_pos)} rob rot: {len(self.saved_oris)}")
@@ -269,38 +280,73 @@ class Handeye(Node):
 
     def handEye(self):
         if self.cal_handeye == True:
-            self.logger.info(f"cam pos: {self.saved_cam_pos} rob pos: {self.saved_pos}")
+            self.logger.info(f"Number of samples - cam: {len(self.saved_cam_pos)}, robot: {len(self.saved_pos)}")
             if len(self.saved_cam_oris) == len(self.saved_cam_pos) == len(self.saved_pos) == len(self.saved_rotmat):
                 
-                # Konverter SO3 objekter til numpy arrays
-                R_b2w_list = []
-                t_b2w_list = []
+                # Prepare lists for calibrateHandEye
+                # IMPORTANT: Testing showed that WITHOUT inversion gives correct results!
+                # This suggests the pose from /tcp_pose_broadcaster/pose is already in the correct frame
+                R_gripper2base_list = []
+                t_gripper2base_list = []
                 
                 for i in range(len(self.saved_rotmat)):
-                    # Udtræk numpy matrix fra SO3 objekt
-                    R = self.saved_rotmat[i].R  # .R giver numpy array
-                    t = self.saved_pos[i].reshape(3, 1)  # Skal være (3,1)
+                    # Use pose directly without inversion
+                    R = self.saved_rotmat[i].R
+                    t = self.saved_pos[i].reshape(3, 1)
                     
-                    # Invertér: T_w2b = (T_b2w)^-1
-                    R_w2b = R.T
-                    t_w2b = -R.T @ t
+                    R_gripper2base_list.append(R)
+                    t_gripper2base_list.append(t)
                     
-                    R_b2w_list.append(R_w2b)
-                    t_b2w_list.append(t_w2b)
+                # Log first sample for verification
+                self.logger.info(f"Sample 0: R_g2b shape={R_gripper2base_list[0].shape}, t_g2b shape={t_gripper2base_list[0].shape}")
+                self.logger.info(f"Sample 0: R_target2cam shape={self.saved_cam_oris[0].shape}, t_target2cam shape={self.saved_cam_pos[0].shape}")
+                
+                # Check diversity of samples (important for good calibration)
+                if len(self.saved_pos) >= 2:
+                    max_trans_diff = 0
+                    max_rot_diff = 0
+                    for i in range(len(self.saved_pos)):
+                        for j in range(i+1, len(self.saved_pos)):
+                            trans_diff = np.linalg.norm(self.saved_pos[i] - self.saved_pos[j])
+                            rot_diff = np.linalg.norm(self.saved_rotmat[i].R - self.saved_rotmat[j].R, 'fro')
+                            max_trans_diff = max(max_trans_diff, trans_diff)
+                            max_rot_diff = max(max_rot_diff, rot_diff)
+                    
+                    self.logger.info(f"Sample diversity: max translation diff = {max_trans_diff:.4f} m, max rotation diff = {max_rot_diff:.4f}")
+                    if max_trans_diff < 0.05:
+                        self.logger.warn("WARNING: Robot poses are very similar (< 5cm). Move robot more between samples!")
+                    if max_rot_diff < 0.1:
+                        self.logger.warn("WARNING: Robot orientations are very similar. Rotate robot more between samples!")
                 
                 
-                self.logger.info("calibrating")
-                R_c2g, t_c2g = cv2.calibrateHandEye(
-                    R_b2w_list, t_b2w_list,
+                # Log some transforms to verify correctness
+                self.logger.info("=== Verifying transform directions ===")
+                self.logger.info(f"First robot pose (base→gripper): t={self.saved_pos[0]}")
+                self.logger.info(f"After inversion (gripper→base): t={t_gripper2base_list[0].flatten()}")
+                self.logger.info(f"First board→cam: t={self.saved_cam_pos[0].flatten()}")
+                
+                self.logger.info("Running hand-eye calibration...")
+                # calibrateHandEye(R_gripper2base[], t_gripper2base[], R_target2cam[], t_target2cam[])
+                # Returns: R_cam2gripper, t_cam2gripper
+                R_cam2gripper, t_cam2gripper = cv2.calibrateHandEye(
+                    R_gripper2base_list, t_gripper2base_list,
                     self.saved_cam_oris, self.saved_cam_pos,
                     method=cv2.CALIB_HAND_EYE_TSAI)
                 
+                # Convert rotation matrix to RPY for easier interpretation
+                so = spm.SO3(R_cam2gripper)
+                roll_deg, pitch_deg, yaw_deg = so.rpy(unit='deg')
+                
+                self.logger.info("========================================================================")
+                self.logger.info("Hand-Eye Calibration Result (Camera→TCP/Flange):")
                 self.logger.info("------------------------------------------------------------------------")
-                self.logger.info("translation:")
-                self.logger.info(f"{t_c2g}")
-                self.logger.info("Rotation:")
-                self.logger.info(f"{R_c2g}")
+                self.logger.info(f"Translation [m]: X={t_cam2gripper[0][0]:.4f}, Y={t_cam2gripper[1][0]:.4f}, Z={t_cam2gripper[2][0]:.4f}")
+                self.logger.info(f"Translation norm: {np.linalg.norm(t_cam2gripper):.4f} m")
+                self.logger.info(f"Rotation [deg]: Roll={roll_deg:.2f}, Pitch={pitch_deg:.2f}, Yaw={yaw_deg:.2f}")
                 self.logger.info("------------------------------------------------------------------------")
+                self.logger.info(f"Rotation Matrix:\n{R_cam2gripper}")
+                self.logger.info("========================================================================")
+
 
             else:
                 self.logger.info("transformation arrays are not the same lenght :(")
