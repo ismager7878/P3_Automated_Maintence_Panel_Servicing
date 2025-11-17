@@ -15,7 +15,13 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(control_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(ur_msgs REQUIRED)
+find_package(ur_dashboard_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(tinyxml2_vendor REQUIRED)
+find_package(TinyXML2 REQUIRED)
+
 
 ## Action Client
 add_library(action_client SHARED
@@ -44,7 +50,7 @@ target_compile_definitions(ur_wrapper
 target_include_directories(ur_wrapper PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(ur_wrapper ur_client_library ur_msgs std_srvs rclcpp geometry_msgs tf2 tf2_geometry_msgs control_msgs rclcpp_action rclcpp_components)
+ament_target_dependencies(ur_wrapper ur_dashboard_msgs ur_client_library ur_msgs std_srvs rclcpp geometry_msgs tf2 tf2_geometry_msgs control_msgs rclcpp_action rclcpp_components)
 rclcpp_components_register_node(ur_wrapper PLUGIN "ur_script_wrapper::UrScriptWrapper" EXECUTABLE ur_wrapper_node)
 
 
@@ -52,16 +58,28 @@ rclcpp_components_register_node(ur_wrapper PLUGIN "ur_script_wrapper::UrScriptWr
 add_executable(fp_matcher src/pose_estimation/fp_matcher.cpp)
 ament_target_dependencies(fp_matcher rclcpp geometry_msgs sensor_msgs) 
 
+##Pose Estimation - Aruco Detection
+add_executable(pose_estimation src/pose_estimation/pose_estimator.cpp)
+ament_target_dependencies(pose_estimation rclcpp geometry_msgs sensor_msgs cv_bridge OpenCV TinyXML2 rclcpp_action control_msgs tf2 tf2_geometry_msgs)
+
+##Frame Broadcaster
+add_executable(frame_broadcaster src/pose_estimation/frame_broadcaster.cpp)
+ament_target_dependencies(frame_broadcaster rclcpp geometry_msgs tf2 tf2_geometry_msgs)
 
 ## Custom Interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FrameWithPose.msg"
+  "msg/ProgramState.msg"
   DEPENDENCIES geometry_msgs sensor_msgs
 )
 
 rosidl_get_typesupport_target(cpp_typesupport_target
   ${PROJECT_NAME} rosidl_typesupport_cpp)
+  
 target_link_libraries(fp_matcher "${cpp_typesupport_target}")
+target_link_libraries(pose_estimation "${cpp_typesupport_target}")
+target_link_libraries(action_client "${cpp_typesupport_target}")
+target_link_libraries(ur_wrapper "${cpp_typesupport_target}")
 
 
 ## Directories to include
@@ -70,6 +88,8 @@ target_link_libraries(fp_matcher "${cpp_typesupport_target}")
 ## Install executables
 install(TARGETS 
   fp_matcher
+  pose_estimation
+  frame_broadcaster
   DESTINATION lib/${PROJECT_NAME})
 
 ## Install libraries
@@ -79,6 +99,12 @@ install(TARGETS
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
+
+# Install launch files.
+install(DIRECTORY
+  launch
+  DESTINATION share/${PROJECT_NAME}/
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

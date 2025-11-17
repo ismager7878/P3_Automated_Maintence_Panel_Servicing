@@ -20,6 +20,7 @@
 #include "ur_msgs/srv/set_io.hpp"
 #include "ur_msgs/msg/io_states.hpp"
 #include "ur_msgs/msg/digital.hpp"
+#include "ur_dashboard_msgs/msg/safety_mode.hpp"
 
 
 using namespace std::chrono_literals;
@@ -117,21 +118,81 @@ namespace ur_script_wrapper{
       urScriptPub_ = this->create_publisher<std_msgs::msg::String>("/urscript_interface/script_command", 10);
       digitalOutClient_ = this->create_client<ur_msgs::srv::SetIO>("/io_and_status_controller/resend_robot_program");
       ioStatesSub_ = this->create_subscription<ur_msgs::msg::IOStates>("/io_and_status_controller/io_states", 10, std::bind(&UrScriptWrapper::newIOStatesCallback, this, _1));
-
+      safetyModeSub_ = this->create_subscription<ur_dashboard_msgs::msg::SafetyMode>("/ur_dashboard/safety_mode", 10, std::bind(&UrScriptWrapper::newSaftyModeCallback, this, _1));
+      currentTargetPub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("amps_cpp/pose_estimation/current_target_pose", 10);
     };
     private:
 
+      void newSaftyModeCallback(const ur_dashboard_msgs::msg::SafetyMode::SharedPtr msg){
+        this->safetyModeSafe_ = (msg->mode == ur_dashboard_msgs::msg::SafetyMode::NORMAL);
+      }
+
       void newIOStatesCallback(const ur_msgs::msg::IOStates::SharedPtr msg){
-        digitalOutState_ = find_if(msg->digital_out_states.begin(), msg->digital_out_states.end(), [](ur_msgs::msg::Digital digital){
+        this->digitalOutState_ = find_if(msg->digital_out_states.begin(), msg->digital_out_states.end(), [](ur_msgs::msg::Digital digital){
           return digital.pin == 1 && digital.state == true;
         }) != msg->digital_out_states.end();
       }
+
+      bool checkWorkspaceLimits(const geometry_msgs::msg::Pose &pose){
+        double x = pose.position.x * 1000; //Convert to mm
+        double y = pose.position.y * 1000;
+        double z = pose.position.z * 1000;
+
+        double distanceFromOrigin = sqrt(x*x + y*y + z*z);
+
+        if(distanceFromOrigin > workspaceSphereRadius){
+          RCLCPP_ERROR(this->get_logger(), "Pose is outside of workspace limits");
+          return false;
+        }
+
+        return true;
+      }
   
       void execute(const std::shared_ptr<GoalHandleExcecuteMotion> goal_handle){
+        auto const goal = goal_handle->get_goal();
+
+        geometry_msgs::msg::PoseStamped currentTargetPose;
+        currentTargetPose.pose = goal->trajectory.motions.back().poses.back().pose;
+        currentTargetPose.header.stamp = this->now();
+        currentTargetPose.header.frame_id = "base_link";
+        
+        this->currentTargetTimer_ = this->create_wall_timer(100ms, [this, currentTargetPose]() {
+          this->publishCurrentTargetPose(currentTargetPose);
+        });
+
+        RCLCPP_INFO(this->get_logger(), "Checking motion goal...");
+
+        for(control_msgs::msg::MotionPrimitive moiton: goal->trajectory.motions){
+          if(moiton.type != control_msgs::msg::MotionPrimitive::LINEAR_JOINT &&
+             moiton.type != control_msgs::msg::MotionPrimitive::LINEAR_CARTESIAN){
+            auto result = std::make_shared<ExcecuteMotion::Result>();
+            result->error_string = "Error: Invalid Move Type";
+            result->error_code = ExcecuteMotion::Result::INVALID_GOAL;
+            RCLCPP_ERROR(this->get_logger(), "Motion Failed with error: Invalid Move Type");
+            goal_handle->abort(result);
+            return;
+          }
+          if(!checkWorkspaceLimits(moiton.poses.back().pose)){
+            auto result = std::make_shared<ExcecuteMotion::Result>();
+            result->error_string = "Error: Pose outside of workspace limits";
+            result->error_code = ExcecuteMotion::Result::INVALID_GOAL;
+            RCLCPP_ERROR(this->get_logger(), "Motion Failed with error: Pose outside of workspace limits");
+            RCLCPP_ERROR(this->get_logger(), "Pose Position - x: %.2f, y: %.2f, z: %.2f", 
+              moiton.poses.back().pose.position.x, moiton.poses.back().pose.position.y, moiton.poses.back().pose.position.z);
+            goal_handle->abort(result);
+            return;
+          }
+          if(moiton.poses.size() == 0){
+            auto result = std::make_shared<ExcecuteMotion::Result>();
+            result->error_string = "Error: No Poses in Motion Primitive";
+            result->error_code = ExcecuteMotion::Result::INVALID_GOAL;
+            RCLCPP_ERROR(this->get_logger(), "Motion Failed with error: No Poses in Motion Primitive");
+            goal_handle->abort(result);
+            return;
+          }
+        }
 
         RCLCPP_INFO(this->get_logger(), "Excecuting Motion(s) on robot: ");
-
-        auto const goal = goal_handle->get_goal();
 
         for(control_msgs::msg::MotionPrimitive moiton: goal->trajectory.motions){
           RCLCPP_INFO(this->get_logger(), "Motion Type: %d", moiton.type);
@@ -179,7 +240,7 @@ namespace ur_script_wrapper{
             return arg.name == "acc";
           });
 
-          double vel = 0.0;
+          double vel = 0.1;
           double acc = 0.0;
 
           if(velPtr != motion.additional_arguments.end()){
@@ -199,7 +260,7 @@ namespace ur_script_wrapper{
             }
 
             if(goal_handle->is_canceling()){
-              result->error_code = -2;
+              result->error_code = -4;
               std::string errorString = "INFO: Motion Canceled:";
               result->error_string = errorString + to_string(i) +" of " +to_string(goal->trajectory.motions.size()) + "done";
               RCLCPP_INFO(this->get_logger(), "Motion canceled");
@@ -210,7 +271,7 @@ namespace ur_script_wrapper{
             try{
               setPoseToURScript(pose.pose, vel, acc, motion.type);
             }catch(int errorNum){
-              result->error_string = errorNum == 420 ? "Error: Invalid Pose Type" : "Error: Could not send URScript to Robot";
+              result->error_string = "Error: Could not send URScript to Robot";
               result->error_code = -2;
               RCLCPP_ERROR(this->get_logger(), "Motion Failed with error code:%d", (result->error_code));
               goal_handle->abort(result);
@@ -218,7 +279,16 @@ namespace ur_script_wrapper{
             }
           }
           RCLCPP_INFO(this->get_logger(), "Waiting for motion %s of %s complete...", to_string(i+1).c_str(), to_string(goal->trajectory.motions.size()).c_str());
-          while(digitalOutState_ && rclcpp::ok()){
+          while(this->digitalOutState_ && rclcpp::ok()){
+
+            if(this->safetyModeSafe_ == false){
+              RCLCPP_ERROR(this->get_logger(), "Motion Aborted: Robot is not in a safe state to move");
+              result->error_string = "Error: Robot is not in a safe state to move";
+              result->error_code = -2;
+              goal_handle->abort(result);
+              return;
+            }
+
             rclcpp::sleep_for(100ms);
           }
         }
@@ -228,6 +298,12 @@ namespace ur_script_wrapper{
           goal_handle->succeed(result);
           RCLCPP_INFO(this->get_logger(), "Motion Succesful");
         }
+      }
+
+      void publishCurrentTargetPose(const geometry_msgs::msg::PoseStamped &pose){
+        //RCLCPP_INFO(this->get_logger(), "Publishing Current Target Pose");
+        this->currentTargetPub_->publish(pose);
+        //This function is currently not used, as the current target pose is published when sending a new pose to URScript
       }
     
       void setPoseToURScript(const geometry_msgs::msg::Pose &pose, double speed = 0.0, double acceleration = 0.0, uint8_t type = 0) {
@@ -258,21 +334,39 @@ namespace ur_script_wrapper{
 
         message.data = {
           string("def myProg():\n") + 
-          "  " + moveFunction + "(p[" + to_string(pose.position.x/1000) + "," + to_string(pose.position.y/1000) +","+ to_string(pose.position.z/1000) +","+to_string(ex)+","+to_string(ey)+","+to_string(ez)+"]" + accArg + velArg + ", r=0)\n"+
+          "  " + moveFunction + "(p[" + to_string(pose.position.x) + "," + to_string(pose.position.y) +","+ to_string(pose.position.z) +","+to_string(ex)+","+to_string(ey)+","+to_string(ez)+"]" + accArg + velArg + ", r=0)\n"+
           "  set_standard_digital_out(1, False)\n"+
           "end\n"
         };
 
         RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Publishing TCP Pose as URScript: '%s'", message.data.c_str());
 
+        // geometry_msgs::msg::PoseStamped currentTargetPose;
+        // currentTargetPose.pose = pose;
+        // currentTargetPose.header.stamp = this->now();
+        // currentTargetPose.header.frame_id = "base_link";
+        
+        // this->currentTargetTimer_ = this->create_wall_timer(100ms, [this, currentTargetPose]() {
+        //   this->publishCurrentTargetPose(currentTargetPose);
+        // });
         this->urScriptPub_->publish(message);
+        
       }
 
     rclcpp_action::Server<control_msgs::action::ExecuteMotionPrimitiveSequence>::SharedPtr server_;
     rclcpp::Publisher<std_msgs::msg::String>::SharedPtr urScriptPub_;
     rclcpp::Client<ur_msgs::srv::SetIO>::SharedPtr digitalOutClient_;
     rclcpp::Subscription<ur_msgs::msg::IOStates>::SharedPtr ioStatesSub_;
+    rclcpp::Subscription<ur_dashboard_msgs::msg::SafetyMode>::SharedPtr safetyModeSub_;
+
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr currentTargetPub_;
+  
+    //Timer for current target pose publishing
+    rclcpp::TimerBase::SharedPtr currentTargetTimer_;
+
+    int workspaceSphereRadius = 500; //in mm
     bool digitalOutState_ = false;
+    bool safetyModeSafe_ = true;
   };
 
 }

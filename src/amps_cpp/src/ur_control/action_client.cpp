@@ -6,6 +6,7 @@
 
 #include "control_msgs/action/execute_motion_primitive_sequence.hpp"
 #include "geometry_msgs/msg/pose.hpp"
+#include "amps_cpp/msg/program_state.hpp"
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
@@ -19,6 +20,7 @@ namespace ur_script_wrapper{
     public:
         using ExcecuteMotion = control_msgs::action::ExecuteMotionPrimitiveSequence;
         using GoalHandleExcecuteMotion = rclcpp_action::ClientGoalHandle<ExcecuteMotion>;
+        using ProgramStateMsg = amps_cpp::msg::ProgramState;
 
         explicit ActionClient(const rclcpp::NodeOptions &options)
         : Node("action_client", options)
@@ -52,9 +54,9 @@ namespace ur_script_wrapper{
         
             geometry_msgs::msg::Pose target_pose;
             target_pose.orientation = tf2::toMsg(q);
-            target_pose.position.x = static_cast<double>(x);
-            target_pose.position.y = static_cast<double>(y);
-            target_pose.position.z = static_cast<double>(z);
+            target_pose.position.x = static_cast<double>(x/1000.0);
+            target_pose.position.y = static_cast<double>(y/1000.0);
+            target_pose.position.z = static_cast<double>(z/1000.0);
 
             control_msgs::msg::MotionPrimitive motion_primitive;
             motion_primitive.type = control_msgs::msg::MotionPrimitive::LINEAR_JOINT;
@@ -83,9 +85,9 @@ namespace ur_script_wrapper{
                     , static_cast<double>(rz) * M_PI / 180.0);
         
             target_pose.orientation = tf2::toMsg(q);
-            target_pose.position.x = static_cast<double>(x);
-            target_pose.position.y = static_cast<double>(y);
-            target_pose.position.z = static_cast<double>(z);
+            target_pose.position.x = static_cast<double>(x/1000.0);
+            target_pose.position.y = static_cast<double>(y/1000.0);
+            target_pose.position.z = static_cast<double>(z/1000.0);
 
             motion_primitive.type = control_msgs::msg::MotionPrimitive::LINEAR_JOINT;
             pose_stamped.pose = target_pose;
@@ -118,10 +120,6 @@ namespace ur_script_wrapper{
             RCLCPP_INFO(this->get_logger(), "Sending goal");
 
             this->client_ptr_->async_send_goal(goal_msg, send_goal_options);
-        }
-
-        rclcpp_action::Client<ExcecuteMotion>::SharedPtr get_client(){
-            return this->client_ptr_;
         }
 
     private:
@@ -164,9 +162,9 @@ namespace ur_script_wrapper{
             }
 
             RCLCPP_INFO(this->get_logger(), "Motions executed successfully");
-            rclcpp::shutdown();
         }
     };
+
 
     RCLCPP_COMPONENTS_REGISTER_NODE(ur_script_wrapper::ActionClient);
 }

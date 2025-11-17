@@ -3,4 +3,11 @@ install/
 log/
 .vscode/
 .venv/
-__pycache__/
+
+#remove all __pycache__ folders
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+

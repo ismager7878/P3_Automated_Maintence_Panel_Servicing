@@ -1,7 +1,7 @@
 ### 3rd semeter project
 This is gonna be fire!!!!
 
-## Updating, sourcing and building using python virtual env
+<!-- ## Updating, sourcing and building using python virtual env
 You should start by installing virtualenv as it has better functionality than python venv:
 ~~~
 sudo apt install virtualenv
@@ -33,4 +33,4 @@ python3 -m pip install ......
 Remember to update the requirements.txt after installing
 ~~~
 python3 -m pip freeze > ./src/amps-python/requirements.txt
-~~~
+~~~ -->
