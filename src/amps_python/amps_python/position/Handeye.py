@@ -122,7 +122,7 @@ class Handeye(Node):
 
         if k == ord("g"):
             self.save_yaml = True # vis tilfredsstillende, gem data i yaml fil
-            self.save_yaml()
+            self.yaml()
             self.save_yaml = False
 
         elif k in (ord('q'), 27):  # q eller ESC
@@ -195,9 +195,6 @@ class Handeye(Node):
             # Refining pixel coordinates
             # for given 2d points.
             corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), self.criteria)
-
-            # Draw and display the corners
-            image_w_corners = cv2.drawChessboardCorners(gray, pattern_size, corners2, ret)
 
             imagePoints = corners2.reshape(-1, 2).astype(np.float32)
             #-------------------------------------------------------------
@@ -310,10 +307,6 @@ class Handeye(Node):
                     
                     R_gripper2base_list.append(R)
                     t_gripper2base_list.append(t)
-                    
-                # Log first sample for verification
-                self.logger.info(f"Sample 0: R_g2b shape={R_gripper2base_list[0].shape}, t_g2b shape={t_gripper2base_list[0].shape}")
-                self.logger.info(f"Sample 0: R_target2cam shape={self.saved_cam_oris[0].shape}, t_target2cam shape={self.saved_cam_pos[0].shape}")
                 
                 # Check diversity of samples (important for good calibration)
                 if len(self.saved_pos) >= 2:
@@ -333,11 +326,7 @@ class Handeye(Node):
                         self.logger.warn("WARNING: Robot orientations are very similar. Rotate robot more between samples!")
                 
                 
-                # Log some transforms to verify correctness
-                self.logger.info("=== Verifying transform directions ===")
-                self.logger.info(f"First robot pose (base→gripper): t={self.saved_pos[0]}")
-                self.logger.info(f"After inversion (gripper→base): t={t_gripper2base_list[0].flatten()}")
-                self.logger.info(f"First board→cam: t={self.saved_cam_pos[0].flatten()}")
+                
                 
                 self.logger.info("Running hand-eye calibration...")
                 # calibrateHandEye(R_gripper2base[], t_gripper2base[], R_target2cam[], t_target2cam[])
@@ -351,12 +340,13 @@ class Handeye(Node):
                 so = spm.SO3(R_cam2gripper)
                 roll, pitch, yaw = so.rpy(unit='rad')
                 
-                self.x = t_cam2gripper[0][0]
-                self.y = t_cam2gripper[1][0]
-                self.z = t_cam2gripper[2][0]
-                self.roll = roll
-                self.pitch = pitch
-                self.yaw = yaw
+                # Convert numpy types to Python native types for YAML serialization
+                self.x = float(t_cam2gripper[0][0])
+                self.y = float(t_cam2gripper[1][0])
+                self.z = float(t_cam2gripper[2][0])
+                self.roll = float(roll)
+                self.pitch = float(pitch)
+                self.yaw = float(yaw)
 
 
                 self.logger.info("========================================================================")
@@ -365,45 +355,44 @@ class Handeye(Node):
                 self.logger.info(f"Translation [m]: X={t_cam2gripper[0][0]:.4f}, Y={t_cam2gripper[1][0]:.4f}, Z={t_cam2gripper[2][0]:.4f}")
                 self.logger.info(f"Translation norm: {np.linalg.norm(t_cam2gripper):.4f} m")
                 self.logger.info(f"Rotation [rad]: Roll={roll:.2f}, Pitch={pitch:.2f}, Yaw={yaw:.2f}")
-                self.logger.info("------------------------------------------------------------------------")
-                self.logger.info(f"Rotation Matrix:\n{R_cam2gripper}")
                 self.logger.info("========================================================================")
 
 
             else:
                 self.logger.info("transformation arrays are not the same lenght :(")
 
-    def save_yaml(self):
-        package_name = 'amps_python'  
+    def yaml(self):
+        if self.save_yaml == True: 
+            package_name = 'amps_python'  
 
-        # Find share folder for package og opbyg stien til config
-        pkg_share = get_package_share_directory(package_name)
-        config_dir = os.path.join(pkg_share, 'data')
-        #os.makedirs(config_dir, exist_ok=True)   # opret folder hvis den ikke findes
+            # Find share folder for package og opbyg stien til config
+            pkg_share = get_package_share_directory(package_name)
+            config_dir = os.path.join(pkg_share, 'data')
+            #os.makedirs(config_dir, exist_ok=True)   # opret folder hvis den ikke findes
 
-        yaml_path = os.path.join(config_dir, 'handeye.yaml')
+            yaml_path = os.path.join(config_dir, 'handeye.yaml')
 
-        data_wildcard = {
-            "/**": {
-                "ros__parameters": {
-                "camera_to_gripper": {
-                "translation": [self.x, self.y, self.z],
-                "rotation": [self.roll, self.pitch, self.yaw],
-                "frame_id": "tool0",
-                "child_frame_id": "camera",
+            data_wildcard = {
+                "/**": {
+                    "ros__parameters": {
+                    "camera_to_gripper": {
+                    "translation": [self.x, self.y, self.z],
+                    "rotation": [self.roll, self.pitch, self.yaw],
+                    "frame_id": "tool0",
+                    "child_frame_id": "camera",
+                        }
                     }
                 }
             }
-        }
 
-        
-        data_to_write = data_wildcard  
+            
+            data_to_write = data_wildcard  
 
-        # Skriv YAML til fil
-        with open(yaml_path, 'w') as f:
-            yaml.safe_dump(data_to_write, f, default_flow_style=False)
+            # Skriv YAML til fil
+            with open(yaml_path, 'w') as f:
+                yaml.safe_dump(data_to_write, f, default_flow_style=False)
 
-        self.logger.info(f"YAML file saved: {yaml_path}")
+            self.logger.info(f"YAML file saved: {yaml_path}")
 
             
 
