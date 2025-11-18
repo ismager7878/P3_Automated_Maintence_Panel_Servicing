@@ -4,6 +4,28 @@ from launch.event_handlers import OnProcessStart
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from ament_index_python.packages import get_package_share_directory
+import yaml
+import os
+
+try:
+    pkg_share = get_package_share_directory('amps_python')
+    yaml_path = os.path.join(pkg_share, 'data', 'handeye.yaml')
+    
+    with open(yaml_path, 'r') as f:
+        params = yaml.safe_load(f)
+
+    tf_params = params['/**']['ros__parameters']['camera_to_gripper']
+
+    xyz = tf_params['translation']
+    rpy = tf_params['rotation']
+
+except Exception as e:
+    # Fallback hvis noget går galt — så får du en default transform i stedet for crash
+    print(f"[WARN] Could not load handeye.yaml: {e}")
+    xyz = [-0.034, -0.059, 0.023]
+    rpy = [0.0, 0.0, 0.0]
+    tf_params = {'frame_id': 'tool0', 'child_frame_id': 'camera'}
 
 
 def generate_launch_description():
@@ -74,9 +96,14 @@ def generate_launch_description():
             package='tf2_ros',
             executable='static_transform_publisher',
             arguments=[
-                '--x', '0.02', '--y', '-0.057', '--z', '0.02',
-                '--roll', '0', '--pitch', '0', '--yaw', '0',
-                '--frame-id', 'tool0', '--child-frame-id', 'camera'
+            '--x', str(xyz[0]),
+            '--y', str(xyz[1]),
+            '--z', str(xyz[2]),
+            '--roll', str(rpy[0]),
+            '--pitch', str(rpy[1]),
+            '--yaw', str(rpy[2]),
+            '--frame-id', tf_params['frame_id'],
+            '--child-frame-id', tf_params['child_frame_id']
             ]
     )
 
