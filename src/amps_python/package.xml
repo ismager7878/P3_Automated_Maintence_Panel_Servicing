@@ -22,6 +22,7 @@
   <exec_depend>math</exec_depend> 
   <exec_depend>threading</exec_depend>
   <exec_depend>ros2launch</exec_depend>
+  <exec_depend>yaml</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>
