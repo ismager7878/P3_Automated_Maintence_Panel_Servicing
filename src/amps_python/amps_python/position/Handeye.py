@@ -8,9 +8,9 @@ import xml.etree.ElementTree as ET
 import os
 from ament_index_python.packages import get_package_share_directory
 from amps_cpp.msg import FrameWithPose  # antager at msg.frame er sensor_msgs/Image
-import math
 import spatialmath as spm
 import threading
+import yaml
 
 class Handeye(Node):
     def __init__(self):
@@ -71,6 +71,7 @@ class Handeye(Node):
         self.calculate = False
         self.cal_handeye = False
         self.corner_detection = False
+        self.save_yaml = False
 
         self.saved_oris = []  # liste af np.array([w,x,y,z])
         self.saved_pos  = []  # liste af np.array([x,y,z])
@@ -83,6 +84,14 @@ class Handeye(Node):
         self.logger = self.get_logger()
 
         self._lock = threading.Lock()
+
+        #--- variabler til calibrering
+        self.x = 0
+        self.y = 0
+        self.z = 0
+        self.roll = 0
+        self.pitch = 0
+        self.yaw = 0
 
     #---------------------------------------------------------------------------------------------------------------
 
@@ -110,6 +119,11 @@ class Handeye(Node):
             self.cal_handeye = True # kører handeye funktion  
             self.handEye()
             self.cal_handeye = False
+
+        if k == ord("g"):
+            self.save_yaml = True # vis tilfredsstillende, gem data i yaml fil
+            self.save_yaml()
+            self.save_yaml = False
 
         elif k in (ord('q'), 27):  # q eller ESC
             self.get_logger().info('Lukker vinduer…')
@@ -335,14 +349,22 @@ class Handeye(Node):
                 
                 # Convert rotation matrix to RPY for easier interpretation
                 so = spm.SO3(R_cam2gripper)
-                roll_deg, pitch_deg, yaw_deg = so.rpy(unit='deg')
+                roll, pitch, yaw = so.rpy(unit='rad')
                 
+                self.x = t_cam2gripper[0][0]
+                self.y = t_cam2gripper[1][0]
+                self.z = t_cam2gripper[2][0]
+                self.roll = roll
+                self.pitch = pitch
+                self.yaw = yaw
+
+
                 self.logger.info("========================================================================")
                 self.logger.info("Hand-Eye Calibration Result (Camera→TCP/Flange):")
                 self.logger.info("------------------------------------------------------------------------")
                 self.logger.info(f"Translation [m]: X={t_cam2gripper[0][0]:.4f}, Y={t_cam2gripper[1][0]:.4f}, Z={t_cam2gripper[2][0]:.4f}")
                 self.logger.info(f"Translation norm: {np.linalg.norm(t_cam2gripper):.4f} m")
-                self.logger.info(f"Rotation [deg]: Roll={roll_deg:.2f}, Pitch={pitch_deg:.2f}, Yaw={yaw_deg:.2f}")
+                self.logger.info(f"Rotation [rad]: Roll={roll:.2f}, Pitch={pitch:.2f}, Yaw={yaw:.2f}")
                 self.logger.info("------------------------------------------------------------------------")
                 self.logger.info(f"Rotation Matrix:\n{R_cam2gripper}")
                 self.logger.info("========================================================================")
@@ -350,6 +372,40 @@ class Handeye(Node):
 
             else:
                 self.logger.info("transformation arrays are not the same lenght :(")
+
+    def save_yaml(self):
+        package_name = 'amps_python'  
+
+        # Find share folder for package og opbyg stien til config
+        pkg_share = get_package_share_directory(package_name)
+        config_dir = os.path.join(pkg_share, 'data')
+        #os.makedirs(config_dir, exist_ok=True)   # opret folder hvis den ikke findes
+
+        yaml_path = os.path.join(config_dir, 'handeye.yaml')
+
+        data_wildcard = {
+            "/**": {
+                "ros__parameters": {
+                "camera_to_gripper": {
+                "translation": [self.x, self.y, self.z],
+                "rotation": [self.roll, self.pitch, self.yaw],
+                "frame_id": "tool0",
+                "child_frame_id": "camera",
+                    }
+                }
+            }
+        }
+
+        
+        data_to_write = data_wildcard  
+
+        # Skriv YAML til fil
+        with open(yaml_path, 'w') as f:
+            yaml.safe_dump(data_to_write, f, default_flow_style=False)
+
+        self.logger.info(f"YAML file saved: {yaml_path}")
+
+            
 
 
 def main():
