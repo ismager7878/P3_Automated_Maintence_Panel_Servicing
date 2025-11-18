@@ -22,7 +22,7 @@ try:
 
 except Exception as e:
     # Fallback hvis noget går galt — så får du en default transform i stedet for crash
-    print(f"[WARN] Could not load handeye.yaml: {e}")
+    print(f"[WARN] Could not load handeye.yaml")
     xyz = [-0.034, -0.059, 0.023]
     rpy = [0.0, 0.0, 0.0]
     tf_params = {'frame_id': 'tool0', 'child_frame_id': 'camera'}
@@ -96,8 +96,7 @@ def generate_launch_description():
     '--yaw', str(rpy[2]),
     '--frame-id', tf_params['frame_id'],
     '--child-frame-id', tf_params['child_frame_id']
-    ]
-)
+    ])
 
     return LaunchDescription([
         DeclareLaunchArgument('robot_ip', default_value='192.168.57.101'),

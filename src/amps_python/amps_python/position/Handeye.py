@@ -59,8 +59,6 @@ class Handeye(Node):
         self.K = np.array(root.find('camera_matrix/data').text.split(), float).reshape(3,3)
         self.D = np.array(root.find('distortion_coefficients/data').text.split(), float).reshape(1,5)
 
-        self.get_logger().info(f"Camera intrinsics K:\n{self.K}")
-        self.get_logger().info(f"Distortion coefficients D: {self.D}")
 
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
@@ -162,10 +160,8 @@ class Handeye(Node):
                 self.saved_oris.append(ori.copy())
                 self.save_requested = False
                 
-                # Debug logging
                 self.get_logger().info(f"=== Gemt sample #{len(self.saved_imgs)} ===")
-                self.get_logger().info(f"Robot position [m]: X={pos[0]:.4f}, Y={pos[1]:.4f}, Z={pos[2]:.4f}")
-                self.get_logger().info(f"Robot quaternion: w={ori[0]:.4f}, x={ori[1]:.4f}, y={ori[2]:.4f}, z={ori[3]:.4f}")
+               
             
         #-------------------------------------------------------------
         # Define chess board size:
@@ -395,8 +391,6 @@ class Handeye(Node):
             self.logger.info(f"YAML file saved: {yaml_path}")
 
             
-
-
 def main():
     rclpy.init()
     node = Handeye()
