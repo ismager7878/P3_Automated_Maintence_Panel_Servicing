@@ -73,9 +73,9 @@ def generate_launch_description():
     staticCamFrameBroadcaster = Node(
             package='tf2_ros',
             executable='static_transform_publisher',
-            arguments=[
-                '--x', '0.02', '--y', '-0.057', '--z', '0.02',
-                '--roll', '0', '--pitch', '0', '--yaw', '0',
+            arguments=[ 
+                '--x', '-0.034', '--y', '-0.059', '--z', '0.0231',
+                '--roll', '0.0', '--pitch', '0.0', '--yaw', '0.0',
                 '--frame-id', 'tool0', '--child-frame-id', 'camera'
             ]
     )
