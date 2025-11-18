@@ -43,6 +43,13 @@ def generate_launch_description():
                         )
     realsense_camera = IncludeLaunchDescription(
         realsense_launch_dir,
+        launch_arguments={
+            'enable_rgbd': 'true',
+            'enable_sync': 'true',
+            'align_depth.enable': 'true', 
+            'enable_color': 'true',
+            'enable_depth': 'true'
+        }.items(),
     )
 
     foxglove_bridge = IncludeLaunchDescription(

@@ -8,4 +8,4 @@ int8 ERROR_STATE = -1
 int8 MANUAL_CONTROL = 0
 
 int8 state 0
-string state_str
+string state_str 

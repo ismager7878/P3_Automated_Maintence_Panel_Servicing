@@ -15,7 +15,9 @@ import json
 # MCAP related imports
 from mcap.reader import make_reader
 from mcap_ros2.decoder import DecoderFactory
+
 from sensor_msgs.msg import Image
+from realsense2_camera_msgs.msg import RGBD
 from std_msgs.msg import Header
 save_dir = os.path.join(os.path.expanduser("~"), "Desktop", "test_images_dataset")
 
@@ -117,31 +119,28 @@ class MCAPImageExtractor(Node):
             with open(self.current_bag_path, "rb") as f:
                 reader = make_reader(f, decoder_factories=[DecoderFactory()])
                 for schema, channel, message in reader.iter_messages():
-                    if channel.topic == "/camera/camera/color/image_raw":
+                    if channel.topic == "/camera/camera/rgbd":
                         try:
-                            img_msg = deserialize_message(message.data, Image)
-                            cv_image = self.bridge.imgmsg_to_cv2(img_msg, "bgr8")
-                            self.color_images.append(cv_image)
+                            rgdb_img_msg = deserialize_message(message.data, RGBD)
+
+                            color_cv_image = self.bridge.imgmsg_to_cv2(rgdb_img_msg.rgb, "bgr8")
+                            depth_cv_image = self.bridge.imgmsg_to_cv2(rgdb_img_msg.depth, "16UC1")
+
+                            self.color_images.append(color_cv_image)
+                            self.depth_images.append(depth_cv_image)
+
                             self.timestamps.append({
                                 'timestamp': message.log_time,
                                 'type': 'color',
                                 'index': len(self.color_images) - 1
                             })
-                        except Exception as e:
-                            self.get_logger().warn(f"Error processing color image: {e}")
-                    
-                    elif channel.topic == "/camera/camera/depth/image_rect_raw":
-                        try:
-                            img_msg = deserialize_message(message.data, Image)
-                            cv_image = self.bridge.imgmsg_to_cv2(img_msg, "16UC1")
-                            self.depth_images.append(cv_image)
                             self.timestamps.append({
                                 'timestamp': message.log_time,
-                                'type': 'depth', 
+                                'type': 'depth',
                                 'index': len(self.depth_images) - 1
                             })
                         except Exception as e:
-                            self.get_logger().warn(f"Error processing depth image: {e}")
+                            self.get_logger().warn(f"Error processing color image: {e}")
             
             # Sort timestamps
             self.timestamps.sort(key=lambda x: x['timestamp'])

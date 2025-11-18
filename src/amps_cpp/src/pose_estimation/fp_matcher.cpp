@@ -7,6 +7,7 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "amps_cpp/msg/frame_with_pose.hpp"
+#include "realsense2_camera_msgs/msg/rgbd.hpp"
 
 using std::placeholders::_1;
 using namespace std;
@@ -17,27 +18,23 @@ class FPMatcherNode : public rclcpp::Node
 using FrameWithPose = amps_cpp::msg::FrameWithPose;
 using PoseStamped = geometry_msgs::msg::PoseStamped;
 using Image = sensor_msgs::msg::Image;
+using RGBD = realsense2_camera_msgs::msg::RGBD;
 
 public:
     FPMatcherNode() : Node("fp_matcher")
     {
-        rgb_frame_with_pose_pub_ = this->create_publisher<FrameWithPose>("amps_cpp/pose_estimation/rgb_frame_with_pose", 10);
-        depth_frame_with_pose_pub_ = this->create_publisher<FrameWithPose>("amps_cpp/pose_estimation/depth_frame_with_pose", 10);
+        frame_with_pose_pub_ = this->create_publisher<FrameWithPose>("amps_cpp/pose_estimation/frame_with_pose", 10);
 
         pose_sub_ = this->create_subscription<PoseStamped>(
             "/tcp_pose_broadcaster/pose",
             10,
             std::bind(&FPMatcherNode::poseCallback, this, _1)
         );
-        rgb_frame_sub_ = this->create_subscription<Image>(
-            "/camera/camera/color/image_raw",
+
+        frame_sub_ = this->create_subscription<RGBD>(
+            "/camera/camera/rgbd",
             10,
-            std::bind(&FPMatcherNode::rgbFrameCallback, this, _1)
-        );
-        depth_frame_sub_ = this->create_subscription<Image>(
-            "/camera/camera/depth/image_rect_raw",
-            10,
-            std::bind(&FPMatcherNode::depthFrameCallback, this, _1)
+            std::bind(&FPMatcherNode::frameCallback, this, _1)
         );
     }
 private:
@@ -48,19 +45,12 @@ private:
         poses_between_frames.push_back(*msg);
     }
 
-    void depthFrameCallback(const Image::SharedPtr msg)
+    void frameCallback(const RGBD::SharedPtr msg)
     {
-        processFrame(msg, depth_frame_with_pose_pub_, "Depth");
+        processFrame(msg);
     }
 
-    void rgbFrameCallback(const Image::SharedPtr msg)
-    {
-        processFrame(msg, rgb_frame_with_pose_pub_, "RGB");
-    }
-
-    void processFrame(const Image::SharedPtr msg, 
-                     rclcpp::Publisher<FrameWithPose>::SharedPtr& pub,
-                     const string& frame_type)
+    void processFrame(const RGBD::SharedPtr msg)
     {
         // RCLCPP_INFO(this->get_logger(), "Received %s Frame of size: %zu", 
         //             frame_type.c_str(), msg->data.size());
@@ -88,10 +78,11 @@ private:
         );
 
         FrameWithPose frame_with_pose_msg;
-        frame_with_pose_msg.frame = *msg;  // This copies the image data
+        frame_with_pose_msg.rgb_frame = msg->rgb;
+        frame_with_pose_msg.depth_frame = msg->depth;
         frame_with_pose_msg.pose = *closest_pose;
 
-        pub->publish(frame_with_pose_msg);
+        this->frame_with_pose_pub_->publish(frame_with_pose_msg);
 
         // Remove old poses (keep only recent ones)
         auto now = this->get_clock()->now();
@@ -110,12 +101,10 @@ private:
 
     FrameWithPose matched_frame;
 
-    rclcpp::Publisher<FrameWithPose>::SharedPtr rgb_frame_with_pose_pub_;
-    rclcpp::Publisher<FrameWithPose>::SharedPtr depth_frame_with_pose_pub_;
+    rclcpp::Publisher<FrameWithPose>::SharedPtr frame_with_pose_pub_;
     rclcpp::Subscription<PoseStamped>::SharedPtr pose_sub_;
 
-    rclcpp::Subscription<Image>::SharedPtr rgb_frame_sub_;
-    rclcpp::Subscription<Image>::SharedPtr depth_frame_sub_;
+    rclcpp::Subscription<RGBD>::SharedPtr frame_sub_;
 };
 
 int main(int argc, char const *argv[])

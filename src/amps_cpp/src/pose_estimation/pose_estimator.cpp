@@ -201,7 +201,7 @@ private:
 
                 if(result.result->error_code == -2){
                     RCLCPP_ERROR(this->get_logger(), result.result->error_string.c_str());
-                    this->setProgramState(ProgramState::ERROR_STATE);
+                    this->setProgramState(ProgramState::ERROR_STATE, result.result->error_string.c_str());
                 }
 
                 return;
@@ -230,9 +230,10 @@ private:
         tf2::fromMsg(transformPoseMsg.transform, transformOut);
     }
     
-    void setProgramState(int state){
+    void setProgramState(int state, string stateStr = ""){
         ProgramState programStateMsg;
         programStateMsg.state = state;
+        programStateMsg.state_str = stateStr;
         this->programStatePub_->publish(programStateMsg);   
     }
 
@@ -601,6 +602,7 @@ private:
             RCLCPP_WARN(this->get_logger(), "Camera parameters not set yet, cannot process frame");
             return;
         }
+        
         if((this->programState != ProgramState::FINDING_PANEL && this->programState != ProgramState::APPROACHING_PANEL) || this->correctionActive){
             return;
         }
@@ -610,7 +612,7 @@ private:
         
         RCLCPP_INFO(this->get_logger(), "Processeing Frame for Aruco Detection");
 
-        sensor_msgs::msg::Image img_msg = msg->frame;
+        sensor_msgs::msg::Image img_msg = msg->rgb_frame;
         cv::Mat cv_img;
 
         try{
