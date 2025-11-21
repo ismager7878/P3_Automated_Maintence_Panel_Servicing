@@ -21,6 +21,7 @@ find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(tinyxml2_vendor REQUIRED)
 find_package(TinyXML2 REQUIRED)
+find_package(std_msgs REQUIRED)
 
 
 ## Action Client
@@ -52,6 +53,14 @@ target_include_directories(ur_wrapper PUBLIC
   $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(ur_wrapper ur_dashboard_msgs ur_client_library ur_msgs std_srvs rclcpp geometry_msgs tf2 tf2_geometry_msgs control_msgs rclcpp_action rclcpp_components)
 rclcpp_components_register_node(ur_wrapper PLUGIN "ur_script_wrapper::UrScriptWrapper" EXECUTABLE ur_wrapper_node)
+
+## segmentation
+add_executable(segmentation src/segmentation/segmentation.cpp)
+ament_target_dependencies(segmentation rclcpp sensor_msgs cv_bridge OpenCV)
+
+## test nodes for segmentation
+add_executable(subscribe_segmentation src/segmentation/subscribe_segmentation.cpp)
+ament_target_dependencies(subscribe_segmentation rclcpp std_msgs OpenCV)
 
 
 ##Frame and Pose Matcher
@@ -90,6 +99,8 @@ install(TARGETS
   fp_matcher
   pose_estimation
   frame_broadcaster
+  segmentation
+  subscribe_segmentation
   DESTINATION lib/${PROJECT_NAME})
 
 ## Install libraries
