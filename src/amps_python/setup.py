@@ -33,6 +33,7 @@ setup(
     entry_points={
         'console_scripts': [
             'Handeye = amps_python.position.Handeye:main',
+            "GUI = amps_python.GUI.GUI:main",
         ],
     },
 )
