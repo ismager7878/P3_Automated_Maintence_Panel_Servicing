@@ -30,7 +30,10 @@ class Segmention : public rclcpp::Node
 public:
     Segmention() : Node("segmentation_public_node"), count_(0)
     {
-        publisher_= this->create_publisher<std_msgs::msg::Float32MultiArray>("segmentation__topic", 10);
+        publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("segmentation__topic", 10);
+        color_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_color",10,std::bind(&Segmention::color_callback,this,std::placeholders::_1));
+        depth_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_depth",10,std::bind(&Segmention::depth_callback,this,std::placeholders::_1));
+        //depth_subscribe_= 
         // Eksempel på brug af segmentation funktionen
         timer_= this->create_wall_timer(
             std::chrono::milliseconds(500),
@@ -43,14 +46,29 @@ public:
 
     private:
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr publisher_;
+    
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr color_subscribe_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_subscribe_;
+
     size_t count_;
     rclcpp::TimerBase::SharedPtr timer_;
+    cv::Mat image;
+    cv::Mat depth;
 
+    void color_callback(sensor_msgs::msg::Image::SharedPtr msg) {
+        cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg,"bgr8");
+        image = cv_ptr->image.clone();
+    }
+
+    void depth_callback(sensor_msgs::msg::Image::SharedPtr msg){
+        cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg,"16UC1");  
+        depth = cv_ptr->image.clone();
+    }
     void timer_callback()
     {
-        cv::Mat image = cv::imread("datasets/test_images_dataset/btn_config_1/rosbag2_2025_10_30-14_13_08_0/color.png");
-        cv::Mat depth = cv::imread("datasets/test_images_dataset/btn_config_1/rosbag2_2025_10_30-14_13_08_0/depth.png", cv::IMREAD_UNCHANGED);
-        segmentation(image, depth);
+        if(image.size() == depth.size() && !image.empty() && !depth.empty()){
+            segmentation(image, depth);
+        }
     }
 
 
@@ -108,7 +126,7 @@ public:
 
     // svært 17 , 1 , boss: 12// husk tjekke manult alle billeder hontering for se man få alt // 32,21,27,22 depth billede taget   
     cv::Mat depthMasked = dynamicDepthCheck(depth);
-    cv::imshow("newmaske image",depthMasked);
+    //cv::imshow("newmaske image",depthMasked);
 
 
     // Detect Aruco markers
@@ -130,13 +148,13 @@ public:
     cv::cvtColor(image, image, cv::COLOR_HSV2BGR);
     Erode(mask);
     
-    //closeOpen(mask);
     makeBoundingBoxes(depthMasked,mask,image);   
-    cv::imshow("Detected Markers",outputImage);
+    //cv::imshow("Detected Markers",outputImage);
     //cv::imshow("Origan image",image);
 
-    cv::imshow("mask",mask);
+    //cv::imshow("mask",mask);
 }
+
     // function there displays depth specific range
     cv::Mat depth_check(int minDepth,int panel,cv::Mat &depth_img){
     // convert depth to float and scale to meters
@@ -151,7 +169,8 @@ public:
     //cv::applyColorMap(depthVis, depthVis, cv::COLORMAP_JET);
     //cv::imshow("Depth Visualization", depthVis);
     //cv::imshow("Depth Mask", depthMasked);
-    cv::imshow("Depth Specific Mask", mask);
+    
+    //cv::imshow("Depth Specific Mask", mask);
     return mask;
 }
 

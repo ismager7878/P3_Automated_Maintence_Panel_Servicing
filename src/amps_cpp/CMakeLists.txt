@@ -58,9 +58,13 @@ rclcpp_components_register_node(ur_wrapper PLUGIN "ur_script_wrapper::UrScriptWr
 add_executable(segmentation src/segmentation/segmentation.cpp)
 ament_target_dependencies(segmentation rclcpp sensor_msgs cv_bridge OpenCV)
 
-## test nodes for segmentation
+## test nodes for segmentation !!
 add_executable(subscribe_segmentation src/segmentation/subscribe_segmentation.cpp)
 ament_target_dependencies(subscribe_segmentation rclcpp std_msgs OpenCV)
+
+add_executable(publisher_segmentation src/segmentation/publisher_segmentation.cpp)
+ament_target_dependencies(publisher_segmentation rclcpp sensor_msgs cv_bridge OpenCV)
+##
 
 
 ##Frame and Pose Matcher
@@ -101,6 +105,7 @@ install(TARGETS
   frame_broadcaster
   segmentation
   subscribe_segmentation
+  publisher_segmentation
   DESTINATION lib/${PROJECT_NAME})
 
 ## Install libraries
@@ -115,6 +120,7 @@ install(TARGETS
 install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}/
+
 )
 
 if(BUILD_TESTING)
