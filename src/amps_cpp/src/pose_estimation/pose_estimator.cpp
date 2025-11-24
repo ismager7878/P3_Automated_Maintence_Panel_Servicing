@@ -644,7 +644,7 @@ private:
 
         this->isBoardReachablePub_->publish(std_msgs::msg::Bool().set__data(true));
 
-        this->setProgramState(ProgramState::APPROACHING_PANEL);
+        //this->setProgramState(ProgramState::APPROACHING_PANEL);
 
         //Early exit if panel approach hasn't been started yet
         if(this->programState != ProgramState::APPROACHING_PANEL){
