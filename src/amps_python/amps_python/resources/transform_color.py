@@ -124,5 +124,8 @@ def imshow(img):
 
 if __name__ == "__main__":
     img = cv.imread('datasets/test_images_dataset/btn_config_1/rosbag2_2025_10_30-14_13_08_0/color.png')
-    img, M = transformed_color(img, np.deg2rad(0.5))
-    cv.imwrite("datasets/test_images_dataset/btn_config_1/rosbag2_2025_10_30-14_13_08_0/transformed_color.png", img)
+#    img, M = transformed_color(img, np.deg2rad(0.5))
+    warped_img = cv.warpPerspective(img, np.array([[0,-1,697], [1,0,-196], [0,0,1]],dtype=np.float32), (684, 861))
+    cv.imshow("transformed_color.png", warped_img)
+    cv.waitKey(0)
+    cv.destroyAllWindows()

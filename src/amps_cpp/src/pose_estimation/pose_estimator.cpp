@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <map>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco/charuco.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
@@ -78,17 +79,31 @@ public:
         this->calFileName = "src/amps_python/amps_python/data/calibration-data/cam_calibration.xml";
 
         // Define goal pose and thresholds
-        this-> goalPose = {
-            cv::Vec3d(0.0059, 0.0052, -1.5278),  // rvec
-            cv::Vec3d(-0.2038, 0.1605, 0.5347)   // tvec
+        this->goalPoseMakerIds = {0, 1, 2, -69};
+
+        this->goalPoses = {
+            {
+                cv::Vec3d(-2.2233, 2.2315, 0.0164),  // rvec
+                cv::Vec3d(-0.2038, 0.1605, 0.5347)   // tvec
+            },
+            {
+                cv::Vec3d(2.2280, 2.2297, 0.0068),  // rvec
+                cv::Vec3d(-0.2076, -0.1590, 0.5324)   // tvec
+            },
+            {
+                cv::Vec3d(-3.1029, 0.0485, 0.0529),  // rvec
+                cv::Vec3d(0.1917, 0.1605, 0.5348)   // tvec
+            },
+            {
+                cv::Vec3d(-2.2045, 2.2308, 0.0074),  // rvec
+                cv::Vec3d(-0.2038, 0.1605, 0.5347)   // tvec
+            }
         };
+        
         this->goalPoseTreshold = {
             cv::Vec3d(0.05, 0.05, 0.05),  // rvec threshold
-            cv::Vec3d(0.02, 0.02, 0.02)   // tvec threshold
+            cv::Vec3d(0.05, 0.05, 0.05)   // tvec threshold
         };
-
-        // Load camera parameters
-        RCLCPP_INFO(this->get_logger(), "Camera Variables initialzied");
 
         this->setProgramState(ProgramState::FINDING_PANEL);
 
@@ -96,13 +111,13 @@ public:
         
         // RCLCPP_INFO(this->get_logger(), "Starting test image pose estimation");
         // cv::Vec3d rvec, tvec;
+        // int id;
         // cv::Mat img = cv::imread("src/amps_cpp/src/color.png");
-        // while(this->cameraMatrix.empty() || this->distCoeffs.empty()){
+        // while(this->camParametersLoaded == false){
         //     rclcpp::spin_some(this->get_node_base_interface());
         //     rclcpp::sleep_for(std::chrono::milliseconds(100));
         // }
-        // this->detectAndEstimatePose(img, rvec, tvec);
-        // this->logPosition(rvec, tvec);
+        // this->detectAndEstimatePose(img, rvec, tvec, id, true);
     }
 private:
     void send_goal(const control_msgs::action::ExecuteMotionPrimitiveSequence_Goal & goal_msg){
@@ -147,7 +162,8 @@ private:
             }
             RCLCPP_INFO(this->get_logger(), "%s", row.c_str());
         }
-
+        
+        this->camParametersLoaded = true;
         this->cameraInfoSub_.reset(); // Unsubscribe after receiving the first message
     }
 
@@ -269,17 +285,26 @@ private:
         return true;        
     }
 
-    bool estimateBoardPose(cv::Mat& imgOut, cv::Vec3d& rvecOut, cv::Vec3d& tvecOut){
+    bool estimateBoardPose(cv::Mat& imgOut, cv::Vec3d& rvecOut, cv::Vec3d& tvecOut, int& id, bool getGoalPose = false){
 
         vector<cv::Vec3d> rvecs, tvecs;
 
         cv::aruco::estimatePoseSingleMarkers(this->markerCorners, this->markerSize, this->cameraMatrix, this->distCoeffs, rvecs, tvecs);
 
+        for(vector<cv::Vec3d>::size_type i = 0; i < rvecs.size(); i++ )
+            {
+                cv::drawFrameAxes(imgOut, this->cameraMatrix, this->distCoeffs, rvecs[i], tvecs[i], 0.5f);
+            }
+
         (void)imgOut; // Unused variable
 
-        if(rvecs.size() != 3){
-            RCLCPP_ERROR(this->get_logger(), "Error: Detected %zu markers, need exactly 3 markers for pose estimation", rvecs.size());
-            return false;
+        if(rvecs.size() != 3 && !getGoalPose){
+
+            rvecOut = rvecs[0];
+            tvecOut= tvecs[0];
+            id = this->markerIds[0];
+
+            return true;
         }
 
         this->threeMarkerSort(rvecs, tvecs);
@@ -294,7 +319,7 @@ private:
         vecY = tvecs[2] - tvecs[0];
         
         // Calculate Z-axis
-        vecZ = vecX.cross(vecY);
+        vecZ = vecY.cross(vecX);
         vecZ = vecZ / cv::norm(vecZ);
 
         // Calculate corrected Y-axis
@@ -310,16 +335,29 @@ private:
         // Save as rotation and translation vectors
         cv::Rodrigues(rotMat, rvecOut);
         tvecOut = tvecs[0];
+        id = -69;
+
+        if(getGoalPose){
+            rvecs.push_back(rvecOut);
+            tvecs.push_back(tvecOut);
+            this->markerIds.push_back(-69);
+            this->logPositions(imgOut, rvecs, tvecs);
+            return false;
+        }
         
         return true;
     }
 
-    void logPosition(const cv::Vec3d& rvec, const cv::Vec3d& tvec){
-       
-        RCLCPP_INFO(this->get_logger(), "Camera Position (in board frame): X: %.4f Y: %.4f Z: %.4f", 
-                    tvec[0], tvec[1], tvec[2]);
-        RCLCPP_INFO(this->get_logger(), "Camera Orientation (in board frame): Rx: %.4f Ry: %.4f Rz: %.4f", 
-                    rvec[0], rvec[1], rvec[2]);
+    void logPositions(cv::Mat& img, const vector<cv::Vec3d>& rvec, const vector<cv::Vec3d>& tvec){
+        for(size_t i = 0; i < rvec.size(); i++){
+            cv::drawFrameAxes(img, this->cameraMatrix, this->distCoeffs, rvec[i], tvec[i], 0.5f);
+            RCLCPP_INFO(this->get_logger(), "Marker ID: %d", this->markerIds[i]);
+            RCLCPP_INFO(this->get_logger(), "Marker Orientation (in camera frame): Rx: %.4f Ry: %.4f Rz: %.4f", 
+                        rvec[i][0], rvec[i][1], rvec[i][2]);
+            RCLCPP_INFO(this->get_logger(), "Marker Position (in camera frame): X: %.4f Y: %.4f Z: %.4f", 
+                        tvec[i][0], tvec[i][1], tvec[i][2]);
+        }
+
     }
 
     void publishArucoDetectionImage(const cv::Mat& img){
@@ -332,7 +370,7 @@ private:
         this->arucoDetectionPub_->publish(*imgMsg);
     }
 
-    bool detectAndEstimatePose(cv::Mat& img, cv::Vec3d& rvec, cv::Vec3d& tvec){
+    bool detectAndEstimatePose(cv::Mat& img, cv::Vec3d& rvec, cv::Vec3d& tvec, int& id, bool getGoalPose = false){
         cv::Mat imgOut = img.clone();
 
         cv::aruco::detectMarkers(img, this->dictionary, this->markerCorners, this->markerIds, this->parameters, this->rejectedCandidates);
@@ -340,14 +378,22 @@ private:
 
         if(this->markerIds.size() == 0){
             this->isBoardReachablePub_->publish(std_msgs::msg::Bool().set__data(false));
+
+            cv::imshow("Aruco Detection", imgOut);
+            cv::waitKey(1);
+
             RCLCPP_INFO(this->get_logger(), "No markers detected");
             return false;   
         }
 
         //RCLCPP_INFO(this->get_logger(), "Detected %zu markers", this->markerIds.size());
 
-        if(!this->estimateBoardPose(imgOut, rvec, tvec)){
+        if(!this->estimateBoardPose(imgOut, rvec, tvec, id, getGoalPose)){
             this->isBoardReachablePub_->publish(std_msgs::msg::Bool().set__data(false));
+
+            cv::imshow("Aruco Detection", imgOut);
+            cv::waitKey(1);
+
             RCLCPP_WARN(this->get_logger(), "Failed to estimate board pose");
             return false;
         }
@@ -356,7 +402,8 @@ private:
 
         cv::drawFrameAxes(imgOut, this->cameraMatrix, this->distCoeffs, rvec, tvec, 0.1f);
 
-        this->publishArucoDetectionImage(imgOut);
+        cv::imshow("Aruco Detection", imgOut);
+        cv::waitKey(1);
 
         return true;
     }
@@ -395,9 +442,20 @@ private:
         this->addToBroadcastPub_->publish(tfStamped);
     }
 
-    void calculateCorrectionMove(const amps_cpp::msg::FrameWithPose::SharedPtr msg, cv::Vec3d& rvec, cv::Vec3d& tvec){
+    void calculateCorrectionMove(const amps_cpp::msg::FrameWithPose::SharedPtr msg, cv::Vec3d& rvec, cv::Vec3d& tvec, int& id){
         tf2::Transform currentCamToBoardT, goalCamToBoardT, correctionT, currentBaseToCamT;
         tf2::Quaternion currentOrientation, goalOrientation;
+        int poseIndex;
+        auto idPtr = std::find(this->goalPoseMakerIds.begin(), this->goalPoseMakerIds.end(), id);
+        
+        if(idPtr != this->goalPoseMakerIds.end()){
+            poseIndex = distance(this->goalPoseMakerIds.begin(), idPtr);
+        } else {
+            RCLCPP_WARN(this->get_logger(), "Marker ID %d not in goal pose list", id);
+            return;
+        }
+        vector<cv::Vec3d> goalPose = this->goalPoses[poseIndex];
+
 
         this->getTransformBroadcast(currentBaseToCamT, "base", "camera");
 
@@ -414,10 +472,10 @@ private:
 
         //Build goal transform
         goalOrientation.setRotation(
-            tf2::Vector3(this->goalPose[0][0], this->goalPose[0][1], this->goalPose[0][2]),
-            cv::norm(this->goalPose[0])
+            tf2::Vector3(goalPose[0][0], goalPose[0][1], goalPose[0][2]),
+            cv::norm(goalPose[0])
         );
-        goalCamToBoardT.setOrigin(tf2::Vector3(this->goalPose[1][0], this->goalPose[1][1], this->goalPose[1][2]));
+        goalCamToBoardT.setOrigin(tf2::Vector3(goalPose[1][0], goalPose[1][1], goalPose[1][2]));
         goalCamToBoardT.setRotation(goalOrientation);
 
         //Broadcast goal cam pose to TF
@@ -495,12 +553,23 @@ private:
         transformOut.setRotation(orientation);
     }
 
-    bool checkReachability(cv::Vec3d& rvec, cv::Vec3d& tvec){ //TODO: IMPLEMENT DIRECTION GUIDANCE
+    bool checkReachability(cv::Vec3d& rvec, cv::Vec3d& tvec, int& id){ //TODO: IMPLEMENT DIRECTION GUIDANCE
         tf2::Transform approachTransform;
         this->vecsToTransform(rvec, tvec, approachTransform);
 
         tf2::Transform toolToCamT;
         this->getTransformBroadcast(toolToCamT, "tool0", "camera");
+
+        int poseIndex;
+        auto idPtr = std::find(this->goalPoseMakerIds.begin(), this->goalPoseMakerIds.end(), id);
+        
+        if(idPtr != this->goalPoseMakerIds.end()){
+            poseIndex = distance(this->goalPoseMakerIds.begin(), idPtr);
+        } else {
+            RCLCPP_WARN(this->get_logger(), "Marker ID %d not in goal pose list", id);
+            return false;
+        }
+        vector<cv::Vec3d> goalPose = this->goalPoses[poseIndex];
 
         bool approachReachable = approachTransform.getOrigin().length() < this->workspaceSphereRadius;
 
@@ -510,9 +579,9 @@ private:
 
         for(int i = 0; i < 4; i++){
             cv::Vec3d camToCornerTvec = i == 0 ? goalPose[1] : cv::Vec3d(
-                this->goalPose[1][0] * pow(-1, i&2),
-                this->goalPose[1][1] * pow(-1, int(i/2)),
-                this->goalPose[1][2]
+                goalPose[1][0] * pow(-1, i&2),
+                goalPose[1][1] * pow(-1, int(i/2)),
+                goalPose[1][2]
             );
             tf2::Transform cornerTransform;
             this->vecsToTransform(rvec, camToCornerTvec, cornerTransform);
@@ -557,20 +626,23 @@ private:
         RCLCPP_INFO(this->get_logger(), "Processed Frame for Aruco Detection");     
         
         cv::Vec3d rvec, tvec;
+        int id;
 
-        if(!this->detectAndEstimatePose(cv_img, rvec, tvec)){
+        if(!this->detectAndEstimatePose(cv_img, rvec, tvec, id)){
             this->correctionActive = false;
             return;
         }
 
-        this->calculateCorrectionMove(msg, rvec, tvec);
+        this->calculateCorrectionMove(msg, rvec, tvec, id);
 
-
-        if(!this->checkReachability(rvec, tvec)){
+        if(!this->checkReachability(rvec, tvec, id)){
             RCLCPP_ERROR(this->get_logger(), "Calculated correction move is out of reach, aborting correction");
-            this->correctionActive = false;
+            this->isBoardReachablePub_->publish(std_msgs::msg::Bool().set__data(false));
+            this->correctionActive = false; 
             return;
         }
+
+        this->isBoardReachablePub_->publish(std_msgs::msg::Bool().set__data(true));
 
         this->setProgramState(ProgramState::APPROACHING_PANEL);
 
@@ -598,14 +670,17 @@ private:
     cv::Ptr<cv::aruco::DetectorParameters> parameters;
     cv::Ptr<cv::aruco::Dictionary> dictionary;
     const char* calFileName;
+    bool camParametersLoaded = false;
     cv::Mat cameraMatrix, distCoeffs;
     cv::Ptr<cv::aruco::Board> board;
     double markerSize;
     int programState;
-    vector<cv::Vec3d> goalPose;
+    vector<int> goalPoseMakerIds;
     vector<cv::Vec3d> goalPoseTreshold;
+    vector<vector<cv::Vec3d>> goalPoses;
     bool correctionActive;
     const double workspaceSphereRadius = .5; // meters
+
 
     rclcpp::Subscription<amps_cpp::msg::FrameWithPose>::SharedPtr frameSub_;
     rclcpp::Publisher<ProgramState>::SharedPtr programStatePub_;
@@ -614,6 +689,7 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cameraInfoSub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr isBoardReachablePub_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr arucoDetectionPub_;
+
 
     rclcpp::Publisher<TransformStamped>::SharedPtr addToBroadcastPub_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
