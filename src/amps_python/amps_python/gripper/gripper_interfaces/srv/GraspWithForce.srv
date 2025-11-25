@@ -1,5 +1,0 @@
-uint8 force
-uint8 end_width
-uint8 speed
----
-bool success
