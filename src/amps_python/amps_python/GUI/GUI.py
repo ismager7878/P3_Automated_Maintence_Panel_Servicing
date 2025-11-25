@@ -10,6 +10,8 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from cv_bridge import CvBridge
 import cv2
+#---------------------------------------------
+#import topics
 from sensor_msgs.msg import Image
 from std_msgs.msg import Bool
 from amps_cpp.msg import ProgramState
@@ -60,6 +62,19 @@ class GUI_node(Node):
             self.is_board_reachable_callback,
             10
         )
+
+        # Subscribe til gFLT -> fejlkode fra gripper
+        self.gripper_error_log = 5
+
+        # Subscribe til gOBJ -> object detection fra gripper
+        self.gripper_obj_log = 0
+         
+        # Subscribe til gPR -> gripper position
+        self.gripper_pos = 0
+
+        # Subscribe til gPO -> gripper resistance mA * 10
+        self.gripper_resistance = 0
+
         #-------------------------------------------------------------------------------
 
         #Publisher:
@@ -83,6 +98,7 @@ class GUI_node(Node):
     def program_state_callback(self, msg: ProgramState):
         """Callback for ProgramState messages."""
         self.current_program_state = msg.state
+        self.current_program_state_str = msg.state_str
         self.get_logger().info(f"Program state changed to: {msg.state_str}")
 
     def is_board_reachable_callback(self, msg: Bool):
@@ -114,44 +130,113 @@ class MainWindow(QWidget):
         self.setMinimumSize(730,420)
         self.setWindowTitle(title)
 
-    def initUI(self):
+    def program(self):
+        widget = QWidget()
         layout = QVBoxLayout()
-
-        self.buttonNextAction = QPushButton("Next action")
-        #self.buttonNextAction.setFixedSize(50, 20)
-        #self.buttonNextAction.setStyleSheet
+        # knap til at skifte ProgramState:
+        self.buttonNextAction = QPushButton("Aproach panel")
         self.buttonNextAction.clicked.connect(self.NextProccesStep)
+        self.buttonNextAction.setFixedWidth(400)
 
         # Current status viser:
         self.status_label = QLabel("Status bar")
         self.status_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        self.status_label.setStyleSheet("background-color: black; color : white")
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)# Create label, set size and align
-        self.status_label.setFixedHeight(50)
-        self.status_label.setStyleSheet(f"background-color: gray; color : white")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setFixedSize(400, 50)
+        self.status_label.setStyleSheet("background-color: gray; color : white")
 
+        # Viser error message:
+        self.error_label = QLabel("Program error messages")
+        self.error_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        self.error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.error_label.setFixedSize(400, 50)
+        self.error_label.setStyleSheet("background-color: gray; color : white")
 
+        #----------------------------------------------------------------
+        # Strukturer layout:
+        layout.addWidget(self.status_label)
+        layout.addWidget(self.error_label)
+        layout.addWidget(self.buttonNextAction) #sætter knappen på bunden
+         #----------------------------------------------------------------
+        widget.setLayout(layout)
+        return widget
+
+    def video(self):
+        widget = QWidget()
+        layout = QVBoxLayout()
         # Image display label
         self.image_label = QLabel("No image yet")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setFixedSize(640, 360)
         self.image_label.setStyleSheet("""QLabel {border: 5px solid gray;border-radius: 10px;background-color: black;}""")
-        
-        #----------------------------------------------------------------
-        # Strukturer layout:
+
         layout.addWidget(self.image_label)
 
-        layout.addWidget(self.status_label)
-
-        layout.addWidget(self.buttonNextAction) #sætter knappen på bunden
-        #----------------------------------------------------------------
-
-        self.setLayout(layout)
         # Timer to spin ROS and update image
         if self.node is not None:
             self.ros_timer = QTimer(self)
             self.ros_timer.timeout.connect(self._ros_spin_and_update)
             self.ros_timer.start(50)  # 20 Hz
+        
+        widget.setLayout(layout)
+        return widget
+    
+    def gripperUI(self):
+        widget = QWidget()
+        layout = QVBoxLayout()
+        #---------------------------------------------------------------
+        #Gripper error messages:
+        self.gripper_error_label = QLabel("Gripper error messages")
+        self.gripper_error_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        self.gripper_error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.gripper_error_label.setFixedSize(400, 50)
+        self.gripper_error_label.setStyleSheet("background-color: gray; color : white")
+
+        #Gripper modes
+
+        #---------------------------------------------------------------
+
+        layout.addWidget(self.gripper_error_label)
+        layout.addWidget(self.gripperOBJ())
+
+        widget.setLayout(layout)
+        return widget
+    
+    def gripperOBJ(self):
+        widget = QWidget()
+        layout = QHBoxLayout()
+
+        self.label = QLabel("Object detection")
+        self.label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.label.setFixedSize(335, 50)
+        self.label.setStyleSheet("background-color: gray; color : white")
+
+        self.mode = QLabel("place holder")
+        self.mode.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.mode.setFixedSize(50,50)
+        self.mode.setStyleSheet("background-color: red; color : red")
+        
+        layout.addWidget(self.label)
+        layout.addWidget(self.mode)
+
+        widget.setLayout(layout)
+        return widget
+
+    def initUI(self):
+        layout = QHBoxLayout()
+
+        #----------------------------------------------------------------
+        # Strukturer layout:
+        
+        layout.addWidget(self.program())
+        layout.addWidget(self.video())
+        layout.addWidget(self.gripperUI())
+        
+        #----------------------------------------------------------------
+
+        self.setLayout(layout)
+        
 
     def NextProccesStep(self):
         self.node.setProgramState(ProgramState.APPROACHING_PANEL)
@@ -170,6 +255,8 @@ class MainWindow(QWidget):
         # Update border color based on program state
         self._update_status_text()
         self._update_border_color()
+        self._update_error_message()
+        self._update_gripper_error()
 
         # If there's a latest image, convert and show it
         img = None
@@ -189,32 +276,94 @@ class MainWindow(QWidget):
             self.image_label.setPixmap(pix)
 
     def _update_status_text(self):
+        if not hasattr(self.node, 'current_program_state'):
+            return
+        
         state = self.node.current_program_state
+        reach = self.node.is_board_reachable
       
         #---------------------------------------------------------------
         #Show state in lable
-        if state == 1:
+        if state == 1 and reach == False:
             self.status_label.setText("FINDING PANEL")
+            self.status_label.setStyleSheet("background-color: red; color : white")
+
+        if state == 1 and reach == True:
+            self.status_label.setText("FINDING PANEL")
+            self.status_label.setStyleSheet("background-color: green; color : white")
 
         if state == 2:
             self.status_label.setText("APPROACHING PANEL")
+            self.status_label.setStyleSheet("background-color: green; color : white")
 
         if state == 3:
             self.status_label.setText("SERVICING PANEL")
+            self.status_label.setStyleSheet("background-color: green; color : white")
 
         if state == 4:
             self.status_label.setText("RETREATING")
+            self.status_label.setStyleSheet("background-color: green; color : white")
 
         if state == 5:
             self.status_label.setText("MISSION COMPLETE")
+            self.status_label.setStyleSheet("background-color: green; color : white")
 
         if state == 0:
             self.status_label.setText("MANUAL CONTROL")
+            self.status_label.setStyleSheet("background-color: orange; color : white")
 
         if state == -1:
             self.status_label.setText("ERROR")
+            self.status_label.setStyleSheet("background-color: red; color : white")
         #---------------------------------------------------------------
-    
+
+    def _update_gripper_error(self):
+        error_state = self.node.gripper_error_log
+        # ingen fejl:
+        if error_state == 0:
+            self.gripper_error_label.setText("No fault")
+            self.gripper_error_label.setStyleSheet("background-color: green; color : white")
+        # Priority fault: vælg farve: (orange)
+        elif error_state == 5:
+            self.gripper_error_label.setText("Action delayed, activation (reactivation) must be completed prior to perfmoring the action.")
+            self.gripper_error_label.setStyleSheet("background-color: orange; color : white")
+        elif error_state == 7:
+            self.gripper_error_label.setText("The activation bit must be set prior to action.")
+            self.gripper_error_label.setStyleSheet("background-color: orange; color : white")
+        # røde fejl beskeder:
+        elif error_state == 8:
+            self.gripper_error_label.setText("Maximum operating temperature exceeded, wait for cool-down.")
+            self.gripper_error_label.setStyleSheet("background-color: red; color : white")
+        elif error_state == 9:
+            self.gripper_error_label.setText("No communication during at least 1 second")
+            self.gripper_error_label.setStyleSheet("background-color: red; color : white")
+        # Major faults blinkende blå og rød:
+        elif error_state == 10:
+            self.gripper_error_label.setText("Under minimum operating voltage.")
+            self.gripper_error_label.setStyleSheet("background-color: black; color : white")
+        elif error_state == 11:
+            self.gripper_error_label.setText("Automatic release in progress.")
+            self.gripper_error_label.setStyleSheet("background-color: black; color : white")
+        elif error_state == 12:
+            self.gripper_error_label.setText("Internal fault; contact support@robotiq.com")
+            self.gripper_error_label.setStyleSheet("background-color: black; color : white")
+        elif error_state == 13:
+            self.gripper_error_label.setText("Activation fault, verify that no interference or other error occurred.")
+            self.gripper_error_label.setStyleSheet("background-color: black; color : white")
+        elif error_state == 14:
+            self.gripper_error_label.setText("Overcurrent triggered.")
+            self.gripper_error_label.setStyleSheet("background-color: black; color : white")
+        elif error_state == 15:
+            self.gripper_error_label.setText("Automatic release completed.")
+            self.gripper_error_label.setStyleSheet("background-color: black; color : white")
+
+    def _update_error_message(self):
+        if not hasattr(self.node, 'current_program_state_str'):
+            return
+
+        state_str = self.node.current_program_state_str
+        self.error_label.setText(f"error: {state_str}")
+
     def _update_border_color(self):
         """Update the image label border color based on program state."""
         if not hasattr(self.node, 'current_program_state'):

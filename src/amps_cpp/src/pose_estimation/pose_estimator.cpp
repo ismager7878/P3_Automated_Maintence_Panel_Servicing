@@ -293,7 +293,7 @@ private:
 
         for(vector<cv::Vec3d>::size_type i = 0; i < rvecs.size(); i++ )
             {
-                cv::drawFrameAxes(imgOut, this->cameraMatrix, this->distCoeffs, rvecs[i], tvecs[i], 0.5f);
+                cv::drawFrameAxes(imgOut, this->cameraMatrix, this->distCoeffs, rvecs[i], tvecs[i], 0.1f);
             }
 
         (void)imgOut; // Unused variable
@@ -350,7 +350,7 @@ private:
 
     void logPositions(cv::Mat& img, const vector<cv::Vec3d>& rvec, const vector<cv::Vec3d>& tvec){
         for(size_t i = 0; i < rvec.size(); i++){
-            cv::drawFrameAxes(img, this->cameraMatrix, this->distCoeffs, rvec[i], tvec[i], 0.5f);
+            cv::drawFrameAxes(img, this->cameraMatrix, this->distCoeffs, rvec[i], tvec[i], 0.1f);
             RCLCPP_INFO(this->get_logger(), "Marker ID: %d", this->markerIds[i]);
             RCLCPP_INFO(this->get_logger(), "Marker Orientation (in camera frame): Rx: %.4f Ry: %.4f Rz: %.4f", 
                         rvec[i][0], rvec[i][1], rvec[i][2]);
@@ -400,7 +400,7 @@ private:
 
         //RCLCPP_INFO(this->get_logger(), "Estimated board pose successfully");
 
-        cv::drawFrameAxes(imgOut, this->cameraMatrix, this->distCoeffs, rvec, tvec, 0.1f);
+        cv::drawFrameAxes(imgOut, this->cameraMatrix, this->distCoeffs, rvec, tvec, 0.3f);
 
         cv::imshow("Aruco Detection", imgOut);
         cv::waitKey(1);

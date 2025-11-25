@@ -7,5 +7,5 @@ int8 MISSION_COMPLETE = 5
 int8 ERROR_STATE = -1
 int8 MANUAL_CONTROL = 0
 
-int8 state 0
+int8 state
 string state_str
