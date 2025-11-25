@@ -32,6 +32,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'realsense_node = amps_python.realsense_node:main',
             'Handeye = amps_python.position.Handeye:main',
         ],
     },
