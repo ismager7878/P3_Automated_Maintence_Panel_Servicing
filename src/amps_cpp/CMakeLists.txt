@@ -56,6 +56,7 @@ ament_target_dependencies(fp_matcher rclcpp geometry_msgs sensor_msgs)
 ## Custom Interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FrameWithPose.msg"
+  "action/MoveGripper.action"
   DEPENDENCIES geometry_msgs sensor_msgs
 )
 
