@@ -163,7 +163,10 @@ void segmentation(cv::Mat &image, cv::Mat &depth)
 
     // svært 17 , 1 , boss: 12// husk tjekke manult alle billeder hontering for se man få alt // 32,21,27,22 depth billede taget   
     cv::Mat depthMasked = dynamicDepthCheck(depth);
-    //cv::imshow("newmaske image",depthMasked);
+    Erode(depthMasked);
+    Dilate(depthMasked);
+    Dilate(depthMasked);
+    cv::imshow("newmaske image",depthMasked);
 
 
     // Detect Aruco markers
@@ -219,7 +222,7 @@ cv::Mat dynamicDepthCheck(cv::Mat &depth_img){
     int meanDepth = std::round(cv::mean(adjustedDepth)[0]);
 
     // sort the vector to find median
-    int minDepth = meanDepth - 25;
+    int minDepth = meanDepth - 23;
     int maxDepth = meanDepth - 3;         
 
     cv::Mat mask; 
@@ -236,20 +239,20 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
  
     double minArea = 2000; // 
     double MaxArea = 40000;  //
-    int boundbox_distance = 10;
+    int boundbox_distance = 4;
     int number_of_blobs = 0;
     int check = 0;
 
     // change to real boarder values probley her!!!!!!!!!!!!!!! In state of code picture should crop and should pixels value top left and bouttom right of images
-    int boarder_left_top_x = 240;
-    int boarder_left_top_y = 35;
-    int boarder_right_bottom_x = 1070;
-    int boarder_right_bottom_y = 701;
+    int boarder_left_top_x = 240; // 0; //
+    int boarder_left_top_y = 35; // 0; //
+    int boarder_right_bottom_x = 1070; // image_binary.cols; //
+    int boarder_right_bottom_y = 701; // image_binary.rows; //
     
 
     std::stack<std::vector<cv::Point>> boundbox;
     std::stack<std::vector<cv::Point>> boundbox2;
-    for(int j = 0; j < 2; j++){ // skal være 2 !!!!!
+    for(int j = 0; j < 1; j++){ // j = 2 for depth and color used get 2 plug for charged // j = 1 
         
         if(j == 0){ // skal være 0 !!!!
             cv::findContours(depth_binary, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
@@ -377,6 +380,7 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
     }
     //std::cout << "Number of blobs: " << number_of_blobs << std::endl;
     cv::imshow("canvasOutput", img);
+    cv::waitKey(2000); 
     publishBoundingBoxes(boundbox);
 }
 
@@ -432,7 +436,21 @@ void Erode(cv::Mat &img)
           cv::Point(-1, -1), 1);
 }
 
+void Dilate(cv::Mat &img)
+{   
+     // Create a structuring element (SE)
+    int morph_size = 2;
+    cv::Mat element = getStructuringElement(
+    cv::MORPH_RECT, cv::Size(2 * morph_size + 1,2 * morph_size + 1),
+    cv::Point(morph_size, morph_size));
+    cv::Mat erod, dill,open,close;
 
+    // For Dilation
+    cv::dilate(img, img, element,
+          cv::Point(-1, -1), 1);
+
+
+}
 };
 
 int main(int argc, char *argv[])

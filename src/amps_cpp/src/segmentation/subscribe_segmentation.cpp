@@ -32,24 +32,26 @@ private:
     rclcpp::Publisher<ProgramState>::SharedPtr programStatePub_;
     rclcpp::Subscription<ProgramState>::SharedPtr programStateSub_;
     int program_state_;
+    int count_wrong = 0;
+    int count_image = 0;
     std::shared_ptr<std_msgs::msg::Float32MultiArray> boundingboxes;
 
 
     void programStateCallback(const ProgramState::SharedPtr msg)
-    {
+    { 
         program_state_ = msg->state;
         
         if(program_state_ != ProgramState::OBJECT_DETECTION_MODE){
             return;
         } 
+        count_image +=1;
+
         // Process the segmentation data as needed
         cv::Mat image = cv::imread("datasets/test_images_dataset/btn_config_1/rosbag2_2025_10_30-14_13_08_0/color.png");
 
         int number_of_boundingbox = boundingboxes->data.size()/4;
         for(int i = 0; i < number_of_boundingbox; ++i)
         {
-            RCLCPP_INFO(this->get_logger(), "iam her 222 ");
-
             float x1 = boundingboxes->data[i*4+0];
             float y1 = boundingboxes->data[i*4+1];
             float x2 = boundingboxes->data[i*4+2];
@@ -60,11 +62,13 @@ private:
             cv::Scalar rectangleColor(255, 100, 24);
             cv::rectangle(image, point1, point2, rectangleColor, 2, cv::LINE_AA);
         }
-        setProgramState(ProgramState::MANUAL_CONTROL);
-        cv::imshow("Image check",image);
-        cv::waitKey();
+        if(number_of_boundingbox !=9){
+            count_wrong +=1;
+            RCLCPP_INFO(this->get_logger(), "wrong number of bounding box detected: %d and total images processed: %d",count_wrong, count_image);
+        }
+        setProgramState(ProgramState::PREPROCESSING_MODE);
+      
     }
-
 
     void setProgramState(const int state, std::string stateStr = ""){
         ProgramState programStateMsg;
@@ -77,7 +81,6 @@ private:
 
     void topic_callback(std_msgs::msg::Float32MultiArray::SharedPtr msg) 
     {
-        RCLCPP_INFO(this->get_logger(), "iam her ");
         boundingboxes = msg;
     
     }
