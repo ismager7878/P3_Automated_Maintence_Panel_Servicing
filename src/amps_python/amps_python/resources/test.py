@@ -52,10 +52,10 @@ print("Done loading ground truth data")
 
 if __name__ == "__main__":
     for img in depth_images:
-        improved, M = transform_depth(img, np.deg2rad(0.5))
+        improved, M = transform_depth(img, np.deg2rad(0.5), True)
         # improved = cv.erode(improved, np.ones((9,9), np.uint8), iterations=1)
         #improved = cv.dilate(improved, np.ones((4,4), np.uint8), iterations=1)
         improved_colored = cv.applyColorMap(improved, cv.COLORMAP_JET)
-        cv.imshow("Improved Depth Image", improved_colored)
+        cv.imshow("Improved Depth Image", improved)
         cv.waitKey(0)
         cv.destroyAllWindows()
