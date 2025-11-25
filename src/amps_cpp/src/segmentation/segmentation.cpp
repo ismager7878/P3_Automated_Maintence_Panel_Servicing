@@ -14,6 +14,10 @@
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include <cv_bridge/cv_bridge.hpp>
+#include "amps_cpp/msg/program_state.hpp"
+
+using ProgramState = amps_cpp::msg::ProgramState;
+
 
 int test(int &minDepth, int &maxDepth, cv::Mat &depthFloat, cv::Mat &color);
 cv::Mat depth_check(int,int,cv::Mat&);
@@ -33,8 +37,12 @@ public:
         publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("segmentation__topic", 10);
         color_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_color",10,std::bind(&Segmention::color_callback,this,std::placeholders::_1));
         depth_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_depth",10,std::bind(&Segmention::depth_callback,this,std::placeholders::_1));
-        //depth_subscribe_= 
-        // Eksempel på brug af segmentation funktionen
+        
+
+        programStatePub_ = this->create_publisher<ProgramState>("amps/program_state", 10);
+        programStateSub_ = this->create_subscription<ProgramState>(
+            "amps/program_state", 10,std::bind(&Segmention::programStateCallback, this, std::placeholders::_1)
+        );
         timer_= this->create_wall_timer(
             std::chrono::milliseconds(500),
             std::bind(&Segmention::timer_callback, this));  
@@ -50,10 +58,31 @@ public:
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr color_subscribe_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_subscribe_;
 
+    rclcpp::Publisher<ProgramState>::SharedPtr programStatePub_;
+    rclcpp::Subscription<ProgramState>::SharedPtr programStateSub_;
+
     size_t count_;
     rclcpp::TimerBase::SharedPtr timer_;
     cv::Mat image;
     cv::Mat depth;
+
+    int program_state_; 
+
+
+    void setProgramState(const int state, std::string stateStr = ""){
+        ProgramState programStateMsg;
+        programStateMsg.state = state;
+        programStateMsg.state_str = stateStr;
+        this->programStatePub_->publish(programStateMsg);
+        RCLCPP_INFO(this->get_logger(), "set state  %d",state);
+
+    }
+
+
+    void programStateCallback(const ProgramState::SharedPtr msg){
+        program_state_ = msg->state;        
+
+    }
 
     void color_callback(sensor_msgs::msg::Image::SharedPtr msg) {
         cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg,"bgr8");
@@ -66,13 +95,21 @@ public:
     }
     void timer_callback()
     {
-        if(image.size() == depth.size() && !image.empty() && !depth.empty()){
-            segmentation(image, depth);
+
+        if(program_state_ != ProgramState::SEGMENTATION_MODE){
+            return;
+
         }
+        if(image.size() != depth.size()|| image.empty() || depth.empty()){
+            return;
+        }
+        segmentation(image, depth);
+        setProgramState(ProgramState::OBJECT_DETECTION_MODE);
     }
 
 
-    void publishBoundingBoxes(std::stack<std::vector<cv::Point>> &boundbox)
+
+void publishBoundingBoxes(std::stack<std::vector<cv::Point>> &boundbox)
     {
         auto msg = std_msgs::msg::Float32MultiArray();
         
@@ -119,7 +156,7 @@ public:
     }
 
 
-    void segmentation(cv::Mat &image, cv::Mat &depth)
+void segmentation(cv::Mat &image, cv::Mat &depth)
 {
     cv::Scalar board_color_lower = cv::Scalar(0, 0, 0);
     cv::Scalar board_color_upper = cv::Scalar(180, 255, 125);
@@ -134,6 +171,7 @@ public:
     std::vector<std::vector<cv::Point2f>> markerCorners, rejectedCandidates;
     cv::Ptr<cv::aruco::DetectorParameters> parameters = cv::aruco::DetectorParameters::create();
     cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_250);
+
     cv::aruco::detectMarkers(image, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
     cv::Mat outputImage = image.clone();
     cv::aruco::drawDetectedMarkers(outputImage, markerCorners, markerIds);
@@ -156,7 +194,7 @@ public:
 }
 
     // function there displays depth specific range
-    cv::Mat depth_check(int minDepth,int panel,cv::Mat &depth_img){
+cv::Mat depth_check(int minDepth,int panel,cv::Mat &depth_img){
     // convert depth to float and scale to meters
     cv::Mat mask; 
     cv::inRange(depth_img,minDepth,panel,mask);
@@ -223,7 +261,7 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
         }
         
         
-        for(int i = 0; i <contours.size(); i++ ){
+        for(size_t i = 0; i <contours.size(); i++ ){
 
             bool not_close = true;
             double area = cv::contourArea(contours[i]);            
@@ -251,18 +289,18 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
                         
                         int distance = std::sqrt(std::pow(rect.x-rect_check.x,2)+std::pow(rect.y-rect_check.y,2));
                         // check if box is within the boarder and close to other boxes 
-                        if(distance < boundbox_distance ||
-                        rect.x >= boarder_right_bottom_x||
-                        rect.y >= boarder_right_bottom_y||
+                        if((distance < boundbox_distance) ||
+                        (rect.x >= boarder_right_bottom_x)||
+                        (rect.y >= boarder_right_bottom_y)||
 
-                        rect_x2 >= boarder_right_bottom_x||
-                        rect_y2 >= boarder_right_bottom_y ||
+                        (rect_x2 >= boarder_right_bottom_x)||
+                        (rect_y2 >= boarder_right_bottom_y) ||
 
-                        rect.x <= boarder_left_top_x ||
-                        rect.y <= boarder_left_top_y ||
+                        (rect.x <= boarder_left_top_x) ||
+                        (rect.y <= boarder_left_top_y) ||
 
-                        rect_x2 <= boarder_left_top_x ||
-                         rect_y2 <= boarder_left_top_y)
+                        (rect_x2 <= boarder_left_top_x) ||
+                         (rect_y2 <= boarder_left_top_y))
                         {
                         not_close = false;
                         }
@@ -290,13 +328,13 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
                             
 
                           // if some part box go through each other
-                        if(rect_check.x >= rect.x && rect_check_x2 <= rect_x2||  // x outside left and x2 outside right
-                            rect_check.x <= rect.x && rect_check_x2 >= rect.x && rect_check_x2 <= rect_x2||// x indside and x2 outside right
-                            rect_check.x >= rect.x &&  rect_check.x <= rect_x2 && rect_check_x2 >= rect_x2 ){  // x outside left and x2 inside
+                        if((rect_check.x >= rect.x && rect_check_x2 <= rect_x2)||  // x outside left and x2 outside right
+                            (rect_check.x <= rect.x && rect_check_x2 >= rect.x && rect_check_x2 <= rect_x2)||// x indside and x2 outside right
+                            (rect_check.x >= rect.x &&  rect_check.x <= rect_x2 && rect_check_x2 >= rect_x2) ){  // x outside left and x2 inside
 
-                            if(rect_check.y <= rect.y && rect_check_y2 >= rect.y && rect_check_y2 <= rect_y2|| // y indside box  and y2 outside bottom
-                                rect_check.y >= rect.y &&  rect_check.y <= rect_y2 && rect_check_y2 >= rect_y2||// y outside top and y2 inside box
-                                rect_check.y >= rect.y && rect_check_y2 <= rect_y2 ){ // y outside top and y2 outside button
+                            if((rect_check.y <= rect.y && rect_check_y2 >= rect.y && rect_check_y2 <= rect_y2 )|| // y indside box  and y2 outside bottom
+                                (rect_check.y >= rect.y &&  rect_check.y <= rect_y2 && rect_check_y2 >= rect_y2)||// y outside top and y2 inside box
+                                (rect_check.y >= rect.y && rect_check_y2 <= rect_y2) ){ // y outside top and y2 outside button
                                 not_close = false;
                             }
                         }
@@ -346,10 +384,10 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
 // cut out aruco markers from image   
 void cutArduco(cv::Mat &img, std::vector<std::vector<cv::Point2f>> &markerCorners){
     int x_1,x_2,y_1,y_2;
-    for(int i = 0; i < markerCorners.size(); ++i)
+    for(size_t i = 0; i < markerCorners.size(); ++i)
     {   
         //sort for left top and right bottom corners
-        for(int g = 0; g < markerCorners[i].size(); g++){
+        for(size_t g = 0; g < markerCorners[i].size(); g++){
             if(g == 0 ){
                 x_1 = x_2 = markerCorners[i][g].x;
                 y_1 = y_2 = markerCorners[i][g].y; 

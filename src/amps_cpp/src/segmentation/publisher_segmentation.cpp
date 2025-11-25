@@ -3,6 +3,8 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/features2d.hpp>  // For blob detector
 
+#include "amps_cpp/msg/program_state.hpp"
+
 #include <iostream>
 #include <stack>
 
@@ -12,6 +14,8 @@
 #include "sensor_msgs/msg/image.hpp"
 #include <cv_bridge/cv_bridge.hpp>
 
+using ProgramState = amps_cpp::msg::ProgramState;
+
 class PublisherSegmentation : public rclcpp::Node
 {
 public:
@@ -19,10 +23,23 @@ public:
     {
         depth_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("segmentation_test_depth",10);
         color_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("segmentation_test_color",10);
+
+
+
+        programStatePub_ = this->create_publisher<ProgramState>("amps/program_state", 10);
+        programStateSub_ = this->create_subscription<ProgramState>(
+            "amps/program_state", 10,std::bind(&PublisherSegmentation::programStateCallback, this, std::placeholders::_1)
+        );
+        
+
     
         timer_= this->create_wall_timer(
             std::chrono::milliseconds(500),
             std::bind(&PublisherSegmentation::timer_callback, this));
+
+
+        setProgramState(ProgramState::PREPROCESSING_MODE);
+
     }
 
 
@@ -31,9 +48,33 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr color_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr depth_publisher_;
 
+    rclcpp::Publisher<ProgramState>::SharedPtr start_;
+
+    rclcpp::Publisher<ProgramState>::SharedPtr programStatePub_;
+    rclcpp::Subscription<ProgramState>::SharedPtr programStateSub_;
+
+    int program_state_; 
+
+    void programStateCallback(const ProgramState::SharedPtr msg)
+    {
+        program_state_ = msg->state;
+        RCLCPP_INFO(this->get_logger(), "state %d",program_state_);
+
+    }
+
+    void setProgramState(const int state, std::string stateStr = ""){
+        ProgramState programStateMsg;
+        programStateMsg.state = state;
+        programStateMsg.state_str = stateStr;
+        this->programStatePub_->publish(programStateMsg);
+        RCLCPP_INFO(this->get_logger(), "set state  %d",state);
+
+    }
+
     rclcpp::TimerBase::SharedPtr timer_;
     void timer_callback()
     {
+     
          // Convert OpenCV Mat to ROS2 Image message
         std_msgs::msg::Header header;
         header.stamp = this->now();
@@ -46,10 +87,20 @@ private:
         sensor_msgs::msg::Image::SharedPtr color_msg = cv_bridge::CvImage(header, "bgr8", image).toImageMsg();
         sensor_msgs::msg::Image::SharedPtr depth_msg = cv_bridge::CvImage(header, "16UC1", depth).toImageMsg(); 
         
-        color_publisher_->publish(*color_msg);
-        depth_publisher_->publish(*depth_msg);
+        if(program_state_ == ProgramState::PREPROCESSING_MODE){
+            this->color_publisher_->publish(*color_msg);
+            this->depth_publisher_->publish(*depth_msg);
+            setProgramState(ProgramState::SEGMENTATION_MODE);
+            RCLCPP_INFO(this->get_logger(), "Stat too segmentation");
+
+        }
+        std::cout << program_state_ << std::endl;
+
 
     }
+
+
+
 
  
 };

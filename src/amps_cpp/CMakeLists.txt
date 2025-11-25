@@ -64,7 +64,6 @@ ament_target_dependencies(subscribe_segmentation rclcpp std_msgs OpenCV)
 
 add_executable(publisher_segmentation src/segmentation/publisher_segmentation.cpp)
 ament_target_dependencies(publisher_segmentation rclcpp sensor_msgs cv_bridge OpenCV)
-##
 
 
 ##Frame and Pose Matcher
@@ -93,6 +92,9 @@ target_link_libraries(fp_matcher "${cpp_typesupport_target}")
 target_link_libraries(pose_estimation "${cpp_typesupport_target}")
 target_link_libraries(action_client "${cpp_typesupport_target}")
 target_link_libraries(ur_wrapper "${cpp_typesupport_target}")
+target_link_libraries(segmentation "${cpp_typesupport_target}")
+target_link_libraries(subscribe_segmentation "${cpp_typesupport_target}")
+target_link_libraries(publisher_segmentation "${cpp_typesupport_target}")
 
 
 ## Directories to include
