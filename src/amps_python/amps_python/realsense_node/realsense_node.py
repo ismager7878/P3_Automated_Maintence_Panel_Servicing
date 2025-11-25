@@ -7,7 +7,7 @@ import cv2 as cv
 class CameraSubscriber(Node):
     def _init_(self):
         #create node with name "camera_subscriber"
-        super()._init_('camera_subscriber')
+        super().__init__('camera_to_edge_subscriber')
         self.bridge = CvBridge()
         #self.color and self.depth will subscribe to the realsense RGB camera and depth camera with a que of 10
         self.color = self.create_subscription(Image, '/camera/camera/color/image_raw', self.camera_show, 10)

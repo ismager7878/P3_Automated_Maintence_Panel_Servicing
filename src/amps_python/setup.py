@@ -28,7 +28,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'realsense_node = amps_python.realsense_node:main'
+            'realsense_node = amps_python.realsense_node:main',
+            'object_detection_node = amps_python.postion.obejct_detection:main',
         ],
     },
 )
