@@ -78,6 +78,7 @@ private:
         );
 
         FrameWithPose frame_with_pose_msg;
+        frame_with_pose_msg.header = msg->header;
         frame_with_pose_msg.rgb_frame = msg->rgb;
         frame_with_pose_msg.depth_frame = msg->depth;
         frame_with_pose_msg.pose = *closest_pose;
