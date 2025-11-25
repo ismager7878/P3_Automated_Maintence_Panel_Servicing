@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
-from amps_python.amps_python.postion.features_extraction import feature_extraction, balance_white
+from amps_python.amps_python.position.features_extraction import feature_extraction, balance_white
 
 
 #Preprocessing the image, so make objects of interest stand out more clearly
