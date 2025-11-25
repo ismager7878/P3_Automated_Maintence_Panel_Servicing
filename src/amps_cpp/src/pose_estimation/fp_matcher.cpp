@@ -1,5 +1,6 @@
 
 #include "rclcpp/rclcpp.hpp"
+
 #include <vector>
 #include <algorithm>
 
@@ -43,7 +44,7 @@ private:
 
     void poseCallback(const PoseStamped::SharedPtr msg)
     {
-        RCLCPP_INFO(this->get_logger(), "Received Pose: [%.2f, %.2f, %.2f]", msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
+        //RCLCPP_INFO(this->get_logger(), "Received Pose: [%.2f, %.2f, %.2f]", msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
         poses_between_frames.push_back(*msg);
     }
 
@@ -58,11 +59,11 @@ private:
     }
 
     void processFrame(const Image::SharedPtr msg, 
-                     rclcpp::Publisher<FrameWithPose>::SharedPtr pub,
+                     rclcpp::Publisher<FrameWithPose>::SharedPtr& pub,
                      const string& frame_type)
     {
-        RCLCPP_INFO(this->get_logger(), "Received %s Frame of size: %zu", 
-                    frame_type.c_str(), msg->data.size());
+        // RCLCPP_INFO(this->get_logger(), "Received %s Frame of size: %zu", 
+        //             frame_type.c_str(), msg->data.size());
         
         if (poses_between_frames.empty()) {
             RCLCPP_WARN(this->get_logger(), "No poses available for frame matching");
@@ -94,11 +95,15 @@ private:
 
         // Remove old poses (keep only recent ones)
         auto now = this->get_clock()->now();
-        remove_if(poses_between_frames.begin(), poses_between_frames.end(),
-            [now](const PoseStamped& pose) {
-                auto pose_time = rclcpp::Time(pose.header.stamp);
-                return (now - pose_time).seconds() > 1.0; // Remove poses older than 1 second
-            });
+        
+        poses_between_frames.erase(
+            remove_if(poses_between_frames.begin(), poses_between_frames.end(),
+                [now](const PoseStamped& pose) {
+                    auto pose_time = rclcpp::Time(pose.header.stamp);
+                    return (now - pose_time).seconds() > 1.0; // Remove poses older than 1 second
+                }),
+            poses_between_frames.end()
+        );
     }
     
     vector<PoseStamped> poses_between_frames = {};

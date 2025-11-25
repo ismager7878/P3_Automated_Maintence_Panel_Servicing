@@ -4,3 +4,11 @@ log/
 .vscode/
 .venv/
 Ros2 videos/
+
+#remove all __pycache__ folders
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+

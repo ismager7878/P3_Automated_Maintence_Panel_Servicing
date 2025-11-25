@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
-from glob import glob
 import os
+from glob import glob
 
 package_name = 'amps_python'
 
@@ -14,6 +14,10 @@ setup(
         ('share/' + package_name, ['package.xml']),
         # install any python launch files so `ros2 launch <pkg> <file>` can find them
         (os.path.join('share', package_name, 'launch'), glob('launch/*.py')),
+        (os.path.join('share', package_name, 'data', 'calibration-data'),
+            glob('amps_python/data/calibration-data/*.xml')),
+        (os.path.join('share', package_name, 'launch'),
+            glob('amps_python/launch_files/*.launch.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -28,8 +32,12 @@ setup(
     },
     entry_points={
         'console_scripts': [
+<<<<<<< HEAD
             'realsense_node = amps_python.realsense_node:main',
             'object_detection_node = amps_python.postion.obejct_detection:main',
+=======
+            'Handeye = amps_python.position.Handeye:main',
+>>>>>>> 4bf80e0ce405ad4cd926cb51f7537707f64c5829
         ],
     },
 )
