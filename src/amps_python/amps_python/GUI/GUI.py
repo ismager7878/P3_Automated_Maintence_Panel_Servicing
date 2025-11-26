@@ -1,5 +1,5 @@
 # source .venv/bin/activate
-from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QGridLayout, QVBoxLayout, QComboBox
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QGridLayout, QVBoxLayout, QComboBox, QProgressBar
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QSplitter, QStackedWidget, QLineEdit, QDialog, QDialogButtonBox
 from PyQt6.QtGui import QFont, QImage, QPixmap
 from PyQt6.QtCore import Qt, QTimer
@@ -64,7 +64,7 @@ class GUI_node(Node):
         )
 
         # Subscribe til gFLT -> fejlkode fra gripper
-        self.gripper_error_log = 5
+        self.gripper_error_log = 0
 
         # Subscribe til gOBJ -> object detection fra gripper
         self.gripper_obj_log = 0
@@ -191,13 +191,11 @@ class MainWindow(QWidget):
         self.gripper_error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.gripper_error_label.setFixedSize(400, 50)
         self.gripper_error_label.setStyleSheet("background-color: gray; color : white")
-
-        #Gripper modes
-
         #---------------------------------------------------------------
 
         layout.addWidget(self.gripper_error_label)
         layout.addWidget(self.gripperOBJ())
+        layout.addWidget(self.gripperProgressBar())
 
         widget.setLayout(layout)
         return widget
@@ -206,20 +204,48 @@ class MainWindow(QWidget):
         widget = QWidget()
         layout = QHBoxLayout()
 
-        self.label = QLabel("Object detection")
-        self.label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
-        self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.label.setFixedSize(335, 50)
-        self.label.setStyleSheet("background-color: gray; color : white")
+        self.obj_label = QLabel("Object detected:")
+        self.obj_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+        self.obj_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.obj_label.setFixedSize(335, 50)
+        self.obj_label.setStyleSheet("background-color: gray; color : white")
 
         self.mode = QLabel("place holder")
         self.mode.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.mode.setFixedSize(50,50)
         self.mode.setStyleSheet("background-color: red; color : red")
         
-        layout.addWidget(self.label)
+        layout.addWidget(self.obj_label)
         layout.addWidget(self.mode)
 
+        widget.setLayout(layout)
+        return widget
+    
+    def gripperProgressBar(self):
+        widget = QWidget()
+        layout = QVBoxLayout()
+
+        self.pos_label = QLabel()
+        self.pos_label.setText("Gripper position:")
+
+        self.force_label = QLabel()
+        self.force_label.setText("Gripper force:")
+        
+        self.progressPos = QProgressBar()
+        self.progressPos.setMinimum(0)
+        self.progressPos.setMaximum(255)
+        self.progressPos.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.progressForce = QProgressBar()
+        self.progressForce.setMinimum(0)
+        self.progressForce.setMaximum(255)
+        self.progressForce.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        layout.addWidget(self.pos_label)
+        layout.addWidget(self.progressPos)
+        layout.addWidget(self.force_label)
+        layout.addWidget(self.progressForce)
+        
         widget.setLayout(layout)
         return widget
 
@@ -252,11 +278,15 @@ class MainWindow(QWidget):
         if hasattr(self.node, 'is_board_reachable'):
             self.buttonNextAction.setEnabled(self.node.is_board_reachable)
 
-        # Update border color based on program state
+        #------------------------------------------------------------------
+        # Update functions:
         self._update_status_text()
         self._update_border_color()
         self._update_error_message()
         self._update_gripper_error()
+        self._update_object_detection()
+        self._update_gripper_metric()
+         #------------------------------------------------------------------
 
         # If there's a latest image, convert and show it
         img = None
@@ -275,6 +305,29 @@ class MainWindow(QWidget):
             pix = QPixmap.fromImage(qt_image).scaled(self.image_label.width(), self.image_label.height(), Qt.AspectRatioMode.KeepAspectRatio)
             self.image_label.setPixmap(pix)
 
+    def _update_gripper_metric(self):
+        
+        pos = self.node.gripper_pos
+        force = self.node.gripper_resistance
+
+        self.progressPos.setValue(pos)
+        self.progressForce.setValue(force)
+
+
+        if force < 85:
+            color = "green"
+        elif force < 170:
+            color = "yellow"
+        else:
+            color = "red"
+
+        self.progressForce.setStyleSheet(f"""
+        QProgressBar::chunk {{
+            background-color: {color};
+        }}
+        """)
+    
+    
     def _update_status_text(self):
         if not hasattr(self.node, 'current_program_state'):
             return
@@ -357,6 +410,19 @@ class MainWindow(QWidget):
             self.gripper_error_label.setText("Automatic release completed.")
             self.gripper_error_label.setStyleSheet("background-color: black; color : white")
 
+    def _update_object_detection(self):
+        obj = self.node.gripper_obj_log
+        
+        if obj == 0:
+            self.mode.setStyleSheet("background-color: green; color : green")
+        elif obj == 1:
+            self.mode.setStyleSheet("background-color: red; color : red")
+        elif obj == 2:
+            self.mode.setStyleSheet("background-color: red; color : red")
+        elif obj == 3:
+            self.mode.setStyleSheet("background-color: green; color : green")
+
+
     def _update_error_message(self):
         if not hasattr(self.node, 'current_program_state_str'):
             return
@@ -410,4 +476,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
