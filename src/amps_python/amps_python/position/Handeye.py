@@ -35,7 +35,7 @@ class Handeye(Node):
         # Subscriber til pose data for snapper funktionen
         self.sub_pose = self.create_subscription(
             FrameWithPose,
-            'amps_cpp/pose_estimation/rgb_frame_with_pose',
+            'amps_cpp/pose_estimation/frame_with_pose',
             self.snapper,
             sensor_qos
         )

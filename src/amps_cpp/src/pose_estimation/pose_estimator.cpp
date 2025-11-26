@@ -44,7 +44,7 @@ public:
     PoseEstimation() : Node("pose_estimation")
     {
         // Publishers and Subscribers
-        this->frameSub_ = this->create_subscription<amps_cpp::msg::FrameWithPose>( "amps_cpp/pose_estimation/rgb_frame_with_pose", 10,
+        this->frameSub_ = this->create_subscription<amps_cpp::msg::FrameWithPose>( "amps_cpp/pose_estimation/frame_with_pose", 10,
             std::bind(&PoseEstimation::frameCallback, this, _1));
         this->programStatePub_ = this->create_publisher<ProgramState>("amps/program_state", 10);
         this->programStateSub_ = this->create_subscription<ProgramState>(
@@ -74,6 +74,8 @@ public:
 
         // Initialize ArUco variables
         this->parameters = cv::aruco::DetectorParameters::create();
+        this->parameters->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
+        
         this->dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_250);
         this->markerSize = 0.076f; // 5 cm markers
         this->calFileName = "src/amps_python/amps_python/data/calibration-data/cam_calibration.xml";
