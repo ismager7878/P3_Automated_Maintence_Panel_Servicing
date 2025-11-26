@@ -35,7 +35,7 @@ class Handeye(Node):
         # Subscriber til pose data for snapper funktionen
         self.sub_pose = self.create_subscription(
             FrameWithPose,
-            'amps_cpp/pose_estimation/rgb_frame_with_pose',
+            'amps_cpp/pose_estimation/frame_with_pose',
             self.snapper,
             sensor_qos
         )
@@ -137,7 +137,7 @@ class Handeye(Node):
         pos = np.array([p.x, p.y, p.z], dtype=np.float64)
 
         try:
-            self.image  = self.bridge.imgmsg_to_cv2(msg.frame, desired_encoding='bgr8')
+            self.image  = self.bridge.imgmsg_to_cv2(msg.rgb_frame, desired_encoding='bgr8')
         except Exception as e:
             self.get_logger().warn(f"Failed to convert image: {e}")
             return

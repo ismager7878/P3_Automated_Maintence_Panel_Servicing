@@ -44,7 +44,7 @@ public:
     PoseEstimation() : Node("pose_estimation")
     {
         // Publishers and Subscribers
-        this->frameSub_ = this->create_subscription<amps_cpp::msg::FrameWithPose>( "amps_cpp/pose_estimation/rgb_frame_with_pose", 10,
+        this->frameSub_ = this->create_subscription<amps_cpp::msg::FrameWithPose>( "amps_cpp/pose_estimation/frame_with_pose", 10,
             std::bind(&PoseEstimation::frameCallback, this, _1));
         this->programStatePub_ = this->create_publisher<ProgramState>("amps/program_state", 10);
         this->programStateSub_ = this->create_subscription<ProgramState>(
@@ -74,6 +74,8 @@ public:
 
         // Initialize ArUco variables
         this->parameters = cv::aruco::DetectorParameters::create();
+        this->parameters->cornerRefinementMethod = cv::aruco::CORNER_REFINE_SUBPIX;
+
         this->dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_5X5_250);
         this->markerSize = 0.076f; // 5 cm markers
         this->calFileName = "src/amps_python/amps_python/data/calibration-data/cam_calibration.xml";
@@ -101,8 +103,8 @@ public:
         };
         
         this->goalPoseTreshold = {
-            cv::Vec3d(0.05, 0.05, 0.05),  // rvec threshold
-            cv::Vec3d(0.05, 0.05, 0.05)   // tvec threshold
+            cv::Vec3d(0.004, 0.004, 0.007),  // rvec threshold
+            cv::Vec3d(0.002, 0.002, 0.002)   // tvec threshold
         };
 
         this->setProgramState(ProgramState::FINDING_PANEL);
@@ -201,7 +203,7 @@ private:
 
                 if(result.result->error_code == -2){
                     RCLCPP_ERROR(this->get_logger(), result.result->error_string.c_str());
-                    this->setProgramState(ProgramState::ERROR_STATE);
+                    this->setProgramState(ProgramState::ERROR_STATE, result.result->error_string.c_str());
                 }
 
                 return;
@@ -230,9 +232,10 @@ private:
         tf2::fromMsg(transformPoseMsg.transform, transformOut);
     }
     
-    void setProgramState(int state){
+    void setProgramState(int state, string stateStr = ""){
         ProgramState programStateMsg;
         programStateMsg.state = state;
+        programStateMsg.state_str = stateStr;
         this->programStatePub_->publish(programStateMsg);   
     }
 
@@ -532,14 +535,26 @@ private:
         tvec[2] = corrTransVec.z();
 }
 
-    bool checkPosition(cv::Vec3d& rvec, cv::Vec3d& tvec){
+    bool checkPosition(cv::Vec3d& rvec, cv::Vec3d& tvec, int& id){
+        int idIndex = distance(this->goalPoseMakerIds.begin(), find(this->goalPoseMakerIds.begin(), this->goalPoseMakerIds.end(), id));
+
+        double xTransOffset = abs(this->goalPoses[idIndex][1][0] - tvec[0]);
+        double yTransOffset = abs(this->goalPoses[idIndex][1][1] - tvec[1]);
+        double zTransOffset = abs(this->goalPoses[idIndex][1][2] - tvec[2]);
+
+        double xRotOffset = abs(this->goalPoses[idIndex][0][0] - rvec[0]);
+        double yRotOffset = abs(this->goalPoses[idIndex][0][1] - rvec[1]);
+        double zRotOffset = abs(this->goalPoses[idIndex][0][2] - rvec[2]);
+
+        RCLCPP_INFO(this->get_logger(), "Position Offsets - X: %.4f Y: %.4f Z: %.4f", xTransOffset, yTransOffset, zTransOffset);
+        RCLCPP_INFO(this->get_logger(), "Rotation Offsets - Rx: %.4f Ry: %.4f Rz: %.4f", xRotOffset, yRotOffset, zRotOffset);
         return (
-            abs(rvec[0]) < this->goalPoseTreshold[0][0] &&
-            abs(rvec[1]) < this->goalPoseTreshold[0][1] &&
-            abs(rvec[2]) < this->goalPoseTreshold[0][2] &&
-            abs(tvec[0]) < this->goalPoseTreshold[1][0] &&
-            abs(tvec[1]) < this->goalPoseTreshold[1][1] &&
-            abs(tvec[2]) < this->goalPoseTreshold[1][2]   
+            xTransOffset < this->goalPoseTreshold[0][0] &&
+            yTransOffset < this->goalPoseTreshold[0][1] &&
+            zTransOffset < this->goalPoseTreshold[0][2] &&
+            xRotOffset < this->goalPoseTreshold[1][0] &&
+            yRotOffset < this->goalPoseTreshold[1][1] &&
+            zRotOffset < this->goalPoseTreshold[1][2]   
         );
     }
 
@@ -577,7 +592,7 @@ private:
             return false;
         }
 
-        for(int i = 0; i < 4; i++){
+        for(int i = 0; i < 4; i++){ < this->goa
             cv::Vec3d camToCornerTvec = i == 0 ? goalPose[1] : cv::Vec3d(
                 goalPose[1][0] * pow(-1, i&2),
                 goalPose[1][1] * pow(-1, int(i/2)),
@@ -601,6 +616,7 @@ private:
             RCLCPP_WARN(this->get_logger(), "Camera parameters not set yet, cannot process frame");
             return;
         }
+        
         if((this->programState != ProgramState::FINDING_PANEL && this->programState != ProgramState::APPROACHING_PANEL) || this->correctionActive){
             return;
         }
@@ -610,7 +626,7 @@ private:
         
         RCLCPP_INFO(this->get_logger(), "Processeing Frame for Aruco Detection");
 
-        sensor_msgs::msg::Image img_msg = msg->frame;
+        sensor_msgs::msg::Image img_msg = msg->rgb_frame;
         cv::Mat cv_img;
 
         try{
@@ -633,6 +649,13 @@ private:
             return;
         }
 
+        if(checkPosition(rvec, tvec, id)){
+            RCLCPP_INFO(this->get_logger(), "Goal Pose Reached within Thresholds");
+            this->setProgramState(ProgramState::SERVICING_PANEL);
+            this->correctionActive = false;
+            return;
+        }
+
         this->calculateCorrectionMove(msg, rvec, tvec, id);
 
         if(!this->checkReachability(rvec, tvec, id)){
@@ -648,13 +671,6 @@ private:
 
         //Early exit if panel approach hasn't been started yet
         if(this->programState != ProgramState::APPROACHING_PANEL){
-            this->correctionActive = false;
-            return;
-        }
-
-        if(checkPosition(rvec, tvec)){
-            RCLCPP_INFO(this->get_logger(), "Goal Pose Reached within Thresholds");
-            this->setProgramState(ProgramState::SERVICING_PANEL);
             this->correctionActive = false;
             return;
         }
