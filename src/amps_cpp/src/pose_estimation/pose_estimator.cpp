@@ -592,7 +592,7 @@ private:
             return false;
         }
 
-        for(int i = 0; i < 4; i++){ < this->goa
+        for(int i = 0; i < 4; i++){
             cv::Vec3d camToCornerTvec = i == 0 ? goalPose[1] : cv::Vec3d(
                 goalPose[1][0] * pow(-1, i&2),
                 goalPose[1][1] * pow(-1, int(i/2)),
