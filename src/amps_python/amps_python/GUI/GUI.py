@@ -1,9 +1,8 @@
 # source .venv/bin/activate
 from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QGridLayout, QVBoxLayout, QComboBox, QProgressBar
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QSplitter, QStackedWidget, QLineEdit, QDialog, QDialogButtonBox
-from PyQt6.QtGui import QFont, QImage, QPixmap
+from PyQt6.QtGui import QFont, QImage, QPixmap, QGuiApplication
 from PyQt6.QtCore import Qt, QTimer
-import PyQt6.QtWidgets as QtW
 import sys
 import rclpy
 from rclpy.node import Node
@@ -126,9 +125,20 @@ class MainWindow(QWidget):
     def __init__(self, node: GUI_node = None, title = "Den er lavet med python"):
         super().__init__()
         self.node = node
+        
+        
+        screen = QGuiApplication.primaryScreen()
+        if screen is not None:
+            geometry = screen.geometry()
+            #print("Screen Width:", geometry.width())
+            #print("Screen Height:", geometry.height())   
+            self.buttonWidth = int(geometry.width() / 10)
+        
+        
+
         self.initUI()
-        self.setMinimumSize(730,420)
         self.setWindowTitle(title)
+        self.showMaximized()
 
     def program(self):
         widget = QWidget()
@@ -136,20 +146,20 @@ class MainWindow(QWidget):
         # knap til at skifte ProgramState:
         self.buttonNextAction = QPushButton("Aproach panel")
         self.buttonNextAction.clicked.connect(self.NextProccesStep)
-        self.buttonNextAction.setFixedWidth(400)
+        self.buttonNextAction.setFixedWidth(self.buttonWidth)
 
         # Current status viser:
         self.status_label = QLabel("Status bar")
         self.status_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.status_label.setFixedSize(400, 50)
+        self.status_label.setFixedSize(self.buttonWidth, 50)
         self.status_label.setStyleSheet("background-color: gray; color : white")
 
         # Viser error message:
         self.error_label = QLabel("Program error messages")
         self.error_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
         self.error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.error_label.setFixedSize(400, 50)
+        self.error_label.setFixedSize(self.buttonWidth, 50)
         self.error_label.setStyleSheet("background-color: gray; color : white")
 
         #----------------------------------------------------------------
@@ -167,7 +177,7 @@ class MainWindow(QWidget):
         # Image display label
         self.image_label = QLabel("No image yet")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setFixedSize(640, 360)
+        self.image_label.setFixedSize(360,640)#(640, 360)
         self.image_label.setStyleSheet("""QLabel {border: 5px solid gray;border-radius: 10px;background-color: black;}""")
 
         layout.addWidget(self.image_label)
@@ -296,7 +306,9 @@ class MainWindow(QWidget):
         if img is not None:
             # img is expected as a BGR numpy array from cv_bridge
             try:
-                rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                rotatet = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+                rgb = cv2.cvtColor(rotatet, cv2.COLOR_BGR2RGB)
+
             except Exception:
                 rgb = img
             h, w, ch = rgb.shape
