@@ -12,6 +12,7 @@ from cv_bridge import CvBridge
 import numpy as np
 from datetime import datetime
 import json
+
 # MCAP related imports
 from mcap.reader import make_reader
 from mcap_ros2.decoder import DecoderFactory
@@ -19,6 +20,7 @@ from mcap_ros2.decoder import DecoderFactory
 from sensor_msgs.msg import Image
 from realsense2_camera_msgs.msg import RGBD
 from std_msgs.msg import Header
+
 save_dir = os.path.join(os.path.expanduser("~"), "Desktop", "test_images_dataset")
 
 class MCAPImageExtractor(Node):
@@ -273,7 +275,7 @@ class MCAPImageExtractor(Node):
         
         try:
             # Create output directory
-            output_dir = os.path.join(save_dir, self.folder_path.split(os.sep)[-1], self.current_bag_path.stem)
+            output_dir = os.path.join(save_dir, self.folder_path.split(os.sep)[-1], self.current_bag_path.stem, str(selection['timestamp']).replace(':', '-').replace('.', '-'))
             os.makedirs(output_dir, exist_ok=True, mode=0o777)
             self.get_logger().info(f"Created: {output_dir}")
             
