@@ -2,6 +2,7 @@ from ast import In
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
+from rclpy.publisher import Publisher
 from rclpy.executors import MultiThreadedExecutor
 import threading
 import queue
@@ -9,6 +10,7 @@ import time
 import asyncio
 
 from amps_cpp.action import MoveGripper
+from amps_cpp.msg import GripperStatus
 from amps_python.resources.nus_modbus import build_read_request, build_write_multiple, verify_and_strip_crc
 
 from bleak import BleakClient
@@ -28,8 +30,6 @@ class GripperNode(Node):
 
         # status dict, updated by BLE worker
         self.status = {
-            #"position": 0,    # 0..255
-            #"current": 0,
             "gOBJ": 0,          # Object detection 
                                 # 0 = In motion towards requested position
                                 # 1 = Stopped object detected opening
@@ -60,6 +60,9 @@ class GripperNode(Node):
 
         # action server
         self._action_srv = ActionServer(self, MoveGripper, 'gripper/move', self.execute_cb)
+
+        # Publisher for status
+        self._status_pub = self.create_publisher(GripperStatus, 'gripper/status', 10)
 
     # ---------------- BLE thread & asyncio ----------------
     def _ble_thread_main(self):
@@ -150,21 +153,35 @@ class GripperNode(Node):
 
                 position = b4
                 current = b5
-                gobj = (b0 >> 6) & 0x03
-                ggto = (b0 >> 3) & 0x01
-                gact = b0 & 0x01
-                gflt = b2 & 0x0F
-                moving = (ggto == 1 and gobj == 0)
+                gOBJ = (b0 >> 6) & 0x03
+                gGTO = (b0 >> 3) & 0x01
+                gACT = b0 & 0x01
+                gFLT = b2 & 0x0F
+                moving = (gGTO == 1 and gOBJ == 0)
                 self.status.update({
-                    "gOBJ": gobj,
-                    "gACT": gact,
-                    "gGTO": ggto,
-                    "gFLT": gflt,
+                    "gOBJ": gOBJ,
+                    "gACT": gACT,
+                    "gGTO": gGTO,
+                    "gFLT": gFLT,
                     "gCU": position,
                     "gPO": current,
                     "moving": moving,
                     "ts": time.time(),
                 })
+
+                # Publish status message
+                self.get_logger().info("Publishing gripper status")
+                msg = GripperStatus()
+                msg.gOBJ = gOBJ
+                msg.gACT = gACT
+                msg.gGTO = gGTO
+                msg.gFLT = gFLT
+                msg.gCU = position
+                msg.gPO = current
+                msg.moving = moving
+                now = self.get_clock().now()
+                msg.stamp = now.to_msg()
+                self._status_pub.publish(msg)
 
     # ---------------- Action server ----------------
     async def execute_cb(self, goal_handle):
