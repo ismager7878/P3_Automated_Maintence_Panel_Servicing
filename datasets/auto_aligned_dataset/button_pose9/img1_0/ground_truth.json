@@ -1,0 +1,36 @@
+{
+    "btn_config": "5",
+    "board_state": {
+        "CircuitBreaker": {
+            "0": "off",
+            "1": "off",
+            "2": "off",
+            "3": "off",
+            "4": "off",
+            "5": "off",
+            "6": "off",
+            "7": "off",
+            "8": "off",
+            "9": "off",
+            "10": "off",
+            "11": "off",
+            "12": "off",
+            "13": "off"
+        },
+        "SelectorSwitch": {
+            "0": "2",
+            "1": "2",
+            "2": "2",
+            "3": "2",
+            "4": "2"
+        },
+        "MainSwitch": {
+            "0": "off",
+            "1": "off"
+        },
+        "Plug": {
+            "0": "out",
+            "1": "out"
+        }
+    }
+}
