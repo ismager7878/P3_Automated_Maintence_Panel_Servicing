@@ -2,36 +2,38 @@ import csv, os, json
 import glob
 import natsort
 
-color_paths = []
-depth_paths = []
+paths = []
 
 dataset_dir = "datasets/auto_aligned_dataset/"
-files = glob.glob(dataset_dir + "*/*/*.png")
+paths = glob.glob(dataset_dir + "*/*/")
 
-for file in files:
-    if "color" in file:
-        color_paths.append(file)
-    elif "depth" in file:
-        depth_paths.append(file)
 
-color_paths = natsort.natsorted(color_paths)
-depth_paths = natsort.natsorted(depth_paths)
+paths = natsort.natsorted(paths)
 
-color_paths_test = [path for i, path in enumerate(color_paths) if i % 3 == 0]
-depth_paths_test = [path for i, path in enumerate(depth_paths) if i % 3 == 0]
+paths_test = [path for i, path in enumerate(paths) if i % 3 == 0]
 
 # Remove test paths from training paths
-color_paths_training = color_paths.copy()
-for path in color_paths_test:
-    color_paths_training.remove(path)
-depth_paths_training = depth_paths.copy()
-for path in depth_paths_test:
-    depth_paths_training.remove(path)
+paths_training = paths.copy()
+for path in paths_test:
+    paths_training.remove(path)
 
-print("Test Color Image Paths:")
-for path in color_paths_test:
+print("Test Image Paths:")
+for path in paths_test:
     print(path)
 
-print("Training Color Image Paths:")
-for path in color_paths_training:
+print("Training Image Paths:")
+for path in paths_training:
     print(path)
+
+# Create CSV files and write paths
+with open("datasets/auto_aligned_dataset/test_paths.csv", "w", newline='') as test_file:
+    csv_writer = csv.writer(test_file)
+    for path in paths_test:
+        dir_path = os.path.dirname(path)
+        csv_writer.writerow([dir_path])
+
+with open("datasets/auto_aligned_dataset/training_paths.csv", "w", newline='') as training_file:
+    csv_writer = csv.writer(training_file)
+    for path in paths_training:
+        dir_path = os.path.dirname(path)
+        csv_writer.writerow([dir_path])
