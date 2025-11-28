@@ -1,8 +1,6 @@
-from ast import In
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer
-from rclpy.publisher import Publisher
 from rclpy.executors import MultiThreadedExecutor
 import threading
 import queue
@@ -43,6 +41,12 @@ class GripperNode(Node):
             "gGTO": 0,          # Go to status bit (gGTO)
                                 # 0 = Stopped or performing activation
                                 # 1 = Moving to requested position
+
+            "gSTA": 0,          # Status (gSTA)
+                                # 0 = Resetting
+                                # 1 = Activation in progress
+                                # 2 = Not used
+                                # 3 = Activation complete
 
             "gFLT": 0,          # Fault code (gFLT)
             "gCU": 0,           # Current position 0..255 0 = fully open, 255 = fully closed
@@ -125,22 +129,26 @@ class GripperNode(Node):
     # ---------------- RX handler ----------------
     def _handle_rx(self, sender, data: bytearray):
         # Clear LF from data.
-        b = bytes(data).strip()
+        b = bytes(data)#.strip()
         ok, payload = verify_and_strip_crc(b)
-        if not ok:
-            self.get_logger().error("Received invalid CRC data, maybe too much was stripped by doing .strip()?")
-            return
+        self.get_logger().info(f"RX data: {b.hex()} verified={ok} payload={payload.hex()}")
+        # if not ok:
+        #     self.get_logger().error("Received invalid CRC data, maybe too much was stripped by doing .strip()?")
+        #     return
         # Return early if the payload is too short.
         if len(payload) < 2:
+            self.get_logger().warn(f"Payload too short: {len(payload)} bytes")
             return
         slave = payload[0]
         func = payload[1]
+        self.get_logger().info(f"Slave={slave:#x} Function={func}")
         # If the function is read response (3 or 4), parse the data.
         if func == 3 or func == 4:
             # Assure again that payload is long enough to contain byte count.
             if len(payload) >= 3:
                 byteCount = payload[2]
                 data_bytes = payload[3:3+byteCount]
+                self.get_logger().info(f"Byte count={byteCount}, data_bytes={data_bytes.hex()}")
                 try:
                     b0 = data_bytes[0]
                     b1 = data_bytes[1]
@@ -148,20 +156,24 @@ class GripperNode(Node):
                     b3 = data_bytes[3]
                     b4 = data_bytes[4]
                     b5 = data_bytes[5]
-                except IndexError:
-                    self.get_logger().warn("Received data too short to parse full gripper status")
+                except IndexError as e:
+                    self.get_logger().warn(f"Received data too short to parse full gripper status: {len(data_bytes)} bytes, need 6")
+                    return
 
                 position = b4
                 current = b5
                 gOBJ = (b0 >> 6) & 0x03
+                gSTA = (b0 >> 4) & 0x03
                 gGTO = (b0 >> 3) & 0x01
                 gACT = b0 & 0x01
                 gFLT = b2 & 0x0F
                 moving = (gGTO == 1 and gOBJ == 0)
+
                 self.status.update({
                     "gOBJ": gOBJ,
                     "gACT": gACT,
                     "gGTO": gGTO,
+                    "gSTA": gSTA,
                     "gFLT": gFLT,
                     "gCU": position,
                     "gPO": current,
@@ -170,18 +182,24 @@ class GripperNode(Node):
                 })
 
                 # Publish status message
-                self.get_logger().info("Publishing gripper status")
+                self.get_logger().info(f"Publishing gripper status: pos={position}, obj={gOBJ}, moving={moving}")
                 msg = GripperStatus()
-                msg.gOBJ = gOBJ
-                msg.gACT = gACT
-                msg.gGTO = gGTO
-                msg.gFLT = gFLT
-                msg.gCU = position
-                msg.gPO = current
+                msg.gobj = gOBJ
+                msg.gact = gACT
+                msg.ggto = gGTO
+                msg.gsta = gSTA
+                msg.gflt = gFLT
+                msg.gcu = position
+                msg.gpo = current
                 msg.moving = moving
                 now = self.get_clock().now()
                 msg.stamp = now.to_msg()
                 self._status_pub.publish(msg)
+                self.get_logger().info("Status published successfully")
+            else:
+                self.get_logger().warn(f"Payload too short for byte count: {len(payload)} bytes")
+        else:
+            self.get_logger().info(f"Non-read function code: {func}")
 
     # ---------------- Action server ----------------
     async def execute_cb(self, goal_handle):
@@ -217,9 +235,9 @@ class GripperNode(Node):
             feedback.moving = bool(cur["moving"])
             goal_handle.publish_feedback(feedback)
 
-            # If not moving anymore then we are done
-            if not cur["moving"]:
-                self.get_logger().info("Move finished by status")
+            # If action type is "move" and not moving anymore then we are done
+            if (goal.type == "move" and not cur["moving"]) or (goal.type in ["reset", "init"] and cur["gSTA"] == 3):
+                self.get_logger().info("Gripper action complete")
                 result = MoveGripper.Result()
                 result.success = True
                 result.message = "ok"
