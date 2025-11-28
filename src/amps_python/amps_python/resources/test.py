@@ -10,7 +10,7 @@ color_paths = []
 depth_paths = []
 
 print("Reading CSV file")
-with open("datasets/test_images_dataset/training_paths.csv", "r") as file:
+with open("datasets/auto_aligned_dataset/training_paths.csv", "r") as file:
     csvFile = csv.reader(file)
     for line in csvFile:
         print(f"Reading images in: {line[0]}", end="\r", flush=True)
@@ -52,7 +52,7 @@ print("Done loading ground truth data")
 
 if __name__ == "__main__":
     for img in depth_images:
-        improved, M = transform_depth(img, np.deg2rad(0.5), True)
+        improved, M = transform_depth(img, np.deg2rad(0.5), False)
         # improved = cv.erode(improved, np.ones((9,9), np.uint8), iterations=1)
         #improved = cv.dilate(improved, np.ones((4,4), np.uint8), iterations=1)
         improved_colored = cv.applyColorMap(improved, cv.COLORMAP_JET)
