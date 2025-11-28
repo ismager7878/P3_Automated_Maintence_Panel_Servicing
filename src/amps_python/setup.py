@@ -29,7 +29,8 @@ setup(
     entry_points={
         'console_scripts': [
             'realsense_node = amps_python.realsense_node:main',
-            'gripper_node = amps_python.gripper_node.gripper_node:main'
+            'gripper_node = amps_python.gripper_node.gripper_node:main',
+            'gripper_test_client = amps_python.gripper_node.gripper_test_client:main'
         ],
     },
 )
