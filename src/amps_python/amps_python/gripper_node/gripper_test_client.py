@@ -2,25 +2,42 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
-from amps_python.gripper_node import MoveGripper  # replace with your package
+from amps_cpp.action import MoveGripper
 
 class TestClient(Node):
     def __init__(self):
         super().__init__('gripper_test_client')
+        
+        # Declare parameters
+        self.declare_parameter('type', 'move')
+        self.declare_parameter('position', 255)
+        self.declare_parameter('speed', 255)
+        self.declare_parameter('force', 255)
+        
         self.cli = ActionClient(self, MoveGripper, 'gripper/move')
 
-    def send_goal(self, pos=255, speed=255, force=255):
+    def send_goal(self):
+        # Get parameters if arguments not provided
+        type = self.get_parameter('type').value
+        pos = self.get_parameter('position').value
+        speed = self.get_parameter('speed').value
+        force = self.get_parameter('force').value
+            
         self.cli.wait_for_server()
         goal_msg = MoveGripper.Goal()
+        goal_msg.type = type
         goal_msg.position = pos
         goal_msg.speed = speed
         goal_msg.force = force
+        
+        self.get_logger().info(f'Sending goal: type={type}, position={pos}, speed={speed}, force={force}')
+        
         self._goal_handle = self.cli.send_goal_async(goal_msg, feedback_callback=self.feedback_cb)
         self._goal_handle.add_done_callback(self.goal_response_cb)
 
     def feedback_cb(self, feedback):
         fb = feedback.feedback
-        print(f"FB pos={fb.current_position} force={fb.current_force} moving={fb.moving}")
+        print(f"Feedback pos={fb.current_position} force={fb.current_force} moving={fb.moving}")
 
     def goal_response_cb(self, future):
         goal_handle = future.result()
@@ -40,7 +57,7 @@ class TestClient(Node):
 def main():
     rclpy.init()
     node = TestClient()
-    node.send_goal(255, 255, 255)  # full close at max speed/force
+    node.send_goal()  # Use parameters from command line
     rclpy.spin(node)
 
 if __name__ == "__main__":
