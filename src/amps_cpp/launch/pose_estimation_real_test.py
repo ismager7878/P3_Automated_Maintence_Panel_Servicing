@@ -73,7 +73,10 @@ def generate_launch_description():
         package='amps_cpp',
         executable='pose_estimation',
         name='pose_estimation',
-        output='screen'
+        output='screen',
+        parameters=[
+            {'accurracy_test': LaunchConfiguration('accurracy_test')}
+        ]
     )
 
     frame_broadcaster = Node(
@@ -89,7 +92,7 @@ def generate_launch_description():
     )
 
     delayed_nodes_start = TimerAction(
-        period=16.0,  # Start nodes after controller state change
+        period=6.0,  # Start nodes after controller state change
         actions=[
             fp_matcher,
             ur_wrapper,
@@ -116,6 +119,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('robot_ip', default_value='192.168.57.101'),
         DeclareLaunchArgument('ur_type', default_value='ur3e'),
+        DeclareLaunchArgument('accurracy_test', default_value='false'),
         ur_driver,
         staticCamFrameBroadcaster,
         realsense_camera,

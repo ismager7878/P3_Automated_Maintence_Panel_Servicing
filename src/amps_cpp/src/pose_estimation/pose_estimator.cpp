@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <optional>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco/charuco.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
@@ -28,6 +29,8 @@
 #include <tf2_ros/transform_listener.hpp>
 #include <tf2_ros/buffer.hpp>
 
+#include "../utils/csvManager.hpp"
+
 using std::placeholders::_1;
 using namespace std;
 
@@ -43,6 +46,9 @@ class PoseEstimation : public rclcpp::Node
 public:
     PoseEstimation() : Node("pose_estimation")
     {
+        this->declare_parameter("accurracy_test", false);
+        this->declare_parameter("onRobot", false);
+
         // Publishers and Subscribers
         this->frameSub_ = this->create_subscription<amps_cpp::msg::FrameWithPose>( "amps_cpp/pose_estimation/frame_with_pose", 10,
             std::bind(&PoseEstimation::frameCallback, this, _1));
@@ -301,7 +307,7 @@ private:
 
         (void)imgOut; // Unused variable
 
-        if(rvecs.size() != 3 && !getGoalPose){
+        if(/*rvecs.size() != 3 &&*/ !getGoalPose){
 
             rvecOut = rvecs[0];
             tvecOut= tvecs[0];
@@ -609,6 +615,23 @@ private:
         return true;
     }
 
+    void logCorrection(){
+
+        if(!this->accuracyLogFile){
+            this->accuracyLogFile = CsvManager::CsvFile("auto_aligement/alignment__accuracy_single_maker_log.csv", 
+                {"corr_lenght"});     
+        }
+        tf2::Transform correctionT;
+        this->getTransformBroadcast(correctionT ,"camera", "correction");
+
+        tf2::Vector3 corrTransVec = correctionT.getOrigin();
+
+        double corrLenght = corrTransVec.length();
+
+        this->accuracyLogFile->addRow({to_string(corrLenght)});
+
+    }
+
     void frameCallback(const amps_cpp::msg::FrameWithPose::SharedPtr msg){
 
         // Early exit conditions - camera parameters not set or not in correct program state
@@ -649,7 +672,11 @@ private:
             return;
         }
 
-        if(checkPosition(rvec, tvec, id)){
+        bool isAccuacyTest = this->get_parameter("accurracy_test").as_bool();
+
+        RCLCPP_INFO(this->get_logger(), "Is running test: %s", isAccuacyTest ? "True" : "False");
+
+        if(checkPosition(rvec, tvec, id) && isAccuacyTest == false){
             RCLCPP_INFO(this->get_logger(), "Goal Pose Reached within Thresholds");
             this->setProgramState(ProgramState::SERVICING_PANEL);
             this->correctionActive = false;
@@ -667,12 +694,14 @@ private:
 
         this->isBoardReachablePub_->publish(std_msgs::msg::Bool().set__data(true));
 
-        //this->setProgramState(ProgramState::APPROACHING_PANEL);
-
         //Early exit if panel approach hasn't been started yet
         if(this->programState != ProgramState::APPROACHING_PANEL){
             this->correctionActive = false;
             return;
+        }
+
+        if(isAccuacyTest){
+            this->logCorrection();
         }
         
         control_msgs::action::ExecuteMotionPrimitiveSequence_Goal goal_msg;
@@ -696,6 +725,7 @@ private:
     vector<vector<cv::Vec3d>> goalPoses;
     bool correctionActive;
     const double workspaceSphereRadius = .5; // meters
+    optional<CsvManager::CsvFile> accuracyLogFile;
 
 
     rclcpp::Subscription<amps_cpp::msg::FrameWithPose>::SharedPtr frameSub_;

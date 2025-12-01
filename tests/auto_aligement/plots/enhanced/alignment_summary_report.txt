@@ -1,0 +1,41 @@
+======================================================================
+AUTO-ALIGNMENT TEST RESULTS SUMMARY
+======================================================================
+
+Number of three-marker tests: 6
+Number of single-marker tests: 6
+Skip initial iterations: 4 (different start positions)
+Convergence threshold: 5.0 mm
+
+THREE-MARKER STATISTICS (converged data only):
+----------------------------------------------------------------------
+  Mean:      2.081 mm
+  Median:    1.710 mm
+  Std:       1.523 mm
+  Min:       0.042 mm
+  Max:      15.818 mm
+  95th:      5.105 mm
+  Count:  612 measurements
+
+SINGLE-MARKER STATISTICS (converged data only):
+----------------------------------------------------------------------
+  Mean:      5.331 mm
+  Median:    2.309 mm
+  Std:       8.295 mm
+  Min:       0.116 mm
+  Max:      42.595 mm
+  95th:     25.562 mm
+  Count:  627 measurements
+
+======================================================================
+IMPROVEMENT FACTOR (Three-Marker vs Single-Marker):
+======================================================================
+  Mean error reduced by: 2.56x
+  Percentage improvement: 61.0%
+
+======================================================================
+CONVERGENCE ANALYSIS:
+======================================================================
+Measurements below 5.0mm threshold:
+  Three-Marker:  578/612 (94.4%)
+  Single-Marker: 534/627 (85.2%)
