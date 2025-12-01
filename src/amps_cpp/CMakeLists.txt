@@ -75,6 +75,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ProgramState.msg"
   "msg/GripperStatus.msg"
   "action/MoveGripper.action"
+  "msg/ClassifiedButton.msg"
+  "msg/ClassifiedButtonsArray.msg"
   DEPENDENCIES geometry_msgs sensor_msgs builtin_interfaces
 )
 
