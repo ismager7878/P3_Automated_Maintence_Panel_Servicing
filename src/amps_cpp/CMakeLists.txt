@@ -70,6 +70,10 @@ rclcpp_components_register_node(ur_wrapper PLUGIN "ur_script_wrapper::UrScriptWr
 add_executable(segmentation src/segmentation/segmentation.cpp)
 ament_target_dependencies(segmentation rclcpp sensor_msgs cv_bridge OpenCV std_msgs)
 
+##State Broadcaster
+add_executable(state_broadcaster src/state_broadcaster.cpp)
+ament_target_dependencies(state_broadcaster rclcpp std_msgs)
+
 ##Frame and Pose Matcher
 add_executable(fp_matcher src/pose_estimation/fp_matcher.cpp)
 ament_target_dependencies(fp_matcher rclcpp geometry_msgs sensor_msgs realsense2_camera_msgs) 
@@ -116,7 +120,7 @@ target_link_libraries(ur_wrapper "${cpp_typesupport_target}")
 target_link_libraries(dataset_broadcaster "${cpp_typesupport_target}")
 target_link_libraries(button_state_detector "${cpp_typesupport_target}")
 target_link_libraries(segmentation "${cpp_typesupport_target}")
-
+target_link_libraries(state_broadcaster "${cpp_typesupport_target}")
 
 ## Directories to include
 #include_directories(resources)
@@ -124,6 +128,7 @@ target_link_libraries(segmentation "${cpp_typesupport_target}")
 ## Install executables
 install(TARGETS 
   button_state_detector
+  state_broadcaster
   fp_matcher
   pose_estimation
   frame_broadcaster
