@@ -37,9 +37,8 @@ public:
         publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("segmentation__topic", 10);
         color_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_color",10,std::bind(&Segmention::color_callback,this,std::placeholders::_1));
         depth_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_depth",10,std::bind(&Segmention::depth_callback,this,std::placeholders::_1));
-        
 
-        programStatePub_ = this->create_publisher<ProgramState>("amps/program_state", 10);
+        programStatePub_ = this->create_publisher<ProgramState>("amps/set_program_state", 10);
         programStateSub_ = this->create_subscription<ProgramState>(
             "amps/program_state", 10,std::bind(&Segmention::programStateCallback, this, std::placeholders::_1)
         );
@@ -48,10 +47,6 @@ public:
             std::bind(&Segmention::timer_callback, this));  
     }
     
-    
-    
-
-
     private:
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr publisher_;
     
@@ -90,19 +85,23 @@ public:
     }
 
     void depth_callback(sensor_msgs::msg::Image::SharedPtr msg){
-        cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg,"16UC1");  
+        cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg,"8UC1");  
         depth = cv_ptr->image.clone();
     }
     void timer_callback()
     {
 
         if(program_state_ != ProgramState::SEGMENTATION_MODE){
+            RCLCPP_WARN(this->get_logger(), "Waiting for preprocessing node to set state to SEGMENTATION_MODE");
+            RCLCPP_WARN(this->get_logger(), "Current state: %d",program_state_);
             return;
 
         }
         if(image.size() != depth.size()|| image.empty() || depth.empty()){
+            RCLCPP_WARN(this->get_logger(), "Waiting for images to be received and aligned");
             return;
         }
+        RCLCPP_INFO(this->get_logger(), "Segmentation started");
         segmentation(image, depth);
         setProgramState(ProgramState::OBJECT_DETECTION_MODE);
     }
@@ -162,7 +161,12 @@ void segmentation(cv::Mat &image, cv::Mat &depth)
     cv::Scalar board_color_upper = cv::Scalar(180, 255, 125);
 
     // svært 17 , 1 , boss: 12// husk tjekke manult alle billeder hontering for se man få alt // 32,21,27,22 depth billede taget   
+
+    cv::imshow("Original Color Image",image);
+    cv::imshow("Original Depth Image",depth);
+
     cv::Mat depthMasked = dynamicDepthCheck(depth);
+    RCLCPP_INFO(this->get_logger(), "Displaying depth mask");
     cv::imshow("depth image",depthMasked);
     Erode(depthMasked);
     Dilate(depthMasked);
@@ -228,11 +232,11 @@ cv::Mat dynamicDepthCheck(cv::Mat &depth_img){
     std::sort(depthvalues.begin(), depthvalues.end());
     int median = depthvalues[depthvalues.size() / 2];
 
-    //int meanDepth = std::round(cv::mean(adjustedDepth)[0]);
+    int meanDepth = std::round(cv::mean(adjustedDepth)[0]);
 
     // sort the vector to find median
-    int minDepth = meanDepth - 23;
-    int maxDepth = meanDepth - 3;         
+    int minDepth = median - 23;
+    int maxDepth = median - 3;         
     cv::imshow("Adjusted Depth", adjustedDepth);
     cv::waitKey(1000);
     cv::Mat mask; 
@@ -384,7 +388,7 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
         std::cout << "Somthing is wronger her too many or too few !!!!!!!!!!!!!!!!: " << number_of_blobs << std::endl;
         wrong += 1;
     }
-    //std::cout << "Number of blobs: " << number_of_blobs << std::endl;
+    std::cout << "Number of blobs: " << number_of_blobs << std::endl;
     cv::imshow("canvasOutput", img);
     cv::waitKey(); 
     publishBoundingBoxes(boundbox);
@@ -393,7 +397,7 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
 
 // cut out aruco markers from image   
 void cutArduco(cv::Mat &img, std::vector<std::vector<cv::Point2f>> &markerCorners){
-    int x_1,x_2,y_1,y_2;
+    int x_1 = 0, x_2 = 0, y_1 = 0, y_2 = 0;
     for(size_t i = 0; i < markerCorners.size(); ++i)
     {   
         //sort for left top and right bottom corners
@@ -417,8 +421,11 @@ void cutArduco(cv::Mat &img, std::vector<std::vector<cv::Point2f>> &markerCorner
                 y_2 = markerCorners[i][g].y;
             }
         } 
+
     cv::Rect roi(x_1,y_1,abs(x_2-x_1), abs(y_2-y_1));
+
     img(roi) = cv::Scalar(255,255,255);
+
     }
 }
 

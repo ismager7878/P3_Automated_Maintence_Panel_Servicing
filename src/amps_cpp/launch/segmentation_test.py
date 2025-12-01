@@ -1,5 +1,7 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
+from launch.actions import TimerAction, ExecuteProcess
+
 
 def generate_launch_description():
     segmentation_sub_node = Node(
@@ -11,7 +13,7 @@ def generate_launch_description():
 
     segmentation_pub_node = Node(
         package='amps_cpp',
-        executable='publish_segmentation',
+        executable='publisher_segmentation',
         name='segmentation_publisher',
         output='screen'
     )
@@ -23,9 +25,29 @@ def generate_launch_description():
         output='screen'
     )
 
+    state_broadcaster_node = Node(
+        package='amps_cpp',
+        executable='state_broadcaster',
+        name='state_broadcaster_node',
+        output='screen'
+    )
+
+    set_state = ExecuteProcess(
+                cmd=['ros2', 'topic', 'pub', '--once', '/amps/set_program_state', 'amps_cpp/msg/ProgramState', '{state: 7, state_str: "inital_state"}'],
+                output='screen'
+            )
+
+    delayed_start = TimerAction(
+        period=3.0,  # Wait 5 seconds before starting segmentation nodes
+        actions=[
+            set_state
+        ]
+    )
   
     return LaunchDescription([
+        segmentation_node,
         segmentation_sub_node,
         segmentation_pub_node,
-        segmentation_node,
+        state_broadcaster_node,
+        delayed_start
     ])

@@ -26,8 +26,8 @@ public:
     {
         depth_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("segmentation_test_depth",10);
         color_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("segmentation_test_color",10);
-      
-        programStatePub_ = this->create_publisher<ProgramState>("amps/program_state", 10);
+
+        programStatePub_ = this->create_publisher<ProgramState>("amps/set_program_state", 10);
         programStateSub_ = this->create_subscription<ProgramState>(
             "amps/program_state", 10,std::bind(&PublisherSegmentation::programStateCallback, this, std::placeholders::_1)
         );
@@ -60,13 +60,12 @@ private:
     std::string depthline = "/depth.png";
     std::string line;
 
-
     int program_state_; 
 
     void programStateCallback(const ProgramState::SharedPtr msg)
     {
         program_state_ = msg->state;
-        RCLCPP_INFO(this->get_logger(), "state %d",program_state_);
+        RCLCPP_INFO(this->get_logger(), "State recived: %d",program_state_);
 
     }
 
@@ -75,7 +74,7 @@ private:
         programStateMsg.state = state;
         programStateMsg.state_str = stateStr;
         this->programStatePub_->publish(programStateMsg);
-        RCLCPP_INFO(this->get_logger(), "set state  %d",state);
+        RCLCPP_INFO(this->get_logger(), "Setting state:  %d",state);
 
     }
 
@@ -83,9 +82,12 @@ private:
     void timer_callback()
     {
         if(program_state_ != ProgramState::PREPROCESSING_MODE){
+            //RCLCPP_INFO(this->get_logger(), "Waiting for preprocessing node to set state to PREPROCESSING_MODE");
+            //RCLCPP_INFO(this->get_logger(), "Current state: %d",program_state_);
             return;
-         
         }
+
+        RCLCPP_INFO(this->get_logger(), "Reading next image for segmentation");
         getline(fin, line);
 
         // remove hidden characters
@@ -102,15 +104,13 @@ private:
         cv::Mat depth = cv::imread(line+depthline, cv::IMREAD_UNCHANGED);
         
         // converte opencv image to ros images 
-        sensor_msgs::msg::Image::SharedPtr color_msg = cv_bridge::CvImage(header, "bgr8", image).toImageMsg();
-        sensor_msgs::msg::Image::SharedPtr depth_msg = cv_bridge::CvImage(header, "16UC1", depth).toImageMsg(); 
-        
+        sensor_msgs::msg::Image::SharedPtr color_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", image).toImageMsg();
+        sensor_msgs::msg::Image::SharedPtr depth_msg = cv_bridge::CvImage(std_msgs::msg::Header(), "8UC1", depth).toImageMsg(); 
         
         this->color_publisher_->publish(*color_msg);
         this->depth_publisher_->publish(*depth_msg);
         setProgramState(ProgramState::SEGMENTATION_MODE);
         RCLCPP_INFO(this->get_logger(), "Stat too segmentation");
-
     
         std::cout << program_state_ << std::endl;
 

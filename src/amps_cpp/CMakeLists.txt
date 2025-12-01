@@ -67,6 +67,10 @@ add_executable(publisher_segmentation src/segmentation/publisher_segmentation.cp
 ament_target_dependencies(publisher_segmentation rclcpp sensor_msgs cv_bridge OpenCV)
 
 
+##State Broadcaster
+add_executable(state_broadcaster src/state_broadcaster.cpp)
+ament_target_dependencies(state_broadcaster rclcpp std_msgs)
+
 ##Frame and Pose Matcher
 add_executable(fp_matcher src/pose_estimation/fp_matcher.cpp)
 ament_target_dependencies(fp_matcher rclcpp geometry_msgs sensor_msgs realsense2_camera_msgs) 
@@ -98,13 +102,14 @@ target_link_libraries(ur_wrapper "${cpp_typesupport_target}")
 target_link_libraries(segmentation "${cpp_typesupport_target}")
 target_link_libraries(subscribe_segmentation "${cpp_typesupport_target}")
 target_link_libraries(publisher_segmentation "${cpp_typesupport_target}")
-
+target_link_libraries(state_broadcaster "${cpp_typesupport_target}")
 
 ## Directories to include
 #include_directories(resources)
 
 ## Install executables
 install(TARGETS 
+  state_broadcaster
   fp_matcher
   pose_estimation
   frame_broadcaster

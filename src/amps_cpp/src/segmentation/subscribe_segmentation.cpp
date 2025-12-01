@@ -32,12 +32,12 @@ public:
 
         color_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_color",10,std::bind(&SegmentationSubscriber::color_callback,this,std::placeholders::_1));
 
-        programStatePub_ = this->create_publisher<ProgramState>("amps/program_state", 10);
+        programStatePub_ = this->create_publisher<ProgramState>("amps/set_program_state", 10);
         programStateSub_ = this->create_subscription<ProgramState>(
             "amps/program_state", 10,std::bind(&SegmentationSubscriber::programStateCallback, this, std::placeholders::_1)
         );
-
-        setProgramState(ProgramState::PREPROCESSING_MODE);
+        
+        //setProgramState(ProgramState::PREPROCESSING_MODE);
     }
 private:
     rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr subscription_;
@@ -116,7 +116,7 @@ private:
         programStateMsg.state = state;
         programStateMsg.state_str = stateStr;
         this->programStatePub_->publish(programStateMsg);
-        RCLCPP_INFO(this->get_logger(), "set state  %d",state);
+        RCLCPP_INFO(this->get_logger(), "Setting State  %d",state);
 
     }
 
