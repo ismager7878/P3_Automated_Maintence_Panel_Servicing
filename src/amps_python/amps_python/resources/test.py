@@ -1,5 +1,4 @@
-from transform_color import transformed_color
-from transform_depth import transform_depth
+from preprocessing_node.preprocessing_node import PreprocessingNode
 import csv, os, json
 import numpy as np
 import cv2 as cv
@@ -10,7 +9,7 @@ color_paths = []
 depth_paths = []
 
 print("Reading CSV file")
-with open("datasets/test_images_dataset/training_paths.csv", "r") as file:
+with open("datasets/auto_aligned_dataset/training_paths.csv", "r") as file:
     csvFile = csv.reader(file)
     for line in csvFile:
         print(f"Reading images in: {line[0]}", end="\r", flush=True)
@@ -25,15 +24,15 @@ depth_images = []
 print("Loading color images")
 for i, path in enumerate(color_paths):
     print(f"{i+1} of {len(color_paths)}", end="\r")
-    img = cv.imread(path)
-    color_images.append(img)
+    depthImg = cv.imread(path)
+    color_images.append(depthImg)
 print()
 
 print("Loading depth images")
 for i, path in enumerate(depth_paths):
     print(f"{i+1} of {len(depth_paths)}", end="\r")
-    img = cv.imread(path, cv.IMREAD_UNCHANGED)
-    depth_images.append(img)
+    depthImg = cv.imread(path, cv.IMREAD_UNCHANGED)
+    depth_images.append(depthImg)
 print()
 
 #Load ground truths
@@ -51,11 +50,12 @@ with open("datasets/test_images_dataset/btn_config_5/ground_truth.json", "r") as
 print("Done loading ground truth data")
 
 if __name__ == "__main__":
-    for img in depth_images:
-        improved, M = transform_depth(img, np.deg2rad(0.5), True)
-        # improved = cv.erode(improved, np.ones((9,9), np.uint8), iterations=1)
-        #improved = cv.dilate(improved, np.ones((4,4), np.uint8), iterations=1)
-        improved_colored = cv.applyColorMap(improved, cv.COLORMAP_JET)
-        cv.imshow("Improved Depth Image", improved)
+    preprocessing_node = PreprocessingNode()
+    for depthImg, colorImg in zip(depth_images, color_images):
+        croppedDepth, M = preprocessing_node.transform_depth(depthImg, False)
+        croppedColor = cv.warpPerspective(colorImg, M, (croppedDepth.shape[1], croppedDepth.shape[0]))
+        depthColored = cv.applyColorMap(croppedDepth, cv.COLORMAP_JET)
+        cv.imshow("Transformed Color Image", croppedColor)
+        cv.imshow("Colored Depth Image", depthColored)
         cv.waitKey(0)
         cv.destroyAllWindows()

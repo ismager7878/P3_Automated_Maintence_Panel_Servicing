@@ -33,8 +33,12 @@ setup(
     entry_points={
         'console_scripts': [
             'realsense_node = amps_python.realsense_node:main',
+            'gripper_node = amps_python.gripper_node.gripper_node:main',
+            'gripper_test_client = amps_python.gripper_node.gripper_test_client:main'
+            'realsense_node = amps_python.realsense_node:main',
             'Handeye = amps_python.position.Handeye:main',
             "GUI = amps_python.GUI.GUI:main",
+            'preprocessing_node = amps_python.preprocessing_node.preprocessing_node:main',
         ],
     },
 )

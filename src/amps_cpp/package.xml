@@ -23,6 +23,7 @@
   <depend>tf2_geometry_msgs</depend>
   <depend>control_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>builtin_interfaces</depend>
   <depend>tinyxml2_vendor</depend>
 
   <export>
