@@ -225,7 +225,8 @@ cv::Mat dynamicDepthCheck(cv::Mat &depth_img){
     // sort the vector to find median
     int minDepth = meanDepth - 23;
     int maxDepth = meanDepth - 3;         
-
+    cv::imshow("Adjusted Depth", adjustedDepth);
+    cv::waitKey(1000);
     cv::Mat mask; 
     cv::inRange(depth_img,minDepth,maxDepth,mask);  
     return mask;
@@ -264,13 +265,11 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
             //std::cout << "Image contours found: " << contours.size() << std::endl;
         }
         
-        
         for(size_t i = 0; i <contours.size(); i++ ){
 
             bool not_close = true;
             double area = cv::contourArea(contours[i]);            
             
-
             // sort bound box by size
             if(MaxArea > area && area > minArea){
                 

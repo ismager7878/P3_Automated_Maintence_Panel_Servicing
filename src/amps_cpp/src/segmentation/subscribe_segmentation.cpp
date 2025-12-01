@@ -5,7 +5,7 @@
 
 #include <iostream>
 #include <stack>
-#include <opencv2/dnn_objdetect/dnn_objdetect.hpp>  
+//#include <opencv2/dnn_objdetect/dnn_objdetect.hpp>  
 #include <opencv2/aruco/charuco.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
 #include <string>
@@ -98,7 +98,7 @@ private:
 
     }
 
-    // change base number of data 
+/*     // change base number of data 
     void test_function(float x1, float y1, float x2, float y2){
         int test_index = 10;
         stat
@@ -115,7 +115,7 @@ private:
         
     }
     }  
-
+ */
     void topic_callback(std_msgs::msg::Float32MultiArray::SharedPtr msg) 
     {
         boundingboxes = msg;

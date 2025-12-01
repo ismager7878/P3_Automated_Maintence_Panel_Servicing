@@ -34,7 +34,7 @@ public:
             "amps/program_state", 10,std::bind(&PublisherSegmentation::programStateCallback, this, std::placeholders::_1)
         );
         
-        fin.open("datasets/test_images_dataset/training_paths.csv", std::ios::in);
+        fin.open("Images_Transformed_And_Cropped_By_Preprocessing/datasets/auto_aligned_dataset/training_paths.csv", std::ios::in);
     
         timer_= this->create_wall_timer(
             std::chrono::milliseconds(500),
@@ -87,7 +87,12 @@ private:
          
         }
         getline(fin, line);
-    
+
+        // remove hidden characters
+        line.erase(std::remove_if(line.begin(), line.end(), [](char c) {
+            return !isprint(static_cast<unsigned char>(c));
+        }), line.end());
+
         // Convert OpenCV Mat to ROS2 Image message
         std_msgs::msg::Header header;
         header.stamp = this->now();

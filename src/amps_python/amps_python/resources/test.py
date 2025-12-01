@@ -1,5 +1,6 @@
-from amps_python.amps_python.resources.transform_color import transformed_color
 from amps_python.amps_python.resources.transform_depth import transform_depth
+from amps_python.amps_python.resources.transform_color import transformed_color
+
 import csv, os, json
 import numpy as np
 import cv2 as cv
