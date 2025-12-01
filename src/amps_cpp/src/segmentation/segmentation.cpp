@@ -218,13 +218,21 @@ cv::Mat depth_check(int minDepth,int panel,cv::Mat &depth_img){
 
 cv::Mat dynamicDepthCheck(cv::Mat &depth_img){
     cv:: Mat adjustedDepth;
-    cv::Rect roi(250,350,100, 100);
+    cv::Rect roi(340,350,100, 100);
     adjustedDepth = depth_img(roi);
-    int meanDepth = std::round(cv::mean(adjustedDepth)[0]);
+    // Flatten til 1D array
+    std::vector<uchar> depthvalues;
+    depthvalues.assign(adjustedDepth.data, adjustedDepth.data + adjustedDepth.total());
+
+// Sortér og find median
+    std::sort(depthvalues.begin(), depthvalues.end());
+    int median = depthvalues[depthvalues.size() / 2];
+
+    //int meanDepth = std::round(cv::mean(adjustedDepth)[0]);
 
     // sort the vector to find median
-    int minDepth = meanDepth - 23;
-    int maxDepth = meanDepth - 3;         
+    int minDepth = median - 23;
+    int maxDepth = median - 3;         
 
     cv::Mat mask; 
     cv::inRange(depth_img,minDepth,maxDepth,mask);  
@@ -253,7 +261,7 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
 
     std::stack<std::vector<cv::Point>> boundbox;
     std::stack<std::vector<cv::Point>> boundbox2;
-    for(int j = 0; j < 1; j++){ // j = 2 for depth and color used get 2 plug for charged // j = 1 
+    for(int j = 0; j < 2; j++){ // j = 2 for depth and color used get 2 plug for charged // j = 1 
         
         if(j == 0){ // skal være 0 !!!!
             cv::findContours(depth_binary, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
@@ -379,7 +387,7 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
     }
     //std::cout << "Number of blobs: " << number_of_blobs << std::endl;
     cv::imshow("canvasOutput", img);
-    cv::waitKey(2000); 
+    cv::waitKey(); 
     publishBoundingBoxes(boundbox);
 }
 

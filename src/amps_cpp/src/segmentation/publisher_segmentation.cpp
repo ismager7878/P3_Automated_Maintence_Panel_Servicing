@@ -26,15 +26,13 @@ public:
     {
         depth_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("segmentation_test_depth",10);
         color_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("segmentation_test_color",10);
-
-
-
+      
         programStatePub_ = this->create_publisher<ProgramState>("amps/program_state", 10);
         programStateSub_ = this->create_subscription<ProgramState>(
             "amps/program_state", 10,std::bind(&PublisherSegmentation::programStateCallback, this, std::placeholders::_1)
         );
         
-        fin.open("datasets/test_images_dataset/training_paths.csv", std::ios::in);
+        fin.open("datasets/auto_aligned_dataset/training_paths.csv", std::ios::in);
     
         timer_= this->create_wall_timer(
             std::chrono::milliseconds(500),
@@ -50,6 +48,8 @@ public:
 private:
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr color_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr depth_publisher_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr color_subscribe_;
+
 
     rclcpp::Publisher<ProgramState>::SharedPtr start_;
 
@@ -87,7 +87,12 @@ private:
          
         }
         getline(fin, line);
-    
+
+        //remove hidden characters like \n from the line
+        line.erase(std::remove(line.begin(), line.end(), '\n'), line.end());
+        line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+
+        
         // Convert OpenCV Mat to ROS2 Image message
         std_msgs::msg::Header header;
         header.stamp = this->now();

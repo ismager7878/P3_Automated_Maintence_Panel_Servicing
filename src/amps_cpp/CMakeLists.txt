@@ -61,7 +61,7 @@ ament_target_dependencies(segmentation rclcpp sensor_msgs cv_bridge OpenCV)
 
 ## test nodes for segmentation !!
 add_executable(subscribe_segmentation src/segmentation/subscribe_segmentation.cpp)
-ament_target_dependencies(subscribe_segmentation rclcpp std_msgs OpenCV)
+ament_target_dependencies(subscribe_segmentation rclcpp std_msgs cv_bridge sensor_msgs OpenCV)
 
 add_executable(publisher_segmentation src/segmentation/publisher_segmentation.cpp)
 ament_target_dependencies(publisher_segmentation rclcpp sensor_msgs cv_bridge OpenCV)
