@@ -43,6 +43,13 @@ def generate_launch_description():
                         )
     realsense_camera = IncludeLaunchDescription(
         realsense_launch_dir,
+        launch_arguments={
+            'enable_rgbd': 'true',
+            'enable_sync': 'true',
+            'align_depth.enable': 'true', 
+            'enable_color': 'true',
+            'enable_depth': 'true'
+        }.items(),
     )
 
     foxglove_bridge = IncludeLaunchDescription(
@@ -75,6 +82,12 @@ def generate_launch_description():
         name='frame_broadcaster',
     )
 
+    guiNode = Node(
+        package='amps_python',
+        executable='GUI',
+        name='gui'
+    )
+
     delayed_nodes_start = TimerAction(
         period=16.0,  # Start nodes after controller state change
         actions=[
@@ -82,8 +95,10 @@ def generate_launch_description():
             ur_wrapper,
             pose_estimator,
             frame_broadcaster,
+            guiNode,
         ]
     )
+
     staticCamFrameBroadcaster = Node(
     package='tf2_ros',
     executable='static_transform_publisher',

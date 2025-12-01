@@ -12,4 +12,4 @@ int8 PREPROCESSING_MODE = 7
 int8 OBJECT_DETECTION_MODE = 8
 
 int8 state 0
-string state_str
+string state_str 

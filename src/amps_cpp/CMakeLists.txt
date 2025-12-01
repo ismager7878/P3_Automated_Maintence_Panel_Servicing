@@ -21,6 +21,7 @@ find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(tinyxml2_vendor REQUIRED)
 find_package(TinyXML2 REQUIRED)
+find_package(realsense2_camera_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 
@@ -68,7 +69,7 @@ ament_target_dependencies(publisher_segmentation rclcpp sensor_msgs cv_bridge Op
 
 ##Frame and Pose Matcher
 add_executable(fp_matcher src/pose_estimation/fp_matcher.cpp)
-ament_target_dependencies(fp_matcher rclcpp geometry_msgs sensor_msgs) 
+ament_target_dependencies(fp_matcher rclcpp geometry_msgs sensor_msgs realsense2_camera_msgs) 
 
 ##Pose Estimation - Aruco Detection
 add_executable(pose_estimation src/pose_estimation/pose_estimator.cpp)

@@ -10,5 +10,7 @@ Ros2 videos/
 *.pyc
 *.pyo
 *.pyd
+*/__pycache__/
 
-
+src/amps_python/amps_python/__pycache__
+src/amps_python/amps_python/__pycache__/__init__.cpython-312.pyc
