@@ -5,7 +5,7 @@
 #include <opencv2/dnn.hpp>
 #include <opencv2/aruco/charuco.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
-#include <opencv2/dnn_objdetect.hpp>
+//#include <opencv2/dnn_objdetect.hpp>
 
 #include <iostream>
 #include <map>
@@ -27,15 +27,14 @@ public:
     {
         subscription_ = this->create_subscription<std_msgs::msg::Float32MultiArray>("segmentation__topic",10,std::bind(&SegmentationSubscriber::topic_callback, this, std::placeholders::_1));
 
-          color_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_color",10,std::bind(&SegmentationSubscriber::color_callback,this,std::placeholders::_1));
-        
+        color_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_color",10,std::bind(&SegmentationSubscriber::color_callback,this,std::placeholders::_1));
 
-
-       
         programStatePub_ = this->create_publisher<ProgramState>("amps/program_state", 10);
         programStateSub_ = this->create_subscription<ProgramState>(
             "amps/program_state", 10,std::bind(&SegmentationSubscriber::programStateCallback, this, std::placeholders::_1)
         );
+
+        setProgramState(ProgramState::PREPROCESSING_MODE);
     }
 private:
     rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr subscription_;
@@ -64,6 +63,7 @@ private:
         if(program_state_ != ProgramState::OBJECT_DETECTION_MODE){ 
             return;
         } 
+
         count_image +=1;
 
         int number_of_boundingbox = boundingboxes->data.size()/4;
@@ -95,6 +95,7 @@ private:
             count_wrong +=1;
             RCLCPP_INFO(this->get_logger(), "wrong number of bounding box detected: %d and total images processed: %d",count_wrong, count_image);
         } */
+
         setProgramState(ProgramState::PREPROCESSING_MODE);
       
     }
@@ -133,18 +134,18 @@ private:
          }
     }   */
 
-    void caluculate_iou(std::vector<float> &boundingbox, std::vector<float> &groundtruth_box){
-        int test_index = 10;
+    // void caluculate_iou(std::vector<float> &boundingbox, std::vector<float> &groundtruth_box){
+    //     int test_index = 10;
         
-        // Checking IoU for first 40 images
-        for(int i = 1; i < test_index; ++i){
-            if(count_image < 4*i){
-                float iou = cv::dnn_objdetect::InferBbox::intersection_over_union(boundingbox, groundtruth_box);
-                collected_iou += iou;
-                return;  // Return når vi finder det rigtige interval
-            }
-        }
-    }
+    //     // Checking IoU for first 40 images
+    //     for(int i = 1; i < test_index; ++i){
+    //         if(count_image < 4*i){
+    //             float iou = cv::dnn_objdetect::InferBbox::intersection_over_union(boundingbox, groundtruth_box);
+    //             collected_iou += iou;
+    //             return;  // Return når vi finder det rigtige interval
+    //         }
+    //     }
+    // }
 
 
     void topic_callback(std_msgs::msg::Float32MultiArray::SharedPtr msg) 

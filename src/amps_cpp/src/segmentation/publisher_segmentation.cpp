@@ -39,7 +39,7 @@ public:
             std::bind(&PublisherSegmentation::timer_callback, this));
 
 
-        setProgramState(ProgramState::PREPROCESSING_MODE);
+        //setProgramState(ProgramState::PREPROCESSING_MODE);
 
     }
 
