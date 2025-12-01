@@ -1,8 +1,11 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include <opencv2/opencv.hpp>
-#include <opencv2/features2d.hpp>
-#include <opencv2/dnn.hpp>
+#include <opencv2/features2d.hpp>  // For blob detector
+
+#include <iostream>
+#include <stack>
+//#include <opencv2/dnn_objdetect/dnn_objdetect.hpp>  
 #include <opencv2/aruco/charuco.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
 //#include <opencv2/dnn_objdetect.hpp>
@@ -131,23 +134,9 @@ private:
             }
             return 0.0f;
         
-         }
-    }   */
-
-    // void caluculate_iou(std::vector<float> &boundingbox, std::vector<float> &groundtruth_box){
-    //     int test_index = 10;
-        
-    //     // Checking IoU for first 40 images
-    //     for(int i = 1; i < test_index; ++i){
-    //         if(count_image < 4*i){
-    //             float iou = cv::dnn_objdetect::InferBbox::intersection_over_union(boundingbox, groundtruth_box);
-    //             collected_iou += iou;
-    //             return;  // Return når vi finder det rigtige interval
-    //         }
-    //     }
-    // }
-
-
+    }
+    }  
+ */
     void topic_callback(std_msgs::msg::Float32MultiArray::SharedPtr msg) 
     {
         boundingboxes = msg;
