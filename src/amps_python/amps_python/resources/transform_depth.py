@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
-from transform_color import sanitize_lines, convert_lines_to_points, calculate_corner_points
+from amps_python.amps_python.resources.transform_color import sanitize_lines, convert_lines_to_points, calculate_corner_points
+
 
 calibration_matrix_depth = np.array([[384.3314208984375, 0.0, 321.20361328125],
                                      [0.0, 384.3314208984375, 235.78701782226562],

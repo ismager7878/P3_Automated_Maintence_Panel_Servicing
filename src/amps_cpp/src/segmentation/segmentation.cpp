@@ -163,6 +163,7 @@ void segmentation(cv::Mat &image, cv::Mat &depth)
 
     // svært 17 , 1 , boss: 12// husk tjekke manult alle billeder hontering for se man få alt // 32,21,27,22 depth billede taget   
     cv::Mat depthMasked = dynamicDepthCheck(depth);
+    cv::imshow("depth image",depthMasked);
     Erode(depthMasked);
     Dilate(depthMasked);
     Dilate(depthMasked);
@@ -341,8 +342,6 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
                                 not_close = false;
                             }
                         }
-                         
-
                         check += 1;
                         boundbox2.push(boundbox_holder);
                         boundbox.pop();

@@ -1,39 +1,45 @@
-from transform_color import transformed_color
-from transform_depth import transform_depth
+from amps_python.amps_python.resources.transform_color import transformed_color
+from amps_python.amps_python.resources.transform_depth import transform_depth
 import csv, os, json
 import numpy as np
 import cv2 as cv
 
 # Load image paths from file
 #! Is currently set to load training data
-color_paths = []
-depth_paths = []
+def load_image_paths():
+    color_paths = []
+    depth_paths = []
 
-print("Reading CSV file")
-with open("datasets/test_images_dataset/training_paths.csv", "r") as file:
-    csvFile = csv.reader(file)
-    for line in csvFile:
-        print(f"Reading images in: {line[0]}", end="\r", flush=True)
-        color_paths.append(os.path.join(line[0], "color.png"))
-        depth_paths.append(os.path.join(line[0], "depth.png"))
-print("\nDone reading CSV file")
+    print("Reading CSV file")
+    with open("datasets/test_images_dataset/training_paths.csv", "r") as file:
+        csvFile = csv.reader(file)
+        for line in csvFile:
+            print(f"Reading images in: {line[0]}", end="\r", flush=True)
+            color_paths.append(os.path.join(line[0], "color.png"))
+            depth_paths.append(os.path.join(line[0], "depth.png"))
+    print("\nDone reading CSV file")
 
-# Load images from paths
-color_images = []
-depth_images = []
+    # Load images from paths
+    color_images = []
+    depth_images = []
 
-print("Loading color images")
-for i, path in enumerate(color_paths):
-    print(f"{i+1} of {len(color_paths)}", end="\r")
-    img = cv.imread(path)
-    color_images.append(img)
-print()
+    print("Loading color images")
+    for i, path in enumerate(color_paths):
+        print(f"{i+1} of {len(color_paths)}", end="\r")
+        img = cv.imread(path)
+        color_images.append(img)
+    print()
 
-print("Loading depth images")
-for i, path in enumerate(depth_paths):
-    print(f"{i+1} of {len(depth_paths)}", end="\r")
-    img = cv.imread(path, cv.IMREAD_UNCHANGED)
-    depth_images.append(img)
+    print("Loading depth images")
+    for i, path in enumerate(depth_paths):
+        print(f"{i+1} of {len(depth_paths)}", end="\r")
+        img = cv.imread(path, cv.IMREAD_UNCHANGED)
+        depth_images.append(img)
+
+
+    return color_images, depth_images
+
+color_images, depth_images = load_image_paths()
 print()
 
 #Load ground truths
