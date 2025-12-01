@@ -1,4 +1,4 @@
-from transform_depth import transform_depth
+from preprocessing_node.preprocessing_node import PreprocessingNode
 import csv, os, json
 import numpy as np
 import cv2 as cv
@@ -50,8 +50,9 @@ with open("datasets/test_images_dataset/btn_config_5/ground_truth.json", "r") as
 print("Done loading ground truth data")
 
 if __name__ == "__main__":
+    preprocessing_node = PreprocessingNode()
     for depthImg, colorImg in zip(depth_images, color_images):
-        croppedDepth, M = transform_depth(depthImg, False)
+        croppedDepth, M = preprocessing_node.transform_depth(depthImg, False)
         croppedColor = cv.warpPerspective(colorImg, M, (croppedDepth.shape[1], croppedDepth.shape[0]))
         depthColored = cv.applyColorMap(croppedDepth, cv.COLORMAP_JET)
         cv.imshow("Transformed Color Image", croppedColor)
