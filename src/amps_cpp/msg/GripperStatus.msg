@@ -1,0 +1,9 @@
+uint8 gobj
+uint8 gact
+uint8 ggto
+uint8 gsta
+uint8 gflt
+uint8 gcu
+uint8 gpo
+bool moving
+builtin_interfaces/Time stamp

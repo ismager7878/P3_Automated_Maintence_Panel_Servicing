@@ -1,0 +1,14 @@
+# Goal
+string type      # action type can be "move" "reset" "init"
+uint8 position   # 0..255 (0=open, 255=closed)
+uint8 speed      # 0..255
+uint8 force      # 0..255
+---
+# Result
+bool success
+string message
+---
+# Feedback
+uint8 current_position
+uint8 current_force
+bool moving

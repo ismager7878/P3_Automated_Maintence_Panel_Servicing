@@ -83,7 +83,9 @@ ament_target_dependencies(frame_broadcaster rclcpp geometry_msgs tf2 tf2_geometr
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FrameWithPose.msg"
   "msg/ProgramState.msg"
-  DEPENDENCIES geometry_msgs sensor_msgs
+  "msg/GripperStatus.msg"
+  "action/MoveGripper.action"
+  DEPENDENCIES geometry_msgs sensor_msgs builtin_interfaces
 )
 
 rosidl_get_typesupport_target(cpp_typesupport_target
