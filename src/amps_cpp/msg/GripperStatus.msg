@@ -6,3 +6,5 @@ uint8 gCU
 uint8 gPO
 bool moving
 builtin_interfaces/msg/Time stamp
+
+uint8 status

@@ -14,6 +14,7 @@ import cv2
 from sensor_msgs.msg import Image
 from std_msgs.msg import Bool
 from amps_cpp.msg import ProgramState
+from amps_cpp.msg import GripperStatus
 
 
 class GUI_node(Node):
@@ -62,6 +63,15 @@ class GUI_node(Node):
             10
         )
 
+        # Subscribe til GripperStatus
+        self.sub_gripper_status = self.create_subscription(
+            GripperStatus,
+            "amps/gripper_status"
+            self.gripper_callback()
+            10
+        )
+        
+
         # Subscribe til gFLT -> fejlkode fra gripper
         self.gripper_error_log = 0
 
@@ -104,6 +114,9 @@ class GUI_node(Node):
         """Callback for is_board_reachable messages."""
         self.is_board_reachable = msg.data
         self.get_logger().info(f"Board reachable: {msg.data}")
+
+    def gripper_callback(self, msg: GripperStatus):
+        self.gripperStatus = msg.status
 
     #---------------------------------------------------------------------------------------    
 
