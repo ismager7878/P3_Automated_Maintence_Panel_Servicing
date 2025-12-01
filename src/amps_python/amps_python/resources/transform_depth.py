@@ -1,8 +1,7 @@
 import cv2 as cv
 import numpy as np
-from transform_color import sanitize_lines, convert_lines_to_points, calculate_corner_points
 
-def transform_depth(img, max_line_angle_deviation, show=False):
+def transform_depth(img, show=False):
     # Calculate median of ROI
     adjustedImg = np.array(img, dtype=np.uint16)
     vals = adjustedImg[280:780, 70:570]
@@ -35,7 +34,7 @@ def transform_depth(img, max_line_angle_deviation, show=False):
     # Find contours and keep the largest
     contours, _ = cv.findContours(binaryImg, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
     largest = max(contours, key=cv.contourArea)
-    largest = sorted(contours, key=cv.contourArea)
+    #largest = sorted(contours, key=cv.contourArea)
 
     # Bounding box
     rect = cv.minAreaRect(largest)     # rotated rectangle
