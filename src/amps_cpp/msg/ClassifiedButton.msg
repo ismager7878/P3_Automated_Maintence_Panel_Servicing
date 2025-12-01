@@ -5,5 +5,5 @@ int8 EMERGENCY_STOP = 3
 int8 PLUG = 4
 
 string type 
-int[] boundingBox # [x_leftTop, yLeftTop, x_RightBottom, y_RightBottom]
-int[] dotPosition # [x, y]
+int8[] bounding_box # [x_leftTop, yLeftTop, x_RightBottom, y_RightBottom]
+int8[] dot_position # [x, y]
