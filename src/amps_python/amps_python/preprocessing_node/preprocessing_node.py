@@ -5,6 +5,7 @@ import cv2 as cv
 import numpy as np
 from amps_cpp.msg import FrameWithPose, CroppedImgDebug, ClassifiedButton
 from sensor_msgs.msg import Image
+from std_msgs.msg import Float32MultiArray
 import json
 
 class PreprocessingNode(Node):
@@ -50,7 +51,9 @@ class PreprocessingNode(Node):
                 self.get_logger().error("Shutting down node.")
                 rclpy.shutdown()
                 return
-            self.publisher_ground_truth = self.create_publisher(CroppedImgDebug, 'amps_python/vision', 10)  
+            self.publisher_ground_truth = self.create_publisher(CroppedImgDebug, 'amps_python/vision', 10)
+            self.publisher_segmentation_bypass_color = self.create_publisher(Image, 'segmentation_test_color', 10)
+            self.publisher_segmentation_bypass_points = self.create_publisher(Float32MultiArray, 'segmentation_topic', 10)
         
         else:
             # Create publishers for transformed depth and color images
@@ -79,6 +82,7 @@ class PreprocessingNode(Node):
         transformed_color_msg = self.bridge.cv2_to_imgmsg(transformed_color_image, encoding="bgr8")
         
         # Publish the transformed image
+        # Debugging mode
         if self.get_parameter('debugging').value == True:
             pub_msg = CroppedImgDebug()
             pub_msg.rgb_frame = transformed_color_msg
@@ -111,16 +115,33 @@ class PreprocessingNode(Node):
                         # Transform the bounding box coordinates
                         transformed_bbox = self.transform_bbox(top_left, bottom_right, transform_matrix)
                         
-                        button = ClassifiedButton()
-                        button.bounding_box = [int(transformed_bbox[0][0]), int(transformed_bbox[0][1]), 
+                        button_instance = ClassifiedButton()
+                        button_instance.bounding_box = [int(transformed_bbox[0][0]), int(transformed_bbox[0][1]), 
                                              int(transformed_bbox[1][0]), int(transformed_bbox[1][1])]
-                        button.type = type_id
-                        ground_truth_buttons.append(button)
+                        button_instance.type = type_id
+                        ground_truth_buttons.append(button_instance)
             
             pub_msg.buttons = ground_truth_buttons
             self.publisher_ground_truth.publish(pub_msg)
             self.get_logger().info('Published CroppedImgDebug message with transformed images.')
-        else:
+            
+            # Also publish segmentation bypass topics
+            # Reshape bounding boxes into a single list
+            point_array_msg = Float32MultiArray()
+            bbox_list = []
+            for button_instance in ground_truth_buttons:
+                bbox_list.extend(button_instance.bounding_box)
+            reshaped_list = np.array(bbox_list).reshape(-1)
+            point_array_msg.data = reshaped_list.tolist()
+
+            # Transform depth and color messages again for bypass topics
+            transformed_color_msg = self.bridge.cv2_to_imgmsg(transformed_color_image, encoding="bgr8")
+            
+            # Publish bypass topics
+            self.publisher_segmentation_bypass_points.publish(point_array_msg)
+            self.publisher_segmentation_bypass_color.publish(transformed_color_msg)
+        
+        else: # Not in debugging mode
             self.publisher_depth.publish(transformed_depth_msg)
             self.publisher_color.publish(transformed_color_msg)
         
