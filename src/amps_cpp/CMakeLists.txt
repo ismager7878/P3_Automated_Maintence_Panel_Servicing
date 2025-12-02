@@ -96,6 +96,10 @@ ament_target_dependencies(dataset_broadcaster rclcpp OpenCV sensor_msgs cv_bridg
 add_executable(button_state_detector src/button_state_detector/button_state_detector_node.cpp)
 ament_target_dependencies(button_state_detector rclcpp sensor_msgs cv_bridge OpenCV)
 
+##Ground Truth Broadcaster
+add_executable(ground_truth_broadcaster src/tests/ground_truth_broadcaster.cpp)
+ament_target_dependencies(ground_truth_broadcaster rclcpp sensor_msgs cv_bridge OpenCV)
+
 ##Custom Interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FrameWithPose.msg"
@@ -121,6 +125,8 @@ target_link_libraries(dataset_broadcaster "${cpp_typesupport_target}")
 target_link_libraries(button_state_detector "${cpp_typesupport_target}")
 target_link_libraries(segmentation "${cpp_typesupport_target}")
 target_link_libraries(state_broadcaster "${cpp_typesupport_target}")
+target_link_libraries(frame_broadcaster "${cpp_typesupport_target}")
+target_link_libraries(ground_truth_broadcaster "${cpp_typesupport_target}")
 
 ## Directories to include
 #include_directories(resources)
@@ -134,6 +140,7 @@ install(TARGETS
   frame_broadcaster
   dataset_broadcaster
   segmentation
+  ground_truth_broadcaster
   DESTINATION lib/${PROJECT_NAME})
 
 ## Install libraries

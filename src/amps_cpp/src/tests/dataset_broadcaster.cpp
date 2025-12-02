@@ -20,9 +20,9 @@ public:
     DatasetBroadcaster() : Node("dataset_broadcaster_node")
     {
 
-        statePub_ = this->create_publisher<ProgramState>("amps_cpp/set_program_state", 10);
+        statePub_ = this->create_publisher<ProgramState>("amps/set_program_state", 10);
         stateSub_ = this->create_subscription<ProgramState>(
-            "amps_cpp/program_state", 10,
+            "amps/program_state", 10,
             std::bind(&DatasetBroadcaster::programStateCallback, this, std::placeholders::_1)
         );
 
@@ -39,7 +39,7 @@ public:
 private:
     void programStateCallback(const ProgramState::SharedPtr msg)
     {
-        RCLCPP_INFO(this->get_logger(), "Received program state: %d", msg->state);
+        RCLCPP_WARN(this->get_logger(), "Received program state: %d", msg->state);
         this->state = msg->state;
     }
 
@@ -95,9 +95,9 @@ private:
             currentFrameIndex = 0;
         }
 
-        if(state != ProgramState::PREPROCESSING_MODE){
+        if(this->state != ProgramState::PREPROCESSING_MODE){
             RCLCPP_WARN(this->get_logger(), "Current state is not PREPROCESSING, skipping frame publishing.");
-            RCLCPP_WARN(this->get_logger(), "Current state: %d",state);
+            RCLCPP_WARN(this->get_logger(), "Current state: %d",this->state);
             return;
         }
         

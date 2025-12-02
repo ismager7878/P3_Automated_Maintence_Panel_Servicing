@@ -29,10 +29,16 @@ def generate_launch_description():
         package='amps_cpp',
         executable='segmentation',
         name='segmentation_node',
+        output='screen'
+    )
+
+    ground_truth_broadcaster = Node(
+        package='amps_cpp',
+        executable='ground_truth_broadcaster',
+        name='ground_truth_broadcaster',
         output='screen',
-        parameters=[{
-            'test_data': LaunchConfiguration('test_data', default='true'),
-        }]
+        condition=IfCondition(LaunchConfiguration('test_data', default='true')),
+        arguments=['--ros-args', '--log-level', 'WARN']
     )
 
     dataset_broadcaster = Node(
@@ -67,6 +73,7 @@ def generate_launch_description():
     launchDesc.add_action(preprocessing)
     launchDesc.add_action(segmentation_node)
     launchDesc.add_action(state_broadcaster_node)
+    launchDesc.add_action(ground_truth_broadcaster)
     launchDesc.add_action(dataset_broadcaster)
     launchDesc.add_action(delayed_start)
 
