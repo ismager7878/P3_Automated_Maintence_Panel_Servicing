@@ -69,6 +69,10 @@ ament_target_dependencies(pose_estimation rclcpp geometry_msgs sensor_msgs cv_br
 add_executable(frame_broadcaster src/pose_estimation/frame_broadcaster.cpp)
 ament_target_dependencies(frame_broadcaster rclcpp geometry_msgs tf2 tf2_geometry_msgs)
 
+##Dataset Broadcaster
+add_executable(dataset_broadcaster src/dataset_broadcaster.cpp)
+ament_target_dependencies(dataset_broadcaster rclcpp OpenCV sensor_msgs cv_bridge)
+
 ##Custom Interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FrameWithPose.msg"
@@ -87,6 +91,7 @@ target_link_libraries(fp_matcher "${cpp_typesupport_target}")
 target_link_libraries(pose_estimation "${cpp_typesupport_target}")
 target_link_libraries(action_client "${cpp_typesupport_target}")
 target_link_libraries(ur_wrapper "${cpp_typesupport_target}")
+target_link_libraries(dataset_broadcaster "${cpp_typesupport_target}")
 
 
 ## Directories to include
@@ -97,6 +102,7 @@ install(TARGETS
   fp_matcher
   pose_estimation
   frame_broadcaster
+  dataset_broadcaster
   DESTINATION lib/${PROJECT_NAME})
 
 ## Install libraries

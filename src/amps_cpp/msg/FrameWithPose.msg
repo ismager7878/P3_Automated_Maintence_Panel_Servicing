@@ -6,4 +6,8 @@ sensor_msgs/Image depth_frame
 geometry_msgs/PoseStamped pose
 
 
+#Optinal debug parameter
+int8 button_config -1
+
+
 
