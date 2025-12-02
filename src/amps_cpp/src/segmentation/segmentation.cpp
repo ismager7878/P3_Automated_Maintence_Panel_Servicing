@@ -1,6 +1,6 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/features2d.hpp>  // For blob detector
-
+#include <random>
 #include <iostream>
 #include <stack>
 
@@ -56,12 +56,15 @@ public:
     rclcpp::Publisher<ProgramState>::SharedPtr programStatePub_;
     rclcpp::Subscription<ProgramState>::SharedPtr programStateSub_;
 
+    
+
     size_t count_;
     rclcpp::TimerBase::SharedPtr timer_;
     cv::Mat image;
     cv::Mat depth;
 
     int program_state_; 
+    int number_image = 1;
 
 
     void setProgramState(const int state, std::string stateStr = ""){
@@ -92,17 +95,17 @@ public:
     {
 
         if(program_state_ != ProgramState::SEGMENTATION_MODE){
-            RCLCPP_WARN(this->get_logger(), "Waiting for preprocessing node to set state to SEGMENTATION_MODE");
-            RCLCPP_WARN(this->get_logger(), "Current state: %d",program_state_);
+           /*  RCLCPP_WARN(this->get_logger(), "Waiting for preprocessing node to set state to SEGMENTATION_MODE");
+            RCLCPP_WARN(this->get_logger(), "Current state: %d",program_state_); */
             return;
 
         }
         if(image.size() != depth.size()|| image.empty() || depth.empty()){
-            RCLCPP_WARN(this->get_logger(), "Waiting for images to be received and aligned");
+            /* RCLCPP_WARN(this->get_logger(), "Waiting for images to be received and aligned"); */
             return;
         }
-        RCLCPP_INFO(this->get_logger(), "Segmentation started");
-        segmentation(image, depth);
+/*         RCLCPP_INFO(this->get_logger(), "Segmentation started");
+ */        segmentation(image, depth);
         setProgramState(ProgramState::OBJECT_DETECTION_MODE);
     }
 
@@ -162,15 +165,15 @@ void segmentation(cv::Mat &image, cv::Mat &depth)
 
     // svært 17 , 1 , boss: 12// husk tjekke manult alle billeder hontering for se man få alt // 32,21,27,22 depth billede taget   
 
-    cv::imshow("Original Color Image",image);
-    cv::imshow("Original Depth Image",depth);
+    /* cv::imshow("Original Color Image",image);
+    cv::imshow("Original Depth Image",depth); */
 
     cv::Mat depthMasked = dynamicDepthCheck(depth);
-    RCLCPP_INFO(this->get_logger(), "Displaying depth mask");
-    cv::imshow("depth image",depthMasked);
+/*     RCLCPP_INFO(this->get_logger(), "Displaying depth mask");
+ */    //cv::imshow("depth image",depthMasked);
     Erode(depthMasked);
     Dilate(depthMasked);
-    Dilate(depthMasked);
+    Dilate(depthMasked); 
     cv::imshow("newmaske image",depthMasked);
 
 
@@ -236,32 +239,50 @@ cv::Mat dynamicDepthCheck(cv::Mat &depth_img){
 
     // sort the vector to find median
     int minDepth = median - 23;
-    int maxDepth = median - 3;         
-    cv::imshow("Adjusted Depth", adjustedDepth);
-    cv::waitKey(1000);
+    int maxDepth = median - 3;  
+
+    minDepth = 0;
+    maxDepth = 135;
     cv::Mat mask; 
     cv::inRange(depth_img,minDepth,maxDepth,mask);  
+
     return mask;
 
 }
 
 void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary, const cv::Mat &img) {
-  
+    number_image += 1;
+    std::string number_image_str = std::to_string(number_image);
+    // Method 1: Using random_device and mt19937 (recommended - modern C++)
+    std::random_device rd;  // Seed
+    std::mt19937 gen(rd()); // Mersenne Twister generator
+    std::uniform_int_distribution<> distrib(1, 100); // Range: 1 to 100
+
+    cv::Scalar rectangleColor(distrib(gen), distrib(gen), distrib(gen));
+
+    int check_else = 0;
+    int check_if = 0;
     // findContours forventer en vector<vector<Point>> og en vector<Vec4i> til hierarchy
     std::vector<std::vector<cv::Point>> contours;
     std::vector<cv::Vec4i> hierarchy;
- 
+    RCLCPP_INFO(this->get_logger(), "This image is number: %d ",number_image);
+
     double minArea = 2000; // 
-    double MaxArea = 40000;  //
+    double MaxArea = 100000;  //
     int boundbox_distance = 4;
     int number_of_blobs = 0;
     int check = 0;
+    int off_set_boarder = 20;
 
     // change to real boarder values probley her!!!!!!!!!!!!!!! In state of code picture should crop and should pixels value top left and bouttom right of images
-    int boarder_left_top_x = 240; // 0; //
-    int boarder_left_top_y = 35; // 0; //
-    int boarder_right_bottom_x = 1070; // image_binary.cols; //
-    int boarder_right_bottom_y = 701; // image_binary.rows; //
+    int boarder_left_top_x = off_set_boarder; 
+    int boarder_left_top_y = off_set_boarder; 
+    int boarder_right_bottom_x = image_binary.cols - off_set_boarder; 
+    int boarder_right_bottom_y = image_binary.rows - off_set_boarder; 
+
+    std::cout << "Boarder values: " << boarder_left_top_x << "," << boarder_left_top_y << " to " << boarder_right_bottom_x << "," << boarder_right_bottom_y << std::endl;
+
+    
     
 
     std::stack<std::vector<cv::Point>> boundbox;
@@ -269,12 +290,12 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
     for(int j = 0; j < 2; j++){ // j = 2 for depth and color used get 2 plug for charged // j = 1 
         
         if(j == 0){ // skal være 0 !!!!
-            cv::findContours(depth_binary, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
-            //std::cout << "Depth contours found: " << contours.size() << std::endl;
+            cv::findContours(depth_binary, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+            std::cout << "Depth contours found: " << contours.size() << std::endl;
         }
         else if(j == 1){ // skal være 1 !!!!
-            cv::findContours(image_binary, contours, hierarchy, cv::RETR_CCOMP, cv::CHAIN_APPROX_SIMPLE);
-            //std::cout << "Image contours found: " << contours.size() << std::endl;
+            cv::findContours(image_binary, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+            std::cout << "Image contours found: " << contours.size() << std::endl;
         }
         
         for(size_t i = 0; i <contours.size(); i++ ){
@@ -284,9 +305,12 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
             
             // sort bound box by size
             if(MaxArea > area && area > minArea){
+              
                 
                 const std::vector<cv::Point> &cnt = contours[i];
                 cv::Rect rect = cv::boundingRect(cnt); 
+                int rect_x2 = rect.x + rect.width;
+                int rect_y2 = rect.y + rect.height;
                 // delete overlapping boxes
                 if(boundbox.size() >= 1){
                     
@@ -296,8 +320,6 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
                         std::vector<cv::Point> boundbox_holder = boundbox.top();
                         cv::Rect rect_check = cv::boundingRect(boundbox_holder); 
 
-                        int rect_x2 = rect.x + rect.width;
-                        int rect_y2 = rect.y + rect.height;
                         int rect_check_x2 = rect_check.x + rect_check.width;
                         int rect_check_y2 = rect_check.y + rect_check.height;
 
@@ -335,20 +357,22 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
                         }
 
 
-                        // check for box inside each other
+                      /*   // check for box inside each other
                         if(rect_check.x<= rect.x  && rect.x <= rect_check_x2 &&
                            rect_check.y<= rect.y && rect.y <= rect_check_y2) {
                             not_close = false;
-                        }
+                        } */
                             
 
                           // if some part box go through each other
                         if((rect_check.x >= rect.x && rect_check_x2 <= rect_x2)||  // x outside left and x2 outside right
                             (rect_check.x <= rect.x && rect_check_x2 >= rect.x && rect_check_x2 <= rect_x2)||// x indside and x2 outside right
-                            (rect_check.x >= rect.x &&  rect_check.x <= rect_x2 && rect_check_x2 >= rect_x2) ){  // x outside left and x2 inside
+                            (rect_check.x <= rect.x && rect.x <= rect_check_x2 && rect_check.x <= rect_x2 && rect_x2 <= rect_check_x2) || // x inside left and x2 inside right (fully contained)
+                            (rect_check.x >= rect.x && rect_check.x <= rect_x2 && rect_check_x2 >= rect_x2) ){  // x outside left and x2 inside
 
                             if((rect_check.y <= rect.y && rect_check_y2 >= rect.y && rect_check_y2 <= rect_y2 )|| // y indside box  and y2 outside bottom
                                 (rect_check.y >= rect.y &&  rect_check.y <= rect_y2 && rect_check_y2 >= rect_y2)||// y outside top and y2 inside box
+                                (rect_check.y <= rect.y && rect.y <= rect_check_y2 && rect_check.y <= rect_y2 && rect_y2 <= rect_check_y2) || // y inside top and y2 inside bottom (fully contained)
                                 (rect_check.y >= rect.y && rect_check_y2 <= rect_y2) ){ // y outside top and y2 outside button
                                 not_close = false;
                             }
@@ -358,26 +382,51 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
                         boundbox.pop();
                     }
                     boundbox.swap(boundbox2);                              
-                }else  {
+                }else if((rect.x >= boarder_right_bottom_x)||
+                        (rect.y >= boarder_right_bottom_y)||
+
+                        (rect_x2 >= boarder_right_bottom_x)||
+                        (rect_y2 >= boarder_right_bottom_y) ||
+
+                        (rect.x <= boarder_left_top_x) ||
+                        (rect.y <= boarder_left_top_y) ||
+
+                        (rect_x2 <= boarder_left_top_x) ||
+                         (rect_y2 <= boarder_left_top_y)){
+                            not_close = false;
+  
+                         }
+                else
+                {
+                        
+                        
+                     RCLCPP_INFO(this->get_logger(), "x1: %d, y1: %d, x2: %d, y2: %d", rect.x, rect.y, rect.x + rect.width, rect.y + rect.height);
+                    check_else += 1;
                     //draw the makeBoundingBoxes box
                     boundbox.push(cnt);
                     cv::Scalar contoursColor(255, 255, 255);
-                    cv::Scalar rectangleColor(255, i, i);
+                    //cv::Scalar rectangleColor(255, i, i);
+                    
                     cv::drawContours(img, contours, 0, contoursColor, 1, 8, hierarchy, 0);
                     cv::Point point1(rect.x, rect.y);
                     cv::Point point2(rect.x + rect.width, rect.y + rect.height);
                     cv::rectangle(img, point1, point2, rectangleColor, 2, cv::LINE_AA);
                     number_of_blobs += 1;
                     not_close = false;
-                } if(not_close){
+
+                } 
+                if(not_close){
+                            check_if += 1;
+                            RCLCPP_INFO(this->get_logger(), "x1: %d, y1: %d, x2: %d, y2: %d", rect.x, rect.y, rect.x + rect.width, rect.y + rect.height);
+
                     // draw the makeBoundingBoxes box
                             boundbox.push(cnt);
                             cv::Scalar contoursColor(255, 255, 255);
-                            cv::Scalar rectangleColor(255, i, i);
                             cv::drawContours(img, contours, 0, contoursColor, 1, 8, hierarchy, 0);
                             cv::Point point1(rect.x, rect.y);
                             cv::Point point2(rect.x + rect.width, rect.y + rect.height);
                             cv::rectangle(img, point1, point2, rectangleColor, 2, cv::LINE_AA);
+
                             number_of_blobs += 1;
                 }
             }
@@ -389,8 +438,11 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
         wrong += 1;
     }
     std::cout << "Number of blobs: " << number_of_blobs << std::endl;
-    cv::imshow("canvasOutput", img);
+    RCLCPP_INFO(this->get_logger(), "else: %d , if: %d", check_else, check_if);
+    if(true){
+    cv::imshow("canvasOutput " + number_image_str, img);
     cv::waitKey(); 
+    cv::destroyAllWindows();}
     publishBoundingBoxes(boundbox);
 }
 

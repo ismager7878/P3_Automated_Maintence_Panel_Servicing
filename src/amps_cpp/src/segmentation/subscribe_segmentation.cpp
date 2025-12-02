@@ -90,8 +90,8 @@ private:
         cv::imshow("segmented image",image);
         //cv::waitKey(2000);
         if(count_image <= max_test_images){
-            RCLCPP_INFO(this->get_logger(), "average  %d",collected_iou/count_image);
-
+/*             RCLCPP_INFO(this->get_logger(), "average  %d",collected_iou/count_image);
+ */
         }
         // tells where count of bounding boxes is wrong
         /* if(number_of_boundingbox !=9){
@@ -116,8 +116,8 @@ private:
         programStateMsg.state = state;
         programStateMsg.state_str = stateStr;
         this->programStatePub_->publish(programStateMsg);
-        RCLCPP_INFO(this->get_logger(), "Setting State  %d",state);
-
+/*         RCLCPP_INFO(this->get_logger(), "Setting State  %d",state);
+ */
     }
 
 /*     // change base number of data 

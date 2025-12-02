@@ -65,8 +65,8 @@ private:
     void programStateCallback(const ProgramState::SharedPtr msg)
     {
         program_state_ = msg->state;
-        RCLCPP_INFO(this->get_logger(), "State recived: %d",program_state_);
-
+/*         RCLCPP_INFO(this->get_logger(), "State recived: %d",program_state_);
+ */
     }
 
     void setProgramState(const int state, std::string stateStr = ""){
@@ -87,8 +87,8 @@ private:
             return;
         }
 
-        RCLCPP_INFO(this->get_logger(), "Reading next image for segmentation");
-        getline(fin, line);
+/*         RCLCPP_INFO(this->get_logger(), "Reading next image for segmentation");
+ */        getline(fin, line);
 
         // remove hidden characters
         line.erase(std::remove_if(line.begin(), line.end(), [](char c) {
@@ -110,8 +110,8 @@ private:
         this->color_publisher_->publish(*color_msg);
         this->depth_publisher_->publish(*depth_msg);
         setProgramState(ProgramState::SEGMENTATION_MODE);
-        RCLCPP_INFO(this->get_logger(), "Stat too segmentation");
-    
+/*         RCLCPP_INFO(this->get_logger(), "Stat too segmentation");
+ */    
         std::cout << program_state_ << std::endl;
 
         if(fin.eof()){

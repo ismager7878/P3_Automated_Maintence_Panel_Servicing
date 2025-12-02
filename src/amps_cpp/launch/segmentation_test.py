@@ -38,7 +38,7 @@ def generate_launch_description():
             )
 
     delayed_start = TimerAction(
-        period=3.0,  # Wait 5 seconds before starting segmentation nodes
+        period=1.0,  # Wait 5 seconds before starting segmentation nodes
         actions=[
             set_state
         ]
@@ -51,3 +51,4 @@ def generate_launch_description():
         state_broadcaster_node,
         delayed_start
     ])
+    
