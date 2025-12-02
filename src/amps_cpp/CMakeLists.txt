@@ -99,6 +99,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ClassifiedButton.msg"
   "msg/ClassifiedButtonsArray.msg"
   "msg/CroppedImgDebug.msg"
+  "msg/GroundTruth.msg"
+  "msg/GroundTruthButton.msg"
   DEPENDENCIES geometry_msgs sensor_msgs builtin_interfaces
 )
 
