@@ -439,10 +439,10 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
     }
     std::cout << "Number of blobs: " << number_of_blobs << std::endl;
     RCLCPP_INFO(this->get_logger(), "else: %d , if: %d", check_else, check_if);
-    if(true){
-    cv::imshow("canvasOutput " + number_image_str, img);
+    /* if(true){
+    //cv::imshow("canvasOutput " + number_image_str, img);
     cv::waitKey(); 
-    cv::destroyAllWindows();}
+    cv::destroyAllWindows();} */
     publishBoundingBoxes(boundbox);
 }
 

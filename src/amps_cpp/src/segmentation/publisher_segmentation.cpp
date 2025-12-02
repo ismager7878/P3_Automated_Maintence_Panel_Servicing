@@ -90,7 +90,7 @@ private:
 /*         RCLCPP_INFO(this->get_logger(), "Reading next image for segmentation");
  */        getline(fin, line);
 
-        // remove hidden characters
+        // remove hidden characters from line
         line.erase(std::remove_if(line.begin(), line.end(), [](char c) {
             return !isprint(static_cast<unsigned char>(c));
         }), line.end());
