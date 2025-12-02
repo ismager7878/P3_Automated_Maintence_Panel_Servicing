@@ -3,7 +3,7 @@ from rclpy.node import Node
 from cv_bridge import CvBridge
 import cv2 as cv
 import numpy as np
-from amps_cpp.msg import FrameWithPose, CroppedImgDebug, ClassifiedButton
+from amps_cpp.msg import FrameWithPose, CroppedImgDebug, ClassifiedButton, ProgramState
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32MultiArray
 import json
@@ -13,6 +13,17 @@ class PreprocessingNode(Node):
         super().__init__('preprocessing_node')
         self.declare_parameter('debugging', True)
         self.get_logger().info('Preprocessing Node has been started.')
+
+        # Setup Program State Control
+        self.state_pub = self.create_publisher(ProgramState, 'amps_cpp/set_program_state', 10)
+        self.state_sub = self.create_subscription(
+            ProgramState,
+            'amps_cpp/program_state',
+            self.program_state_callback,
+            10
+        )
+
+        self.current_state = 0
 
         # Subscribe to the topic publishing FrameWithPose messages
         self.subscription = self.create_subscription(FrameWithPose, 'amps_cpp/pose_estimation/frame_with_pose', self.listener_callback, 10)
@@ -59,11 +70,18 @@ class PreprocessingNode(Node):
             # Create publishers for transformed depth and color images
             self.publisher_depth = self.create_publisher(Image, 'amps_python/vision/transformed_depth_image', 10)
             self.publisher_color = self.create_publisher(Image, 'amps_python/vision/transformed_color_image', 10)
-
-
-
+    
+    def program_state_callback(self, msg):
+        self.get_logger().info(f'Received program state: {msg.state}')
+        self.current_state = msg.state
 
     def listener_callback(self, sub_msg):
+
+        if(self.current_state != ProgramState.PREPROCESSING_MODE):
+            return
+        
+        self.get_logger().info('Received FrameWithPose message, processing images...')
+
         # Convert ROS Image message to OpenCV image
         depth_image = self.bridge.imgmsg_to_cv2(sub_msg.depth_frame, desired_encoding='passthrough')
         color_image = self.bridge.imgmsg_to_cv2(sub_msg.rgb_frame, desired_encoding='passthrough')
@@ -144,10 +162,19 @@ class PreprocessingNode(Node):
         else: # Not in debugging mode
             self.publisher_depth.publish(transformed_depth_msg)
             self.publisher_color.publish(transformed_color_msg)
+            
         
+        self.setProgramState(ProgramState.SEGMENTATION_MODE)
+
         self.get_logger().info('Published transformed depth and color image')
-
-
+        
+    def setProgramState(self, state:int, state_str:str = ""):
+        msg = ProgramState()
+        msg.state = state
+        msg.state_str = state_str
+        self.state_pub.publish(msg)
+        self.get_logger().info(f'Set program state to: {state} - {state_str}')
+    
     def transform_depth(self, img, show=False):
         # Calculate median of ROI
         adjustedImg = np.array(img, dtype=np.uint16)

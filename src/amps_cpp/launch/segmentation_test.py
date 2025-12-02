@@ -1,28 +1,47 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.actions import TimerAction, ExecuteProcess
+from launch.actions import TimerAction, ExecuteProcess, DeclareLaunchArgument, IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
+from launch.conditions import IfCondition
 
+import os
+from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
-    segmentation_sub_node = Node(
-        package='amps_cpp',
-        executable='subscribe_segmentation',
-        name='segmentation_subscriber',
-        output='screen'
+
+    launchDesc = LaunchDescription()
+
+    test_data_arg = DeclareLaunchArgument(
+        'test_data',
+        default_value='true',
+        description='Whether to use test data or use live data from the robot.'
     )
 
-    segmentation_pub_node = Node(
-        package='amps_cpp',
-        executable='publisher_segmentation',
-        name='segmentation_publisher',
-        output='screen'
+    launchDesc.add_action(test_data_arg)
+
+    preprocessing = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory('amps_python'), 'launch', 'preprocessing.launch.py')]),
     )
 
     segmentation_node = Node(
         package='amps_cpp',
         executable='segmentation',
         name='segmentation_node',
-        output='screen'
+        output='screen',
+        parameters=[{
+            'test_data': LaunchConfiguration('test_data', default='true'),
+        }]
+    )
+
+    dataset_broadcaster = Node(
+        package='amps_cpp',
+        executable='dataset_broadcaster',
+        name='dataset_broadcaster',
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('test_data', default='true')),
+        arguments=['--ros-args', '--log-level', 'WARN']
     )
 
     state_broadcaster_node = Node(
@@ -33,9 +52,10 @@ def generate_launch_description():
     )
 
     set_state = ExecuteProcess(
-                cmd=['ros2', 'topic', 'pub', '--once', '/amps/set_program_state', 'amps_cpp/msg/ProgramState', '{state: 7, state_str: "inital_state"}'],
-                output='screen'
-            )
+        cmd=['ros2', 'topic', 'pub', '--once', '/amps/set_program_state', 'amps_cpp/msg/ProgramState', '{state: 7, state_str: "inital_state"}'],
+        output='screen',
+        condition=IfCondition(LaunchConfiguration('test_data', default='true'))
+    )
 
     delayed_start = TimerAction(
         period=1.0,  # Wait 5 seconds before starting segmentation nodes
@@ -43,12 +63,12 @@ def generate_launch_description():
             set_state
         ]
     )
-  
-    return LaunchDescription([
-        segmentation_node,
-        segmentation_sub_node,
-        segmentation_pub_node,
-        state_broadcaster_node,
-        delayed_start
-    ])
+
+    launchDesc.add_action(preprocessing)
+    launchDesc.add_action(segmentation_node)
+    launchDesc.add_action(state_broadcaster_node)
+    launchDesc.add_action(dataset_broadcaster)
+    launchDesc.add_action(delayed_start)
+
+    return launchDesc
     

@@ -24,9 +24,11 @@ class PublisherSegmentation : public rclcpp::Node
 public:
     PublisherSegmentation() : Node("Publisher_Segmentation_node")
     {
+    
         depth_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("segmentation_test_depth",10);
         color_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("segmentation_test_color",10);
 
+        
         programStatePub_ = this->create_publisher<ProgramState>("amps/set_program_state", 10);
         programStateSub_ = this->create_subscription<ProgramState>(
             "amps/program_state", 10,std::bind(&PublisherSegmentation::programStateCallback, this, std::placeholders::_1)
@@ -38,7 +40,6 @@ public:
             std::chrono::milliseconds(500),
             std::bind(&PublisherSegmentation::timer_callback, this));
 
-
         //setProgramState(ProgramState::PREPROCESSING_MODE);
 
     }
@@ -49,7 +50,6 @@ private:
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr color_publisher_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr depth_publisher_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr color_subscribe_;
-
 
     rclcpp::Publisher<ProgramState>::SharedPtr start_;
 
