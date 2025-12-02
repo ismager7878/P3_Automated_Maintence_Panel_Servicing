@@ -85,9 +85,7 @@ class PreprocessingNode(Node):
             pub_msg.depth_frame = transformed_depth_msg
             # Populate ground truth buttons
             ground_truth_buttons = []
-            config = sub_msg.button_config
-            config = config.split('/')[-1].replace('button_pose', '')  # Extract pose number from string
-            num = int(config)
+            num = int(sub_msg.button_config)
             gt = self.ground_truth_button_pose[num]
             
             # Process each component type in board_state
