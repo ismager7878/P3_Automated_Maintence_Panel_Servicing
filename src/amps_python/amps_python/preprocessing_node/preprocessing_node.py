@@ -5,7 +5,7 @@ import cv2 as cv
 import numpy as np
 from amps_cpp.msg import FrameWithPose, CroppedImgDebug, ClassifiedButton
 from sensor_msgs.msg import Image
-import json, csv, os
+import json
 
 class PreprocessingNode(Node):
     def __init__(self):
@@ -88,23 +88,33 @@ class PreprocessingNode(Node):
             num = int(sub_msg.button_config)
             gt = self.ground_truth_button_pose[num]
             
+            # Map component type names to integer constants
+            type_mapping = {
+                'CircuitBreaker': ClassifiedButton.BREAKER,
+                'SelectorSwitch': ClassifiedButton.THREE_STATE_SWITCH,
+                'MainSwitch': ClassifiedButton.THREE_STATE_SWITCH,
+                'Plug': ClassifiedButton.PLUG
+            }
+            
             # Process each component type in board_state
             board_state = gt.get('board_state', {})
             for component_type, components in board_state.items():
+                type_id = type_mapping.get(component_type, ClassifiedButton.UNKNOWN)
                 for component in components:
                     posXY = component.get('posXY', [])
                     if len(posXY) == 2:
                         # posXY format: [[x1, y1], [x2, y2]]
                         top_left = posXY[0]
                         bottom_right = posXY[1]
+                        self.get_logger().info(f'Transforming bounding box for component type: {component_type} with original coords: {top_left}, {bottom_right}')
                         
                         # Transform the bounding box coordinates
                         transformed_bbox = self.transform_bbox(top_left, bottom_right, transform_matrix)
                         
                         button = ClassifiedButton()
-                        button.bounding_box = [transformed_bbox[0][0], transformed_bbox[0][1], 
-                                             transformed_bbox[1][0], transformed_bbox[1][1]]
-                        button.type = component_type
+                        button.bounding_box = [int(transformed_bbox[0][0]), int(transformed_bbox[0][1]), 
+                                             int(transformed_bbox[1][0]), int(transformed_bbox[1][1])]
+                        button.type = type_id
                         ground_truth_buttons.append(button)
             
             pub_msg.buttons = ground_truth_buttons

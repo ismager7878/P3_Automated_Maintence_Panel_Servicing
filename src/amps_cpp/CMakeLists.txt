@@ -23,6 +23,19 @@ find_package(tinyxml2_vendor REQUIRED)
 find_package(TinyXML2 REQUIRED)
 find_package(realsense2_camera_msgs REQUIRED)
 
+# Find Python and NumPy for rosidl_generator_py
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+find_package(python_cmake_module REQUIRED)
+find_package(PythonExtra REQUIRED)
+
+# Get NumPy include directory
+execute_process(
+  COMMAND "${Python3_EXECUTABLE}" -c "import numpy; print(numpy.get_include())"
+  OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+include_directories(${Python3_INCLUDE_DIRS} ${NUMPY_INCLUDE_DIR})
+
 
 ## Action Client
 add_library(action_client SHARED
