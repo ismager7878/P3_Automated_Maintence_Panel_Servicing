@@ -78,7 +78,7 @@ private:
         RCLCPP_INFO(this->get_logger(), "Replaying dataset...");
         for(size_t i = 0; i < this->rgbFrames.size(); i++)
         {
-            RCLCPP_INFO(this->get_logger(), "Publishing frame %d", i);
+            RCLCPP_INFO(this->get_logger(), "Publishing frame %ld", i);
 
             FrameWithPose msg;
 

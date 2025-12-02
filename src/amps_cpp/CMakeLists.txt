@@ -83,8 +83,12 @@ add_executable(frame_broadcaster src/pose_estimation/frame_broadcaster.cpp)
 ament_target_dependencies(frame_broadcaster rclcpp geometry_msgs tf2 tf2_geometry_msgs)
 
 ##Dataset Broadcaster
-add_executable(dataset_broadcaster src/dataset_broadcaster.cpp)
+add_executable(dataset_broadcaster src/tests/dataset_broadcaster.cpp)
 ament_target_dependencies(dataset_broadcaster rclcpp OpenCV sensor_msgs cv_bridge)
+
+##Button State Detector
+add_executable(button_state_detector src/button_state_detector/button_state_detector_node.cpp)
+ament_target_dependencies(button_state_detector rclcpp sensor_msgs cv_bridge OpenCV)
 
 ##Custom Interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -106,6 +110,7 @@ target_link_libraries(pose_estimation "${cpp_typesupport_target}")
 target_link_libraries(action_client "${cpp_typesupport_target}")
 target_link_libraries(ur_wrapper "${cpp_typesupport_target}")
 target_link_libraries(dataset_broadcaster "${cpp_typesupport_target}")
+target_link_libraries(button_state_detector "${cpp_typesupport_target}")
 
 
 ## Directories to include
@@ -113,6 +118,7 @@ target_link_libraries(dataset_broadcaster "${cpp_typesupport_target}")
 
 ## Install executables
 install(TARGETS 
+  button_state_detector
   fp_matcher
   pose_estimation
   frame_broadcaster
