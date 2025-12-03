@@ -14,9 +14,9 @@ namespace CsvManager{
 
         vector<string> getHeaders();
 
-        int addRows(vector<vector<string>> newRows);
+        int addRows(vector<vector<string>> newRows, bool asString = false);
 
-        int addRow(vector<string> newRow);
+        int addRow(vector<string> newRow, bool asString = false);
     private:
         string filePath;
         vector<string> headers;

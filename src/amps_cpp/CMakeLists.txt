@@ -68,11 +68,13 @@ ament_target_dependencies(ur_wrapper ur_dashboard_msgs ur_client_library ur_msgs
 rclcpp_components_register_node(ur_wrapper PLUGIN "ur_script_wrapper::UrScriptWrapper" EXECUTABLE ur_wrapper_node)
 
 # Segmentation 
-add_executable(segmentation src/segmentation/segmentation.cpp)
+add_executable(segmentation src/segmentation/segmentation.cpp
+)
 ament_target_dependencies(segmentation rclcpp sensor_msgs cv_bridge OpenCV std_msgs)
 
 # segmentation test
-add_executable(segmentation_test src/tests/segmentation_test.cpp)
+add_executable(segmentation_test src/tests/segmentation_test.cpp
+src/utils/csvManager.cpp)
 ament_target_dependencies(segmentation_test rclcpp sensor_msgs cv_bridge OpenCV std_msgs)
 
 ##State Broadcaster

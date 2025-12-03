@@ -60,7 +60,7 @@ namespace CsvManager{
         return this->headers;
     }
 
-    int CsvFile::addRows(vector<vector<string>> newRows){
+    int CsvFile::addRows(vector<vector<string>> newRows, bool asString){
         fstream fout;
         
         fout.open(this->filePath, ios::out | ios::app);
@@ -72,7 +72,10 @@ namespace CsvManager{
 
         for(size_t i = 0; i < newRows.size(); i++){
             for(size_t j = 0; j < newRows[i].size(); j++){
-                fout << newRows[i][j];
+                if(!asString)
+                    fout << newRows[i][j];
+                else
+                    fout << ("\"" + newRows[i][j] + "\"");
                 if(j != newRows[i].size() -1){
                     fout << ",";
                 }
@@ -87,8 +90,8 @@ namespace CsvManager{
         return 0;
     }
 
-    int CsvFile::addRow(vector<string> newRow){
-        return this->addRows({newRow});
+    int CsvFile::addRow(vector<string> newRow, bool asString){
+        return this->addRows({newRow}, asString);
     }
 
     bool CsvFile::isCsvFile(string path){

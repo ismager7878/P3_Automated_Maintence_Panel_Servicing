@@ -116,7 +116,7 @@ public:
         RCLCPP_INFO(this->get_logger(), "Segmentation started");
     */  segmentation(image, depth);
 
-        //setProgramState(ProgramState::OBJECT_DETECTION_MODE);
+        setProgramState(ProgramState::OBJECT_DETECTION_MODE);
     }
 
 
@@ -180,12 +180,12 @@ void segmentation(cv::Mat &image, cv::Mat &depth)
 
     cv::Mat depthMasked = dynamicDepthCheck(depth);
 /*     RCLCPP_INFO(this->get_logger(), "Displaying depth mask");
- */ cv::imshow("depth image",depthMasked);
+ */ //cv::imshow("depth image",depthMasked);
     Erode(depthMasked);
     Dilate(depthMasked);
     Dilate(depthMasked); 
-    cv::imshow("newmaske image",depthMasked);
-    cv::waitKey(1);
+ /*    cv::imshow("newmaske image",depthMasked);
+    cv::waitKey(1); */
 
     // Detect Aruco markers
     std::vector<int> markerIds;

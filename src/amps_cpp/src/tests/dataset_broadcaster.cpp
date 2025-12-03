@@ -94,7 +94,7 @@ private:
 
         if(currentFrameIndex >= rgbFrames.size()){
             RCLCPP_WARN(this->get_logger(), "All frames have been published, restarting from beginning.");
-            currentFrameIndex = 0;
+            //currentFrameIndex = 0;         
         }
 
         if(this->state != ProgramState::PREPROCESSING_MODE){
