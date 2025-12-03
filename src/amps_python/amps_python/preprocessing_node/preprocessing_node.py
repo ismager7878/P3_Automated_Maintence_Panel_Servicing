@@ -3,7 +3,7 @@ from rclpy.node import Node
 from cv_bridge import CvBridge
 import cv2 as cv
 import numpy as np
-from amps_cpp.msg import FrameWithPose, CroppedImgDebug, ClassifiedButton
+from amps_cpp.msg import FrameWithPose, ClassifiedButton, ProgramState, GroundTruthButton, GroundTruth
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32MultiArray
 import json
@@ -13,6 +13,20 @@ class PreprocessingNode(Node):
         super().__init__('preprocessing_node')
         self.declare_parameter('debugging', True)
         self.get_logger().info('Preprocessing Node has been started.')
+
+        # Setup Program State Control
+        self.state_pub = self.create_publisher(ProgramState, 'amps/set_program_state', 10)
+        self.state_sub = self.create_subscription(
+            ProgramState,
+            'amps/program_state',
+            self.program_state_callback,
+            10
+        )
+
+        # Set Ground truth publisher
+        self.ground_truth_pub = self.create_publisher(GroundTruth, 'amps/set_ground_truth', 10)
+
+        self.current_state = 0
 
         # Subscribe to the topic publishing FrameWithPose messages
         self.subscription = self.create_subscription(FrameWithPose, 'amps_cpp/pose_estimation/frame_with_pose', self.listener_callback, 10)
@@ -51,19 +65,39 @@ class PreprocessingNode(Node):
                 self.get_logger().error("Shutting down node.")
                 rclpy.shutdown()
                 return
-            self.publisher_ground_truth = self.create_publisher(CroppedImgDebug, 'amps_python/vision', 10)
+            self.publisher_ground_truth = self.create_publisher(GroundTruth, 'amps/set_ground_truth', 10)
             self.publisher_segmentation_bypass_color = self.create_publisher(Image, 'segmentation_test_color', 10)
             self.publisher_segmentation_bypass_points = self.create_publisher(Float32MultiArray, 'segmentation_topic', 10)
-        
-        else:
-            # Create publishers for transformed depth and color images
-            self.publisher_depth = self.create_publisher(Image, 'amps_python/vision/transformed_depth_image', 10)
-            self.publisher_color = self.create_publisher(Image, 'amps_python/vision/transformed_color_image', 10)
+    
+        # Create publishers for transformed depth and color images
+        self.publisher_depth = self.create_publisher(Image, 'amps_python/vision/transformed_depth_image', 10)
+        self.publisher_color = self.create_publisher(Image, 'amps_python/vision/transformed_color_image', 10)
+    
 
+    # Program state management
+    def program_state_callback(self, msg):
+        #self.get_logger().info(f'Received program state: {msg.state}')
+        self.current_state = msg.state
 
-
+    def setProgramState(self, state:int, state_str:str = ""):
+        msg = ProgramState()
+        msg.state = state
+        msg.state_str = state_str
+        self.state_pub.publish(msg)
+        self.get_logger().info(f'Set program state to: {state} - {state_str}')
+    
+    # Set new current ground truth
+    def setGroundTruth(self, ground_truth: GroundTruth):
+        self.ground_truth_pub.publish(ground_truth)
+        self.get_logger().info('Published new ground truth data.')
 
     def listener_callback(self, sub_msg):
+
+        if(self.current_state != ProgramState.PREPROCESSING_MODE):
+            return
+        
+        self.get_logger().info('Received FrameWithPose message, processing images...')
+
         # Convert ROS Image message to OpenCV image
         depth_image = self.bridge.imgmsg_to_cv2(sub_msg.depth_frame, desired_encoding='passthrough')
         color_image = self.bridge.imgmsg_to_cv2(sub_msg.rgb_frame, desired_encoding='passthrough')
@@ -84,26 +118,33 @@ class PreprocessingNode(Node):
         # Publish the transformed image
         # Debugging mode
         if self.get_parameter('debugging').value == True:
-            pub_msg = CroppedImgDebug()
-            pub_msg.rgb_frame = transformed_color_msg
-            pub_msg.depth_frame = transformed_depth_msg
+            pub_msg = GroundTruth()
+            # pub_msg.rgb_frame = transformed_color_msg
+            # pub_msg.depth_frame = transformed_depth_msg
             # Populate ground truth buttons
             ground_truth_buttons = []
             num = int(sub_msg.button_config)
             gt = self.ground_truth_button_pose[num]
+
+            pub_msg.btn_config = num
+            pub_msg.image_filename = sub_msg.image_filename
             
             # Map component type names to integer constants
             type_mapping = {
-                'CircuitBreaker': ClassifiedButton.BREAKER,
-                'SelectorSwitch': ClassifiedButton.THREE_STATE_SWITCH,
-                'MainSwitch': ClassifiedButton.THREE_STATE_SWITCH,
-                'Plug': ClassifiedButton.PLUG
+                "CircuitBreaker": "circuit_breaker",
+                "SelectorSwitch": "selector_switch",
+                "MainSwitch": "main_switch",
+                "Plug": "plug"
             }
             
             # Process each component type in board_state
             board_state = gt.get('board_state', {})
             for component_type, components in board_state.items():
-                type_id = type_mapping.get(component_type, ClassifiedButton.UNKNOWN)
+                type_name = type_mapping.get(component_type, 'unknown')
+
+                if(type_name == 'unknown'):
+                    continue
+
                 for component in components:
                     posXY = component.get('posXY', [])
                     if len(posXY) == 2:
@@ -114,23 +155,27 @@ class PreprocessingNode(Node):
                         
                         # Transform the bounding box coordinates
                         transformed_bbox = self.transform_bbox(top_left, bottom_right, transform_matrix)
+
+                        states = component.get('states', [])
                         
-                        button_instance = ClassifiedButton()
-                        button_instance.bounding_box = [int(transformed_bbox[0][0]), int(transformed_bbox[0][1]), 
-                                             int(transformed_bbox[1][0]), int(transformed_bbox[1][1])]
-                        button_instance.type = type_id
-                        ground_truth_buttons.append(button_instance)
+                        button_instance = GroundTruthButton()
+
+                        button_instance.states = states
+                        button_instance.pos_xy = [top_left[0], top_left[1], bottom_right[0], bottom_right[1]]
+                        button_instance.transformed_pos_xy = [transformed_bbox[0][0], transformed_bbox[0][1], transformed_bbox[1][0], transformed_bbox[1][1]]
+
+                        # Append to the appropriate list in pub_msg
+                        setattr(pub_msg, type_name, getattr(pub_msg, type_name) + [button_instance])
             
-            pub_msg.buttons = ground_truth_buttons
             self.publisher_ground_truth.publish(pub_msg)
-            self.get_logger().info('Published CroppedImgDebug message with transformed images.')
+            self.get_logger().info('Published GroundTruth message with transformed images.')
             
             # Also publish segmentation bypass topics
             # Reshape bounding boxes into a single list
             point_array_msg = Float32MultiArray()
             bbox_list = []
             for button_instance in ground_truth_buttons:
-                bbox_list.extend(button_instance.bounding_box)
+                bbox_list.extend(button_instance.transformed_pos_xy)
             reshaped_list = np.array(bbox_list).reshape(-1)
             point_array_msg.data = reshaped_list.tolist()
 
@@ -141,13 +186,14 @@ class PreprocessingNode(Node):
             self.publisher_segmentation_bypass_points.publish(point_array_msg)
             self.publisher_segmentation_bypass_color.publish(transformed_color_msg)
         
-        else: # Not in debugging mode
-            self.publisher_depth.publish(transformed_depth_msg)
-            self.publisher_color.publish(transformed_color_msg)
+
+        self.publisher_depth.publish(transformed_depth_msg)
+        self.publisher_color.publish(transformed_color_msg)
         
+        self.setProgramState(ProgramState.SEGMENTATION_MODE)
+
         self.get_logger().info('Published transformed depth and color image')
-
-
+        
     def transform_depth(self, img, show=False):
         # Calculate median of ROI
         adjustedImg = np.array(img, dtype=np.uint16)

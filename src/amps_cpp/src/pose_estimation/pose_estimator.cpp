@@ -52,7 +52,7 @@ public:
         // Publishers and Subscribers
         this->frameSub_ = this->create_subscription<amps_cpp::msg::FrameWithPose>( "amps_cpp/pose_estimation/frame_with_pose", 10,
             std::bind(&PoseEstimation::frameCallback, this, _1));
-        this->programStatePub_ = this->create_publisher<ProgramState>("amps/program_state", 10);
+        this->programStatePub_ = this->create_publisher<ProgramState>("amps/set_program_state", 10);
         this->programStateSub_ = this->create_subscription<ProgramState>(
             "amps/program_state",
             10,

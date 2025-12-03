@@ -78,7 +78,7 @@ class GUI_node(Node):
         #-------------------------------------------------------------------------------
 
         #Publisher:
-        self.pub_state = self.create_publisher(ProgramState, 'amps/program_state', 10)
+        self.pub_state = self.create_publisher(ProgramState, 'amps/set_program_state', 10)
 
 
         #Sætter ProgramState til start position
