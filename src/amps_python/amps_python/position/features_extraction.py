@@ -4,6 +4,16 @@ import glob
 import numpy as np
 import os
 from sklearn.preprocessing import StandardScaler
+from amps_cpp.msg import ClassifiedButtonArray, ClassifiedButton
+import rclpy
+from rclpy.node import Node
+from sensor_msgs.msg import Image
+
+class KNN_Node(Node):
+    def __init__(self):
+        super().__init__("KNN_node")
+
+        self.image_subscription = self.create_subscription(ClassifiedButtonArray, "amps/training_data", KNN_callback,)
 
 
 
@@ -18,8 +28,6 @@ def balance_white(img):
     result[:,:,1] *= avg_gray / (avg_g + 1e-5)
     result[:,:,2] *= avg_gray / (avg_r + 1e-5)
     return np.clip(result, 0, 255).astype(np.uint8)
-
-
 
 #Henter feature af edges density, edge contours, standard deviation of intensity, mean intensity, mean hue, mean saturation, mean value
 def feature_extraction(roi_img):
@@ -64,41 +72,12 @@ def scatter_plot(X, y):
     plt.show()
 
 
+def KNN_callback():  
+      
 #main function to generate features and labels from dataset images
 #only run when this file is executed directly
 if __name__ == "__main__":
 
-    img_path = "datasets/test_images_dataset/btn_config_*" 
-    image_rgb_files = sorted(glob.glob(os.path.join(img_path, "**/color.png")))
-    for file_path in image_rgb_files:
-        img = cv.imread(file_path)
-
-    rois_1 = {
-        "circuitBreaker": (85, 150, 420, 530),
-        "SelectorSwitch": (540, 660, 590, 690),
-        "MainSwitch": (70, 220, 750, 900),
-        "Plug": (395, 490, 840, 895)
-    }  
-
-    rois_2 = {
-    "circuitBreaker": (240, 285, 420, 530),
-    "SelectorSwitch": (430, 530, 590, 690),
-    "MainSwitch": (225, 370, 750, 900),
-    "Plug": (395, 490, 755, 810)
-    }   
-
-    rois_3 = {
-    "circuitBreaker": (355, 405, 420, 530),
-    "SelectorSwitch": (200, 310, 590, 690),
-    }
-
-    rois_4 = {
-    "circuitBreaker": (455, 500, 420, 530),
-    "SelectorSwitch": (85, 180, 590, 690),
-    }   
-
-    #saml alle ROIs i en liste
-    rois_list = [rois_1, rois_2, rois_3, rois_4]
     X = []   # features
     y = []   # labels
 
@@ -145,7 +124,7 @@ if __name__ == "__main__":
 
     #print("TRAIN FEATURES:", X[0:10])
     
-    # Find den mappe hvor dit script ligger
+    #Path hvor KNN og scaler skal gemmes
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     folder = os.path.join(BASE_DIR, "npy_files")
 
