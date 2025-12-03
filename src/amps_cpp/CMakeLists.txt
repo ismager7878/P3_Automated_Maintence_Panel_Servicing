@@ -8,6 +8,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(ur_client_library REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
@@ -23,6 +25,7 @@ find_package(tinyxml2_vendor REQUIRED)
 find_package(TinyXML2 REQUIRED)
 find_package(realsense2_camera_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(unique_identifier_msgs REQUIRED)
 
 # Find Python and NumPy for rosidl_generator_py
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
@@ -121,7 +124,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/GroundTruth.msg"
   "msg/GroundTruthButton.msg"
   "msg/GripperStatus.msg"
-  DEPENDENCIES geometry_msgs sensor_msgs
+  "action/MoveGripper.action"
+  DEPENDENCIES geometry_msgs sensor_msgs unique_identifier_msgs
 )
 
 rosidl_get_typesupport_target(cpp_typesupport_target
