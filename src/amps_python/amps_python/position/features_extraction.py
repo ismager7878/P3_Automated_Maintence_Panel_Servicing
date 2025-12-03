@@ -73,33 +73,53 @@ if __name__ == "__main__":
     for file_path in image_rgb_files:
         img = cv.imread(file_path)
 
-
     rois_1 = {
-    "breaker": (85, 150, 420, 530),
-    "black_switch": (540, 660, 590, 690),
-    "red_switch": (70, 220, 750, 900)
+        "circuitBreaker": (85, 150, 420, 530),
+        "SelectorSwitch": (540, 660, 590, 690),
+        "MainSwitch": (70, 220, 750, 900),
+        "Plug": (395, 490, 840, 895)
     }  
 
     rois_2 = {
-    "breaker": (240, 285, 420, 530),
-    "black_switch": (430, 530, 590, 690),
-    "red_switch": (225, 370, 750, 900)
+    "circuitBreaker": (240, 285, 420, 530),
+    "SelectorSwitch": (430, 530, 590, 690),
+    "MainSwitch": (225, 370, 750, 900),
+    "Plug": (395, 490, 755, 810)
     }   
 
     rois_3 = {
-    "breaker": (355, 405, 420, 530),
-    "black_switch": (200, 310, 590, 690),
+    "circuitBreaker": (355, 405, 420, 530),
+    "SelectorSwitch": (200, 310, 590, 690),
     }
 
     rois_4 = {
-    "breaker": (455, 500, 420, 530),
-    "black_switch": (85, 180, 590, 690),
+    "circuitBreaker": (455, 500, 420, 530),
+    "SelectorSwitch": (85, 180, 590, 690),
     }   
 
     #saml alle ROIs i en liste
     rois_list = [rois_1, rois_2, rois_3, rois_4]
     X = []   # features
     y = []   # labels
+
+    for rois in rois_list:
+        for label, (y1, y2, x1, x2) in rois.items():
+
+            # FIX: koordinaterne kan være byttet → sorter dem
+            y_top    = min(y1, y2)
+            y_bottom = max(y1, y2)
+            x_left   = min(x1, x2)
+            x_right  = max(x1, x2)
+
+            # Tegn boks
+            cv.rectangle(img, (x_left, y_top), (x_right, y_bottom), (0, 255, 0), 2)
+            cv.putText(img, label, (x_left, y_top - 5),
+                    cv.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+
+    # --- VIS BILLEDE ---
+    cv.imshow("ROI debug", img)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
 
     for rois in rois_list:  # Brug det første billede som eksempel
         for label, (y1, y2, x1, x2) in rois.items():
@@ -123,14 +143,18 @@ if __name__ == "__main__":
     scaler = StandardScaler()
     X = scaler.fit_transform(X)
 
-    print("TRAIN FEATURES:", X[0:10])
-    np.save("features.npy", X)
-    np.save("labels.npy", y)
+    #print("TRAIN FEATURES:", X[0:10])
+    
+    # Find den mappe hvor dit script ligger
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    folder = os.path.join(BASE_DIR, "npy_files")
+
+    np.save(os.path.join(folder, "features.npy"), X)
+    np.save(os.path.join(folder, "labels.npy"), y)
 
 
-    np.save("scaler_mean.npy", scaler.mean_)
-    np.save("scaler_scale.npy", scaler.scale_)
+    np.save(os.path.join(folder, "scaler_mean.npy"), scaler.mean_)
+    np.save(os.path.join(folder, "scaler_scale.npy"), scaler.scale_)
 
 
     print("Feature generation DONE.")
-    scatter_plot(X, y)

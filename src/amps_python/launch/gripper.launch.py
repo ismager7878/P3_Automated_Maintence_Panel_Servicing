@@ -1,15 +1,39 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 import os
-    
+import sys
+
+
+def _resolve_venv_python():
+    """
+    Resolve the interpreter to use for the node.
+    Assumes the user runs from the workspace root and venv is at `.venv`.
+    Fallback to current interpreter if `.venv` isn't present.
+    """
+    cwd = os.getcwd()
+    candidate = os.path.join(cwd, ".venv", "bin", "python3")
+    if os.path.exists(candidate):
+        return candidate
+
+    # Fallback: try workspace root inferred from this file location (installed share path)
+    try:
+        launch_dir = os.path.dirname(os.path.realpath(__file__))
+        # When installed, this file lives under `<prefix>/share/amps_python/launch/`
+        # The workspace root (where `.venv` would be) is typically the CWD when launching.
+        # Still, attempt an additional heuristic going up a few levels.
+        ws_root_guess = os.path.abspath(os.path.join(launch_dir, "../../../../"))
+        candidate2 = os.path.join(ws_root_guess, ".venv", "bin", "python3")
+        if os.path.exists(candidate2):
+            return candidate2
+    except Exception:
+        pass
+
+    # Last resort: use the current interpreter
+    return sys.executable
+
+
 def generate_launch_description():
-    ws_path = os.path.expanduser("~/Documents/git_repos/P3_Automated_Maintence_Panel_Servicing")
-    venv_python = os.path.join(ws_path, ".venv", "bin", "python3")
-    
-    # # Automatically find the workspace root relative to this launch file to locate the .venv
-    # launch_dir = os.path.dirname(os.path.realpath(__file__))
-    # ws_root = os.path.abspath(os.path.join(launch_dir, "../../../"))  # go up from src/my_pkg/launch/
-    # venv_python = os.path.join(ws_root, ".venv", "bin", "python3")
+    venv_python = _resolve_venv_python()
 
     return LaunchDescription([
         Node(
@@ -17,6 +41,6 @@ def generate_launch_description():
             executable="gripper_node",
             name="gripper_node",
             output="screen",
-            prefix=[venv_python, " "],  # Run using venv Python
+            prefix=[venv_python, " "],
         ),
     ])

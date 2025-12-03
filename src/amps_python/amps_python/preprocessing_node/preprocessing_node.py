@@ -3,7 +3,7 @@ from rclpy.node import Node
 from cv_bridge import CvBridge
 import cv2 as cv
 import numpy as np
-from amps_cpp.msg import FrameWithPose, CroppedImgDebug, ClassifiedButton, ProgramState, GroundTruthButton, GroundTruth
+from amps_cpp.msg import FrameWithPose, ClassifiedButton, ProgramState, GroundTruthButton, GroundTruth
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32MultiArray
 import json
@@ -168,7 +168,7 @@ class PreprocessingNode(Node):
                         setattr(pub_msg, type_name, getattr(pub_msg, type_name) + [button_instance])
             
             self.publisher_ground_truth.publish(pub_msg)
-            self.get_logger().info('Published CroppedImgDebug message with transformed images.')
+            self.get_logger().info('Published GroundTruth message with transformed images.')
             
             # Also publish segmentation bypass topics
             # Reshape bounding boxes into a single list

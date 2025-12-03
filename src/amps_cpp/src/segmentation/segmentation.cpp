@@ -14,12 +14,9 @@
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include <cv_bridge/cv_bridge.hpp>
-
 #include "amps_cpp/msg/program_state.hpp"
-#include "amps_cpp/msg/cropped_img_debug.hpp"
 
 using ProgramState = amps_cpp::msg::ProgramState;
-using CroppedImgDebug = amps_cpp::msg::CroppedImgDebug;
 
 int test(int &minDepth, int &maxDepth, cv::Mat &depthFloat, cv::Mat &color);
 cv::Mat depth_check(int,int,cv::Mat&);
@@ -116,7 +113,7 @@ public:
         RCLCPP_INFO(this->get_logger(), "Segmentation started");
     */  segmentation(image, depth);
 
-        setProgramState(ProgramState::PREPROCESSING_MODE);
+        //setProgramState(ProgramState::OBJECT_DETECTION_MODE);
     }
 
 
@@ -436,7 +433,6 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
                             cv::Point point1(rect.x, rect.y);
                             cv::Point point2(rect.x + rect.width, rect.y + rect.height);
                             cv::rectangle(img, point1, point2, rectangleColor, 2, cv::LINE_AA);
-
                             number_of_blobs += 1;
                 }
             }
