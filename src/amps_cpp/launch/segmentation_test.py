@@ -54,7 +54,8 @@ def generate_launch_description():
         package='amps_cpp',
         executable='state_broadcaster',
         name='state_broadcaster_node',
-        output='screen'
+        output='screen',
+        arguments=['--ros-args', '--log-level', 'WARN']
     )
 
     set_state = ExecuteProcess(

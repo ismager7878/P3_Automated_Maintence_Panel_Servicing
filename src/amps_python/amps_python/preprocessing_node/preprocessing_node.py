@@ -76,7 +76,7 @@ class PreprocessingNode(Node):
 
     # Program state management
     def program_state_callback(self, msg):
-        self.get_logger().info(f'Received program state: {msg.state}')
+        #self.get_logger().info(f'Received program state: {msg.state}')
         self.current_state = msg.state
 
     def setProgramState(self, state:int, state_str:str = ""):

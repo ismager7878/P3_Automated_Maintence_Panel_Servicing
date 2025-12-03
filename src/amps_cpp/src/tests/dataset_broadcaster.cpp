@@ -39,7 +39,7 @@ public:
 private:
     void programStateCallback(const ProgramState::SharedPtr msg)
     {
-        RCLCPP_WARN(this->get_logger(), "Received program state: %d", msg->state);
+        RCLCPP_INFO(this->get_logger(), "Received program state: %d", msg->state);
         this->state = msg->state;
     }
 

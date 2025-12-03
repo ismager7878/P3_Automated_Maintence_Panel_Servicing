@@ -17,6 +17,7 @@ def generate_launch_description():
         executable='dataset_broadcaster',
         name='dataset_broadcaster',
         output='screen',
+        arguments=['--ros-args', '--log-level', 'WARN']
         
     )
 
@@ -32,7 +33,8 @@ def generate_launch_description():
         package='amps_cpp',
         executable='state_broadcaster',
         name='state_broadcaster_node',
-        output='screen'
+        output='screen',
+        arguments=['--ros-args', '--log-level', 'WARN']
     )
 
     button_state_detector = Node(
