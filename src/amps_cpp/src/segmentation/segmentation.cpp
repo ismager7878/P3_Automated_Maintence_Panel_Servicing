@@ -16,10 +16,8 @@
 #include <cv_bridge/cv_bridge.hpp>
 
 #include "amps_cpp/msg/program_state.hpp"
-#include "amps_cpp/msg/cropped_img_debug.hpp"
 
 using ProgramState = amps_cpp::msg::ProgramState;
-using CroppedImgDebug = amps_cpp::msg::CroppedImgDebug;
 
 int test(int &minDepth, int &maxDepth, cv::Mat &depthFloat, cv::Mat &color);
 cv::Mat depth_check(int,int,cv::Mat&);
