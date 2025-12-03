@@ -3,13 +3,11 @@ from launch_ros.actions import Node
 import os
     
 def generate_launch_description():
-    ws_path = os.path.expanduser("~/Github/P3_Automated_Maintence_Panel_Servicing/.venv")
-    venv_python = os.path.join(ws_path, "bin", "python3")
-    
-    # # Automatically find the workspace root relative to this launch file to locate the .venv
-    # launch_dir = os.path.dirname(os.path.realpath(__file__))
-    # ws_root = os.path.abspath(os.path.join(launch_dir, "../../../"))  # go up from src/my_pkg/launch/
-    # venv_python = os.path.join(ws_root, ".venv", "bin", "python3")
+    # Launch file runs from: install/amps_python/share/amps_python/launch/
+    # .venv is at workspace root, so go up 5 levels: ../../../../../.venv
+    launch_dir = os.path.dirname(os.path.realpath(__file__))
+    ws_root = os.path.abspath(os.path.join(launch_dir, "../../../../../"))
+    venv_python = os.path.join(ws_root, ".venv", "bin", "python3")
 
     return LaunchDescription([
         Node(

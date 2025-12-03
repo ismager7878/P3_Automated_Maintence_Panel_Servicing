@@ -17,6 +17,8 @@ ament-package==0.16.4
 ament-pep257==0.17.3
 ament-uncrustify==0.17.3
 ament-xmllint==0.17.3
+amps-cpp==0.0.0
+amps-python==0.0.0
 angles==1.16.1
 ansitable==0.11.4
 appdirs==1.4.4
@@ -138,6 +140,7 @@ importlib-metadata==4.12.0
 iniconfig==1.1.1
 interactive-markers==2.5.5
 Jinja2==3.1.2
+joblib==1.5.2
 joint-state-publisher==2.4.0
 joint-state-publisher-gui==2.4.0
 jsonpatch==1.32
@@ -319,6 +322,7 @@ rqt-shell==1.2.2
 rqt-srv==1.2.2
 rqt-topic==1.7.4
 rtb-data==1.0.1
+scikit-learn==1.7.2
 SciPy==1.11.4
 sensor-msgs==5.3.6
 sensor-msgs-py==5.3.6
@@ -348,6 +352,7 @@ tf2-py==0.36.16
 tf2-ros-py==0.36.16
 tf2-sensor-msgs==0.36.16
 tf2-tools==0.36.16
+threadpoolctl==3.6.0
 topic-monitor==0.33.7
 trajectory-msgs==5.3.6
 turtlesim==1.8.3
