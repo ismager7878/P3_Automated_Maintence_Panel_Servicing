@@ -76,6 +76,8 @@ private:
                 this->rgbFrames.push_back(colorImage);
                 this->depthFrames.push_back(depthImage);
 
+                this->imageFilePaths.push_back(line);
+
                 string buttonPose = line.substr(line.find("button_pose") + 11);
                 buttonPose = buttonPose.substr(0, buttonPose.find("/"));
 
@@ -122,6 +124,8 @@ private:
 
         msg.button_config = buttonPoses[currentFrameIndex];
 
+        msg.image_filename = imageFilePaths[currentFrameIndex];
+
         // Dummy pose data (identity matrix)
         msg.pose.header = header;
         msg.pose.pose.position.x = 0.0;
@@ -152,6 +156,7 @@ private:
     vector<cv::Mat> rgbFrames;
     vector<cv::Mat> depthFrames;
     vector<int> buttonPoses;
+    vector<string> imageFilePaths;
 };
 
 int main(int argc, char **argv)
