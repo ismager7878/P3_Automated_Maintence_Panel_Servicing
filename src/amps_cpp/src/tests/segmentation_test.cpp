@@ -89,11 +89,15 @@ private:
         }      */
         groundtruth_boundingbox.clear();
         groundtruth_filename.clear();
+        bottomtype.clear();
         RCLCPP_INFO(this->get_logger(), "Processing ground truth data in OBJECT_DETECTION_MODE.");
-        sortIntList(msg->selector_switch);
-        sortIntList(msg->circuit_breaker);
-        sortIntList(msg->main_switch);
-        sortIntList(msg->plug);
+        sortIntList(msg->circuit_breaker,"circuit_breaker");
+        sortIntList(msg->selector_switch,"selector_switch");
+        sortIntList(msg->main_switch,"main_switch");
+        sortIntList(msg->plug,"plug");
+        if(bottomtype.back() == ','){
+            bottomtype.pop_back();
+        }
         groundtruth_filename = msg->image_filename;
        
 
@@ -101,7 +105,7 @@ private:
 
 
 
-    void sortIntList(std::vector<GroundTruthButton>& button)
+    void sortIntList(std::vector<GroundTruthButton>& button,std::string type_of_button)
     {
         for(const auto& buttom_boundingbox : button) {
             if(buttom_boundingbox.transformed_pos_xy.size() >= 4){
@@ -109,22 +113,24 @@ private:
                 std::to_string(buttom_boundingbox.transformed_pos_xy[1]) + "," +  
                 std::to_string(buttom_boundingbox.transformed_pos_xy[2]) + "," +
                 std::to_string(buttom_boundingbox.transformed_pos_xy[3]) + "]";
+                bottomtype =  bottomtype + type_of_button + ",";
+
              
             }
         }    
           
     }
     
-    void logCorrection(std::string filename,std::string groundtruth_list, std::string boundingbox_list){
+    void logCorrection(std::string filename,std::string groundtruth_list, std::string boundingbox_list, std::string bottomtype){
 
         if(!this->accuracyLogFile){
             this->accuracyLogFile = CsvManager::CsvFile("segmenation/segmentation_accuracy_log.csv", 
-                {"Filename","Groundtruth_boundingbox","Detected_boundingbox"});     
+                {"Filename","bottomtype","Groundtruth_boundingbox","Detected_boundingbox"});     
         }
         
 
 
-        this->accuracyLogFile->addRow({filename, groundtruth_list, boundingbox_list}, true);
+        this->accuracyLogFile->addRow({filename, bottomtype, groundtruth_list, boundingbox_list}, true);
 
     }
 
@@ -174,11 +180,11 @@ private:
         } */
 
         setProgramState(ProgramState::PREPROCESSING_MODE);
-        logCorrection(groundtruth_filename, groundtruth_boundingbox, detected_boundingbox);
+        logCorrection(groundtruth_filename, groundtruth_boundingbox, detected_boundingbox, bottomtype);
         groundtruth_boundingbox.clear();
         detected_boundingbox.clear();
         groundtruth_filename.clear();
-        
+        bottomtype.clear();
         
         RCLCPP_INFO(this->get_logger(), "Current program state: %d",program_state_);
 
