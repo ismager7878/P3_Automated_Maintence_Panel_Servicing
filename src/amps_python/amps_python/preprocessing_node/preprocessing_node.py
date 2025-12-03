@@ -127,6 +127,7 @@ class PreprocessingNode(Node):
             gt = self.ground_truth_button_pose[num]
 
             pub_msg.btn_config = num
+            pub_msg.image_filename = sub_msg.image_filename
             
             # Map component type names to integer constants
             type_mapping = {
