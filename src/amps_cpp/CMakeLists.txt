@@ -21,8 +21,8 @@ find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(tinyxml2_vendor REQUIRED)
 find_package(TinyXML2 REQUIRED)
-<<<<<<< HEAD
 find_package(realsense2_camera_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
 
 # Find Python and NumPy for rosidl_generator_py
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
@@ -36,9 +36,8 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 include_directories(${Python3_INCLUDE_DIRS} ${NUMPY_INCLUDE_DIR})
-=======
-find_package(std_msgs REQUIRED)
->>>>>>> Segmentation
+
+
 
 
 ## Action Client
@@ -109,12 +108,19 @@ ament_target_dependencies(button_state_detector rclcpp sensor_msgs cv_bridge Ope
 add_executable(ground_truth_broadcaster src/tests/ground_truth_broadcaster.cpp)
 ament_target_dependencies(ground_truth_broadcaster rclcpp sensor_msgs cv_bridge OpenCV)
 
+##State Broadcaster
+add_executable(state_broadcaster src/state_broadcaster.cpp)
+ament_target_dependencies(state_broadcaster rclcpp std_msgs)
+
 ##Custom Interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FrameWithPose.msg"
   "msg/ProgramState.msg"
   "msg/ClassifiedButton.msg"
   "msg/ClassifiedButtonsArray.msg"
+  "msg/GroundTruth.msg"
+  "msg/GroundTruthButton.msg"
+  "msg/GripperStatus.msg"
   DEPENDENCIES geometry_msgs sensor_msgs
 )
 
@@ -126,8 +132,12 @@ target_link_libraries(pose_estimation "${cpp_typesupport_target}")
 target_link_libraries(action_client "${cpp_typesupport_target}")
 target_link_libraries(ur_wrapper "${cpp_typesupport_target}")
 target_link_libraries(segmentation "${cpp_typesupport_target}")
+target_link_libraries(state_broadcaster "${cpp_typesupport_target}")
 target_link_libraries(subscribe_segmentation "${cpp_typesupport_target}")
 target_link_libraries(publisher_segmentation "${cpp_typesupport_target}")
+target_link_libraries(button_state_detector "${cpp_typesupport_target}")
+target_link_libraries(ground_truth_broadcaster "${cpp_typesupport_target}")
+target_link_libraries(dataset_broadcaster "${cpp_typesupport_target}")
 
 
 ## Directories to include
@@ -143,6 +153,8 @@ install(TARGETS
   segmentation
   subscribe_segmentation
   publisher_segmentation
+  dataset_broadcaster
+  ground_truth_broadcaster
   DESTINATION lib/${PROJECT_NAME})
 
 ## Install libraries

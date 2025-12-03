@@ -3,8 +3,8 @@ from launch_ros.actions import Node
 import os
     
 def generate_launch_description():
-    ws_path = os.path.expanduser("~/anaconda3/envs/P3")
-    venv_python = os.path.join(ws_path, "bin", "python")
+    ws_path = os.path.expanduser("~/Github/P3_Automated_Maintence_Panel_Servicing/.venv")
+    venv_python = os.path.join(ws_path, "bin", "python3")
     
     # # Automatically find the workspace root relative to this launch file to locate the .venv
     # launch_dir = os.path.dirname(os.path.realpath(__file__))
