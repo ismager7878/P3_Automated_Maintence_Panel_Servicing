@@ -3,8 +3,15 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Exec
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+import os
 
 def generate_launch_description():
+    # Launch file runs from: install/amps_python/share/amps_python/launch/
+    # .venv is at workspace root, so go up 5 levels: ../../../../../.venv
+    launch_dir = os.path.dirname(os.path.realpath(__file__))
+    ws_root = os.path.abspath(os.path.join(launch_dir, "../../../../../"))
+    venv_python = os.path.join(ws_root, ".venv", "bin", "python3")
+
     ur_driver_launch_dir = PathJoinSubstitution([FindPackageShare('ur_robot_driver'), 'launch', 'ur_control.launch.py'])
     realsense_launch_dir = PathJoinSubstitution([FindPackageShare('realsense2_camera'), 'launch', 'rs_launch.py'])
     # Start the UR driver
@@ -30,7 +37,8 @@ def generate_launch_description():
     Handeye = Node(
         package="amps_python",
         executable="Handeye",
-        name="Handeye"
+        name="Handeye",
+        prefix=[venv_python, " "],
     )
 
     return LaunchDescription([
