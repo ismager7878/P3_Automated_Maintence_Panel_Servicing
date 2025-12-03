@@ -73,13 +73,11 @@ if __name__ == "__main__":
     for file_path in image_rgb_files:
         img = cv.imread(file_path)
 
-
     rois_1 = {
-    "circuitBreaker": (85, 150, 420, 530),
-    "SelectorSwitch": (540, 660, 590, 690),
-    "MainSwitch": (70, 220, 750, 900),
-    "Plug": (395, 490, 840, 895)
-
+        "circuitBreaker": (85, 150, 420, 530),
+        "SelectorSwitch": (540, 660, 590, 690),
+        "MainSwitch": (70, 220, 750, 900),
+        "Plug": (395, 490, 840, 895)
     }  
 
     rois_2 = {

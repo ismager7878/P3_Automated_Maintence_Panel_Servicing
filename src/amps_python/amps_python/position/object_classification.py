@@ -1,5 +1,5 @@
 from amps_python.position.features_extraction import feature_extraction
-from amps_cpp.msg import ClassifiedButton, ClassifiedButtonsArray
+from amps_cpp.msg import ClassifiedButton, ClassifiedButtonsArray, ProgramState
 import cv2 as cv
 import rclpy
 from rclpy.node import Node
@@ -24,6 +24,8 @@ class ObjectClassificationNode(Node):
 
         #Publicer ClassifiedButtonsArray
         self.classification_publisher = self.create_publisher(ClassifiedButtonsArray, 'object_classification_topic', 10)
+
+        self.programState_sub = self.create_publisher(ProgramState, 'amps/set_program_state', 10)
 
         #publicer billede med klassificering og bounding boxes for visualisering
         self.image_publisher = self.create_publisher(Image, 'classified_image', 10)
@@ -58,6 +60,13 @@ class ObjectClassificationNode(Node):
         self.received_image = False
         self.received_roi = False
         self.latest_roi = None
+
+    def set_program_state(self, state: int, state_str: str = ""):
+        program_state_msg = ProgramState()
+        program_state_msg.state = state
+        program_state_msg.state_str = state_str
+        self.programState_sub.publish(program_state_msg)
+
 
     #fremvisning billede som bruges til debugging
     def image_callback(self, msg):
@@ -245,6 +254,9 @@ class ObjectClassificationNode(Node):
 
         self.get_logger().info("classification Done")
         # Reset flags to wait for next image+ROI pair
+
+        self.set_program_state(ProgramState.PREPROCESSING_MODE)
+
         self.received_image = False
         self.received_roi = False 
 
