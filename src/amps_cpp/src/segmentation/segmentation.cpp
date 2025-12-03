@@ -14,7 +14,6 @@
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include <cv_bridge/cv_bridge.hpp>
-
 #include "amps_cpp/msg/program_state.hpp"
 
 using ProgramState = amps_cpp::msg::ProgramState;
@@ -434,7 +433,6 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
                             cv::Point point1(rect.x, rect.y);
                             cv::Point point2(rect.x + rect.width, rect.y + rect.height);
                             cv::rectangle(img, point1, point2, rectangleColor, 2, cv::LINE_AA);
-
                             number_of_blobs += 1;
                 }
             }
