@@ -72,7 +72,8 @@ def scatter_plot(X, y):
     plt.show()
 
 
-def KNN_callback():  
+def KNN_callback():
+    pass 
       
 #main function to generate features and labels from dataset images
 #only run when this file is executed directly
@@ -80,6 +81,10 @@ if __name__ == "__main__":
 
     X = []   # features
     y = []   # labels
+    rois_list = []  # List to store ROIs for each image
+    image_rgb_files = []
+    img = None
+
 
     for rois in rois_list:
         for label, (y1, y2, x1, x2) in rois.items():
