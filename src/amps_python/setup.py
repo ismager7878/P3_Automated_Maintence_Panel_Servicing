@@ -17,7 +17,13 @@ setup(
         (os.path.join('share', package_name, 'data', 'calibration-data'),
             glob('amps_python/data/calibration-data/*.xml')),
         (os.path.join('share', package_name, 'launch'),
-            glob('amps_python/launch_files/*.launch.py')),
+            glob('amps_python/launch/*.launch.py')),
+        ('share/amps_python/npy_files', [
+        'amps_python/position/npy_files/scaler_mean.npy',
+        'amps_python/position/npy_files/scaler_scale.npy',
+        'amps_python/position/npy_files/features.npy',
+        'amps_python/position/npy_files/labels.npy',
+        ]),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -34,6 +40,10 @@ setup(
         'console_scripts': [
             'realsense_node = amps_python.realsense_node:main',
             'Handeye = amps_python.position.Handeye:main',
+            'classified_image = amps_python.position.object_classification:main',
         ],
     },
 )
+
+
+#launch_files

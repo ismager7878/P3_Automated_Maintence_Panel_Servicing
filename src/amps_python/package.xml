@@ -23,6 +23,7 @@
   <exec_depend>threading</exec_depend>
   <exec_depend>ros2launch</exec_depend>
   <exec_depend>yaml</exec_depend>
+  <exec_depend>amps_cpp</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>

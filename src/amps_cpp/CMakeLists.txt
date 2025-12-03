@@ -83,6 +83,8 @@ ament_target_dependencies(frame_broadcaster rclcpp geometry_msgs tf2 tf2_geometr
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FrameWithPose.msg"
   "msg/ProgramState.msg"
+  "msg/ClassifiedButton.msg"
+  "msg/ClassifiedButtonsArray.msg"
   DEPENDENCIES geometry_msgs sensor_msgs
 )
 
