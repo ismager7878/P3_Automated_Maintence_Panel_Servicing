@@ -14,10 +14,12 @@
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include <cv_bridge/cv_bridge.hpp>
+
 #include "amps_cpp/msg/program_state.hpp"
+#include "amps_cpp/msg/cropped_img_debug.hpp"
 
 using ProgramState = amps_cpp::msg::ProgramState;
-
+using CroppedImgDebug = amps_cpp::msg::CroppedImgDebug;
 
 int test(int &minDepth, int &maxDepth, cv::Mat &depthFloat, cv::Mat &color);
 cv::Mat depth_check(int,int,cv::Mat&);
@@ -34,15 +36,24 @@ class Segmention : public rclcpp::Node
 public:
     Segmention() : Node("segmentation_public_node"), count_(0)
     {
-        publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("segmentation__topic", 10);
-        color_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_color",10,std::bind(&Segmention::color_callback,this,std::placeholders::_1));
-        depth_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_depth",10,std::bind(&Segmention::depth_callback,this,std::placeholders::_1));
+        this->color_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+            "amps_python/vision/transformed_color_image", 10, std::bind(&Segmention::color_callback,this,std::placeholders::_1)
+        );
 
-        programStatePub_ = this->create_publisher<ProgramState>("amps/set_program_state", 10);
-        programStateSub_ = this->create_subscription<ProgramState>(
+        this->depth_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+            "amps_python/vision/transformed_depth_image", 10, std::bind(&Segmention::depth_callback,this,std::placeholders::_1)
+        );
+
+        this->publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("segmentation__topic", 10);
+
+        // color_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_color",10,std::bind(&Segmention::color_callback,this,std::placeholders::_1));
+        // depth_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_depth",10,std::bind(&Segmention::depth_callback,this,std::placeholders::_1));
+
+        this->programStatePub_ = this->create_publisher<ProgramState>("amps/set_program_state", 10);
+        this->programStateSub_ = this->create_subscription<ProgramState>(
             "amps/program_state", 10,std::bind(&Segmention::programStateCallback, this, std::placeholders::_1)
         );
-        timer_= this->create_wall_timer(
+        this->timer_= this->create_wall_timer(
             std::chrono::milliseconds(500),
             std::bind(&Segmention::timer_callback, this));  
     }
@@ -50,13 +61,11 @@ public:
     private:
     rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr publisher_;
     
-    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr color_subscribe_;
-    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_subscribe_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr color_img_sub_;
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_img_sub_;
 
     rclcpp::Publisher<ProgramState>::SharedPtr programStatePub_;
     rclcpp::Subscription<ProgramState>::SharedPtr programStateSub_;
-
-    
 
     size_t count_;
     rclcpp::TimerBase::SharedPtr timer_;
@@ -73,13 +82,10 @@ public:
         programStateMsg.state_str = stateStr;
         this->programStatePub_->publish(programStateMsg);
         RCLCPP_INFO(this->get_logger(), "set state  %d",state);
-
     }
-
 
     void programStateCallback(const ProgramState::SharedPtr msg){
         program_state_ = msg->state;        
-
     }
 
     void color_callback(sensor_msgs::msg::Image::SharedPtr msg) {
@@ -93,20 +99,24 @@ public:
     }
     void timer_callback()
     {
+        //RCLCPP_INFO(this->get_logger(), "Segmentation timer callback triggered");
 
         if(program_state_ != ProgramState::SEGMENTATION_MODE){
-           /*  RCLCPP_WARN(this->get_logger(), "Waiting for preprocessing node to set state to SEGMENTATION_MODE");
-            RCLCPP_WARN(this->get_logger(), "Current state: %d",program_state_); */
+            RCLCPP_WARN(this->get_logger(), "Waiting for preprocessing node to set state to SEGMENTATION_MODE");
+            RCLCPP_WARN(this->get_logger(), "Current state: %d",program_state_);
             return;
 
         }
         if(image.size() != depth.size()|| image.empty() || depth.empty()){
-            /* RCLCPP_WARN(this->get_logger(), "Waiting for images to be received and aligned"); */
+            RCLCPP_WARN(this->get_logger(), "Waiting for images to be received and aligned");
             return;
         }
-/*         RCLCPP_INFO(this->get_logger(), "Segmentation started");
- */        segmentation(image, depth);
-        setProgramState(ProgramState::OBJECT_DETECTION_MODE);
+/*      
+
+        RCLCPP_INFO(this->get_logger(), "Segmentation started");
+    */  segmentation(image, depth);
+
+        setProgramState(ProgramState::PREPROCESSING_MODE);
     }
 
 
@@ -170,12 +180,12 @@ void segmentation(cv::Mat &image, cv::Mat &depth)
 
     cv::Mat depthMasked = dynamicDepthCheck(depth);
 /*     RCLCPP_INFO(this->get_logger(), "Displaying depth mask");
- */    //cv::imshow("depth image",depthMasked);
+ */ cv::imshow("depth image",depthMasked);
     Erode(depthMasked);
     Dilate(depthMasked);
     Dilate(depthMasked); 
     cv::imshow("newmaske image",depthMasked);
-
+    cv::waitKey(1);
 
     // Detect Aruco markers
     std::vector<int> markerIds;

@@ -67,6 +67,12 @@ target_include_directories(ur_wrapper PUBLIC
 ament_target_dependencies(ur_wrapper ur_dashboard_msgs ur_client_library ur_msgs std_srvs rclcpp geometry_msgs tf2 tf2_geometry_msgs control_msgs rclcpp_action rclcpp_components)
 rclcpp_components_register_node(ur_wrapper PLUGIN "ur_script_wrapper::UrScriptWrapper" EXECUTABLE ur_wrapper_node)
 
+add_executable(segmentation src/segmentation/segmentation.cpp)
+ament_target_dependencies(segmentation rclcpp sensor_msgs cv_bridge OpenCV std_msgs)
+
+##State Broadcaster
+add_executable(state_broadcaster src/state_broadcaster.cpp)
+ament_target_dependencies(state_broadcaster rclcpp std_msgs)
 
 ##Frame and Pose Matcher
 add_executable(fp_matcher src/pose_estimation/fp_matcher.cpp)
@@ -89,6 +95,10 @@ ament_target_dependencies(dataset_broadcaster rclcpp OpenCV sensor_msgs cv_bridg
 ##Button State Detector
 add_executable(button_state_detector src/button_state_detector/button_state_detector_node.cpp)
 ament_target_dependencies(button_state_detector rclcpp sensor_msgs cv_bridge OpenCV)
+
+##Ground Truth Broadcaster
+add_executable(ground_truth_broadcaster src/tests/ground_truth_broadcaster.cpp)
+ament_target_dependencies(ground_truth_broadcaster rclcpp sensor_msgs cv_bridge OpenCV)
 
 ##Custom Interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -113,7 +123,10 @@ target_link_libraries(action_client "${cpp_typesupport_target}")
 target_link_libraries(ur_wrapper "${cpp_typesupport_target}")
 target_link_libraries(dataset_broadcaster "${cpp_typesupport_target}")
 target_link_libraries(button_state_detector "${cpp_typesupport_target}")
-
+target_link_libraries(segmentation "${cpp_typesupport_target}")
+target_link_libraries(state_broadcaster "${cpp_typesupport_target}")
+target_link_libraries(frame_broadcaster "${cpp_typesupport_target}")
+target_link_libraries(ground_truth_broadcaster "${cpp_typesupport_target}")
 
 
 ## Directories to include
@@ -122,10 +135,13 @@ target_link_libraries(button_state_detector "${cpp_typesupport_target}")
 ## Install executables
 install(TARGETS 
   button_state_detector
+  state_broadcaster
   fp_matcher
   pose_estimation
   frame_broadcaster
   dataset_broadcaster
+  segmentation
+  ground_truth_broadcaster
   DESTINATION lib/${PROJECT_NAME})
 
 ## Install libraries

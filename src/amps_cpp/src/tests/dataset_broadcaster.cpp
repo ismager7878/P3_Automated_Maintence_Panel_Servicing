@@ -1,5 +1,6 @@
 #include "rclcpp/rclcpp.hpp"
 #include "amps_cpp/msg/frame_with_pose.hpp"
+#include "amps_cpp/msg/program_state.hpp"
 
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.hpp>
@@ -11,12 +12,19 @@
 using namespace std;
 
 using FrameWithPose = amps_cpp::msg::FrameWithPose;
+using ProgramState = amps_cpp::msg::ProgramState;
 
 class DatasetBroadcaster : public rclcpp::Node
 {
 public:
     DatasetBroadcaster() : Node("dataset_broadcaster_node")
     {
+
+        statePub_ = this->create_publisher<ProgramState>("amps/set_program_state", 10);
+        stateSub_ = this->create_subscription<ProgramState>(
+            "amps/program_state", 10,
+            std::bind(&DatasetBroadcaster::programStateCallback, this, std::placeholders::_1)
+        );
 
         framePub_ = this->create_publisher<FrameWithPose>("amps_cpp/pose_estimation/frame_with_pose", 10);
 
@@ -25,10 +33,15 @@ public:
         load_dataset();
 
         timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(1000),
+            std::chrono::milliseconds(1500),
             std::bind(&DatasetBroadcaster::replay_data, this));          
     }
 private:
+    void programStateCallback(const ProgramState::SharedPtr msg)
+    {
+        RCLCPP_WARN(this->get_logger(), "Received program state: %d", msg->state);
+        this->state = msg->state;
+    }
 
     void load_dataset()
     {
@@ -76,53 +89,64 @@ private:
     void replay_data()
     {
         RCLCPP_INFO(this->get_logger(), "Replaying dataset...");
-        for(size_t i = 0; i < this->rgbFrames.size(); i++)
-        {
-            RCLCPP_INFO(this->get_logger(), "Publishing frame %ld", i);
 
-            FrameWithPose msg;
-
-            // Convert cv::Mat to sensor_msgs::msg::Image
-            std_msgs::msg::Header header;
-            header.stamp = this->now();
-            header.frame_id = "dataset_frame";
-
-            RCLCPP_INFO(this->get_logger(), "Converting frames to ROS Image messages...");
-
-            cv_bridge::CvImage colorCvImage(header, "bgr8", rgbFrames[i]);
-            cv_bridge::CvImage depthCvImage(header, "16UC1", depthFrames[i]);
-
-            RCLCPP_INFO(this->get_logger(), "Assigning frames to message...");  
-
-            msg.rgb_frame = *colorCvImage.toImageMsg();
-            msg.depth_frame = *depthCvImage.toImageMsg();
-
-            msg.button_config = buttonPoses[i];
-
-            // Dummy pose data (identity matrix)
-            msg.pose.header = header;
-            msg.pose.pose.position.x = 0.0;
-            msg.pose.pose.position.y = 0.0;
-            msg.pose.pose.position.z = 0.0;
-            msg.pose.pose.orientation.x = 0.0;
-            msg.pose.pose.orientation.y = 0.0;
-            msg.pose.pose.orientation.z = 0.0;
-            msg.pose.pose.orientation.w = 0.0;
-
-            framePub_->publish(msg);
-
-            if(!rclcpp::ok()) {
-                RCLCPP_INFO(this->get_logger(), "ROS shutdown detected, stopping dataset replay.");
-                break;
-            }
-
-            rclcpp::sleep_for(std::chrono::milliseconds(500));
+        if(currentFrameIndex >= rgbFrames.size()){
+            RCLCPP_WARN(this->get_logger(), "All frames have been published, restarting from beginning.");
+            currentFrameIndex = 0;
         }
+
+        if(this->state != ProgramState::PREPROCESSING_MODE){
+            RCLCPP_WARN(this->get_logger(), "Current state is not PREPROCESSING, skipping frame publishing.");
+            RCLCPP_WARN(this->get_logger(), "Current state: %d",this->state);
+            return;
+        }
+        
+        RCLCPP_INFO(this->get_logger(), "Publishing frame %ld", currentFrameIndex);
+
+        FrameWithPose msg;
+
+        // Convert cv::Mat to sensor_msgs::msg::Image
+        std_msgs::msg::Header header;
+        header.stamp = this->now();
+        header.frame_id = "dataset_frame";
+
+        RCLCPP_INFO(this->get_logger(), "Converting frames to ROS Image messages...");
+
+        cv_bridge::CvImage colorCvImage(header, "bgr8", rgbFrames[currentFrameIndex]);
+        cv_bridge::CvImage depthCvImage(header, "16UC1", depthFrames[currentFrameIndex]);
+
+        RCLCPP_INFO(this->get_logger(), "Assigning frames to message...");  
+
+        msg.rgb_frame = *colorCvImage.toImageMsg();
+        msg.depth_frame = *depthCvImage.toImageMsg();
+
+        msg.button_config = buttonPoses[currentFrameIndex];
+
+        // Dummy pose data (identity matrix)
+        msg.pose.header = header;
+        msg.pose.pose.position.x = 0.0;
+        msg.pose.pose.position.y = 0.0;
+        msg.pose.pose.position.z = 0.0;
+        msg.pose.pose.orientation.x = 0.0;
+        msg.pose.pose.orientation.y = 0.0;
+        msg.pose.pose.orientation.z = 0.0;
+        msg.pose.pose.orientation.w = 0.0;
+
+        framePub_->publish(msg);
+
+        currentFrameIndex++;
     }
 
 
     rclcpp::Publisher<FrameWithPose>::SharedPtr framePub_;
     rclcpp::TimerBase::SharedPtr timer_;
+
+    rclcpp::Publisher<ProgramState>::SharedPtr statePub_;
+    rclcpp::Subscription<ProgramState>::SharedPtr stateSub_;
+
+    int state = 0;
+
+    size_t currentFrameIndex = 0;
 
     string datasetPath;
     vector<cv::Mat> rgbFrames;
