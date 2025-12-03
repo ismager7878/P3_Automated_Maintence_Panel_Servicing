@@ -116,7 +116,7 @@ public:
         RCLCPP_INFO(this->get_logger(), "Segmentation started");
     */  segmentation(image, depth);
 
-        setProgramState(ProgramState::PREPROCESSING_MODE);
+        //setProgramState(ProgramState::OBJECT_DETECTION_MODE);
     }
 
 
