@@ -18,7 +18,9 @@ class ObjectClassificationNode(Node):
         super().__init__('object_classification_node')
         
         #subscribe til segmenteret billede
-        self.image_subscription = self.create_subscription(Image, 'segmentation_test_color', self.image_callback, 10)
+        self.image_subscription = self.create_subscription(Image, 'amps_python/vision/transformed_color_image', self.image_callback, 10)
+        #subscribe til depth billede
+        self.depth_subscription = self.create_subscription(Image, 'amps_python/vision/transformed_depth_image', self.depth_callback, 10)
         #subscribe til roi fra segmentation node
         self.roi_subscription = self.create_subscription(Float32MultiArray, 'segmentation__topic', self.roi_callback, 10)
 
@@ -32,6 +34,7 @@ class ObjectClassificationNode(Node):
 
         self.bridge = CvBridge()
         self.current_image = None
+        self.current_depth = None
 
         #path to saved data
         folder = os.path.join(
@@ -58,6 +61,7 @@ class ObjectClassificationNode(Node):
 
         self.processed = False
         self.received_image = False
+        self.received_depth = False
         self.received_roi = False
         self.latest_roi = None
 
@@ -76,7 +80,17 @@ class ObjectClassificationNode(Node):
         self.current_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
         self.received_image = True
 
-        if self.received_roi:
+        if self.received_roi and self.received_depth:
+            self.process_roi()
+
+    def depth_callback(self, msg):
+        #if self.processed:
+            #return
+        
+        self.current_depth = self.bridge.imgmsg_to_cv2(msg, desired_encoding='8UC1')
+        self.received_depth = True
+
+        if self.received_roi and self.received_image:
             self.process_roi()
 
     def roi_callback(self, msg):
@@ -87,7 +101,7 @@ class ObjectClassificationNode(Node):
         self.latest_roi = np.array(msg.data).reshape(-1, 4)
         self.received_roi = True
 
-        if self.received_image:
+        if self.received_image and self.received_depth:
             self.process_roi()
 
 
@@ -123,6 +137,11 @@ class ObjectClassificationNode(Node):
         #Opret array til at samle alle klassificerede buttons
         buttons_array = ClassifiedButtonsArray()
         buttons_array.buttons = []
+        
+        # Set the RGB and depth images in the message
+        buttons_array.rgb_image = self.bridge.cv2_to_imgmsg(image, encoding='bgr8')
+        # Use the actual depth image received
+        buttons_array.depth_image = self.bridge.cv2_to_imgmsg(self.current_depth, encoding='mono8')
 
         #loop gennem alle ROIs og klassificer dem
         for (x1, y1, x2, y2) in rois:
@@ -255,10 +274,12 @@ class ObjectClassificationNode(Node):
         self.get_logger().info("classification Done")
         # Reset flags to wait for next image+ROI pair
 
-        self.set_program_state(ProgramState.PREPROCESSING_MODE)
+        
+        ##self.set_program_state(ProgramState.PREPROCESSING_MODE)
 
         self.received_image = False
-        self.received_roi = False 
+        self.received_depth = False
+        self.received_roi = False
 
 def main(args=None):
     rclpy.init(args=args)
