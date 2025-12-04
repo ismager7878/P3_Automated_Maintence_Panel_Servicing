@@ -6,8 +6,9 @@ from datetime import datetime
 from rclpy.qos import QoSProfile
 # fra rosidl_runtime_py eller rclpy_message_converter
 from rosidl_runtime_py.convert import message_to_ordereddict
-from amps_cpp.msg import ClassifiedButtonArray
-from amps_cpp.msg import ClassifiedButton
+from amps_cpp.msg import ClassifiedButtonsArray
+from amps_cpp.msg import GroundTruth
+from amps_cpp.msg import GroundTruthButton
 
 
 class CallibrationTest(Node):
@@ -17,16 +18,20 @@ class CallibrationTest(Node):
         
         # classification subscription
         self.create_subscription(
-            ClassifiedButtonArray,
+            ClassifiedButtonsArray,
             'object_classification_topic',
-            self.callback,
+            self.classification_callback,
             qos
         )
 
-        # classification subscription:
+        # Groundtruth subscription:
         self.create_subscription(
-            
+            GroundTruth,
+            "amps/ground_truth",
+            self.ground_truth_callback,
+            qos
         )
+        self.get_logger().info("Noden kører :)")
 
 
     def classification_callback(self, msg):
@@ -36,12 +41,20 @@ class CallibrationTest(Node):
             self.get_logger().warn(f"Konverteringsfejl: {e}")
             return
         # Konverter OrderedDict til almindelig dict for JSON
-        self.data = json.loads(json.dumps(od, default=str))
+        self.data = json.loads(json.dumps(od, default=str, indent=4))
+        self.get_logger().info(f"message fra lukas: {self.data}")
       
     
     def ground_truth_callback(self, msg):
+        try:
+            od = message_to_ordereddict(msg)
+        except Exception as e:
+            self.get_logger().warn(f"Konverteringsfejl: {e}")
+            return
+        # Konverter OrderedDict til almindelig dict for JSON
+        self.data_truth = json.loads(json.dumps(od, default=str, indent=4))
+        #self.get_logger().info(f"ground_truth: {self.data_truth}")
         
-        self.message_GT_number # Tjekk om dette custom topic giver en str eller int
 
 
     def grab_classification(self):

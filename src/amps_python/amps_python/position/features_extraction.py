@@ -4,7 +4,7 @@ import glob
 import numpy as np
 import os
 from sklearn.preprocessing import StandardScaler
-from amps_cpp.msg import ClassifiedButtonArray, ClassifiedButton
+from amps_cpp.msg import ClassifiedButtonsArray, ClassifiedButton
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
@@ -13,7 +13,7 @@ class KNN_Node(Node):
     def __init__(self):
         super().__init__("KNN_node")
 
-        self.image_subscription = self.create_subscription(ClassifiedButtonArray, "amps/training_data", KNN_callback,)
+        self.image_subscription = self.create_subscription(ClassifiedButtonsArray, "amps/training_data", KNN_callback,)
 
 
 

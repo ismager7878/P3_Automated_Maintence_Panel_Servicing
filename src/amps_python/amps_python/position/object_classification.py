@@ -245,10 +245,13 @@ class ObjectClassificationNode(Node):
             buttons_array.buttons.append(classifiedButton)
 
         #publicer alle klassificerede buttons og billedet med visualisering
-        self.get_logger().info(f"Publishing {len(buttons_array.buttons)} buttons")
-        self.classification_publisher.publish(buttons_array)
-        
         image_msg = self.bridge.cv2_to_imgmsg(image, encoding='bgr8')
+
+        buttons_array.rgb_image = image_msg
+
+        self.get_logger().info(f"Publishing {len(buttons_array.buttons)} buttons")
+        self.classification_publisher.publish(buttons_array)        
+        
         self.image_publisher.publish(image_msg)
         time.sleep(0.1)
 
