@@ -45,6 +45,7 @@ setup(
             "GUI = amps_python.GUI.GUI:main",
             'preprocessing_node = amps_python.preprocessing_node.preprocessing_node:main',
             'classified_image = amps_python.position.object_classification:main',
+            'knn_node = amps_python.position.features_extraction:main',
         ],
     },
 )

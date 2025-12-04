@@ -13,6 +13,15 @@ import os
 from ament_index_python.packages import get_package_share_directory
 import time
 
+
+def find_workspace_root(start_path):
+    current = start_path
+    while current != "/":
+        if "src" in os.listdir(current) and "install" in os.listdir(current):
+            return current
+        current = os.path.abspath(os.path.join(current, ".."))
+    raise RuntimeError("Workspace root not found")
+
 class ObjectClassificationNode(Node):
     def __init__(self):
         super().__init__('object_classification_node')
@@ -34,10 +43,9 @@ class ObjectClassificationNode(Node):
         self.current_image = None
 
         #path to saved data
-        folder = os.path.join(
-            get_package_share_directory("amps_python"),
-            "npy_files"
-        )
+        BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+        WORKSPACE_ROOT = find_workspace_root(BASE_DIR)
+        folder = os.path.join(WORKSPACE_ROOT, "datasets", "KNN_scaler_data")
 
         #load scaler parameters
         self.mean = np.load(os.path.join(folder, "scaler_mean.npy"))
