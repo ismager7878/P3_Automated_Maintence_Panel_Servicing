@@ -125,7 +125,7 @@ private:
 
         if(!this->accuracyLogFile){
             this->accuracyLogFile = CsvManager::CsvFile("segmenation/segmentation_accuracy_log.csv", 
-                {"Filename","bottomtype","Groundtruth_boundingbox","Detected_boundingbox"});     
+                {"Filename","Bottom_type","Groundtruth_boundingbox","Detected_boundingbox"});     
         }
         
 
