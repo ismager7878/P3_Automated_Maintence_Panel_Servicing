@@ -102,6 +102,11 @@ def generate_launch_description():
         ]
     )
 
+    state_broadcaster = ExecuteProcess(
+        cmd=['ros2', 'run', 'amps_cpp', 'state_broadcaster'],
+        output='screen'
+    )
+
     staticCamFrameBroadcaster = Node(
     package='tf2_ros',
     executable='static_transform_publisher',
@@ -125,4 +130,5 @@ def generate_launch_description():
         realsense_camera,
         foxglove_bridge,
         delayed_nodes_start,
+        state_broadcaster
     ])

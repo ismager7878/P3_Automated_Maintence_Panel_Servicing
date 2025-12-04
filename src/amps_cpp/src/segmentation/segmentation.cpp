@@ -249,7 +249,7 @@ cv::Mat dynamicDepthCheck(cv::Mat &depth_img){
     int maxDepth = median - 3;  
 
     minDepth = 1;
-    maxDepth = 130;
+    maxDepth = 135;
     cv::Mat mask; 
     cv::inRange(depth_img,minDepth,maxDepth,mask);  
 
