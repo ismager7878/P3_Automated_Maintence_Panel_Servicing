@@ -1,0 +1,170 @@
+[
+  {
+    "type": 4,
+    "state": "",
+    "bounding_box": [
+      536,
+      374,
+      584,
+      451
+    ],
+    "dot_position": [
+      560,
+      412
+    ]
+  },
+  {
+    "type": 4,
+    "state": "",
+    "bounding_box": [
+      382,
+      60,
+      463,
+      143
+    ],
+    "dot_position": [
+      422,
+      101
+    ]
+  },
+  {
+    "type": 4,
+    "state": "",
+    "bounding_box": [
+      536,
+      209,
+      673,
+      335
+    ],
+    "dot_position": [
+      604,
+      272
+    ]
+  },
+  {
+    "type": 1,
+    "state": "",
+    "bounding_box": [
+      383,
+      418,
+      449,
+      502
+    ],
+    "dot_position": [
+      416,
+      460
+    ]
+  },
+  {
+    "type": 1,
+    "state": "",
+    "bounding_box": [
+      375,
+      534,
+      448,
+      626
+    ],
+    "dot_position": [
+      411,
+      580
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      36,
+      565,
+      110,
+      636
+    ],
+    "dot_position": [
+      73,
+      600
+    ]
+  },
+  {
+    "type": 1,
+    "state": "",
+    "bounding_box": [
+      481,
+      500,
+      681,
+      553
+    ],
+    "dot_position": [
+      581,
+      526
+    ]
+  },
+  {
+    "type": 4,
+    "state": "",
+    "bounding_box": [
+      385,
+      296,
+      449,
+      370
+    ],
+    "dot_position": [
+      417,
+      333
+    ]
+  },
+  {
+    "type": 4,
+    "state": "",
+    "bounding_box": [
+      382,
+      179,
+      450,
+      254
+    ],
+    "dot_position": [
+      416,
+      216
+    ]
+  },
+  {
+    "type": 1,
+    "state": "",
+    "bounding_box": [
+      213,
+      61,
+      295,
+      117
+    ],
+    "dot_position": [
+      254,
+      89
+    ]
+  },
+  {
+    "type": 3,
+    "state": "",
+    "bounding_box": [
+      535,
+      59,
+      674,
+      187
+    ],
+    "dot_position": [
+      604,
+      123
+    ]
+  },
+  {
+    "type": 4,
+    "state": "",
+    "bounding_box": [
+      617,
+      374,
+      668,
+      452
+    ],
+    "dot_position": [
+      642,
+      413
+    ]
+  }
+]

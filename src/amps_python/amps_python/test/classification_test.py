@@ -33,38 +33,66 @@ class CallibrationTest(Node):
         )
         self.get_logger().info("Noden kører :)")
 
+        self.frame_id = 0
+
+        # stier til mapperne
+        self.test_folder = "tests/Classification_test/Button_recognition_test/data"
+        self.ground_truth_folder = "tests/Classification_test/Button_recognition_test/Ground_truth"
+
+        # holder styr på button config
+        self.btn_config = -1        
+
+        self.folder_size = len(os.listdir(self.test_folder))
+
+        self.data_id = None
+        self.ground_truth = None
+
 
     def classification_callback(self, msg):
-        try:
-            od = message_to_ordereddict(msg)
-        except Exception as e:
-            self.get_logger().warn(f"Konverteringsfejl: {e}")
-            return
-        # Konverter OrderedDict til almindelig dict for JSON
-        self.data = json.loads(json.dumps(od, default=str, indent=4))
-        self.get_logger().info(f"message fra lukas: {self.data}")
-      
+            buttons_list = []
+
+            for btn in msg.buttons:
+                buttons_list.append({
+                    "type": btn.type,
+                    "state": btn.state,
+                    "bounding_box": list(btn.bounding_box),
+                    "dot_position": list(btn.dot_position)
+                })
+
+            #filename_data = os.path.join(self.test_folder, f"classification_{self.frame_id}")
+            #filename_ground = os.path.join(self.ground_truth_folder, f"btn_cf:{self.btn_config}_img:{self.frame_id}")
+
+            filename_data = os.path.join(self.test_folder, f"data:{self.data_id}")
+            filename_ground = os.path.join(self.ground_truth_folder, f"truth:{self.data_id}")
+
+            # Opret mappen hvis den ikke eksisterer
+            os.makedirs(os.path.dirname(filename_data), exist_ok=True)
+            os.makedirs(os.path.dirname(filename_ground), exist_ok=True)
+
+            with open(filename_data, "w") as f:
+                json.dump(buttons_list, f, indent=2)
+
+            self.get_logger().info(f"Saved: {filename_data}")
+            self.frame_id += 1
+
+            if self.ground_truth is not None:
+                with open(filename_ground, "w") as f:
+                    json.dump(self.ground_truth, f, indent=2)
+                self.get_logger().info(f"Saved: {filename_ground}")
+            else:
+                self.get_logger().warn("Ingen ground truth data endnu")
+        
     
     def ground_truth_callback(self, msg):
-        try:
-            od = message_to_ordereddict(msg)
-        except Exception as e:
-            self.get_logger().warn(f"Konverteringsfejl: {e}")
-            return
-        # Konverter OrderedDict til almindelig dict for JSON
-        self.data_truth = json.loads(json.dumps(od, default=str, indent=4))
-        #self.get_logger().info(f"ground_truth: {self.data_truth}")
-        
+        image_filename = msg.image_filename
+        self.btn_config     = msg.btn_config
+        self.ground_truth = message_to_ordereddict(msg)  # hele beskeden som nested dic
+        #self.get_logger().error(self.image_filename)
 
+        prefix = "datasets/auto_aligned_dataset"
+        self.data_id = image_filename[len(prefix):]   
 
-    def grab_classification(self):
-        pass
-
-    def grab_GT(self):
-        pass
-
-
-
+    
 def main(args=None):
     rclpy.init(args=args)
     node = CallibrationTest()

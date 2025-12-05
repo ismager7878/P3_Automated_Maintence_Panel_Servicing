@@ -1,5 +1,6 @@
 import json
 import numpy as np
+import os
 
 g_button_pose1 = 'datasets/auto_aligned_dataset/button_pose1/ground_truth.json'
 t_button       = "src/amps_python/amps_python/test/prøve-json"
@@ -218,5 +219,91 @@ def test_PR(ground_truth_file_path, test_file_path):
     print(f"Precision: {precision} recall: {recall} f1 score: {f1_score}")
 
 
+def grab_test_data():
+    root_test   = "tests/Classification_test/Button_recognition_test/data/data:"
+    root_ground = "tests/Classification_test/Button_recognition_test/Ground_truth/truth:"
 
-test_PR(g_button_pose1,t_button)
+    test_filer = []
+    for dirpath, dirnames, filenames in os.walk(root_test):
+        for fil in filenames:
+            test_filer.append(os.path.join(dirpath, fil))
+
+    # Saml ground-truth-filer
+    ground_filer = []
+    for dirpath, dirnames, filenames in os.walk(root_ground):
+        for fil in filenames:
+            ground_filer.append(os.path.join(dirpath, fil))
+
+    # Sortér hvis rækkefølgen skal matche
+    test_filer.sort()
+    ground_filer.sort()
+
+    # Lav par (én test, én ground_truth)
+    for test_fil, ground_fil in zip(test_filer, ground_filer):
+        print("Test fil:     ", test_fil)
+        print("Ground truth: ", ground_fil)
+        print("----")
+
+
+
+#def grab_ground_truth():
+
+grab_test_data()
+
+"""
+def eval_button(button_type):
+    b_list = []
+    r_list = []
+    m_list = []
+    p_list = []
+    no_match = []
+
+    for i in range(len(button_type)):
+        iou_breaker = []
+        iou_rotary = []
+        iou_main = []
+        iou_plug = []
+
+        # Check button i agains all ground truth buttons:
+
+        for j in range(len(g_breaker)):
+            iou_b = IoU(button_type[i], g_breaker[j])
+            if iou_b > 0:
+                iou_breaker.append(iou_b)
+            else: iou_breaker.append(0)
+        
+        for j in range(len(g_rotory)):
+            iou_r = IoU(button_type[i], g_rotory[j])
+            if iou_r > 0:
+                iou_rotary.append(iou_r)
+            else: iou_rotary.append(0)
+            
+        for j in range(len(g_main)):
+            iou_m = IoU(button_type[i], g_main[j])
+            if iou_m > 0:
+                iou_main.append(iou_m)
+            else: iou_main.append(0)
+        
+        for j in range(len(g_plug)):
+            iou_p = IoU(button_type[i], g_plug[j])
+            if iou_p > 0:
+                iou_plug.append(iou_p)
+            else: iou_plug.append(0)
+
+        # Check best IoU match:
+        b_match = max(iou_breaker)
+        r_match = max(iou_rotary)
+        m_match = max(iou_main)
+        p_match = max(iou_plug)
+
+        b_list.append(b_match)
+        r_list.append(r_match)
+        m_list.append(m_match)
+        p_list.append(p_match)
+
+        if max(b_match, r_match, m_match, p_match) < 0.5:
+            no_match.append(1)
+
+    
+    return b_list, r_list, m_list, p_list, no_match
+"""

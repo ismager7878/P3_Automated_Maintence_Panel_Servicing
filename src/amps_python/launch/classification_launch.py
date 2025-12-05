@@ -19,6 +19,15 @@ def generate_launch_description():
              PathJoinSubstitution([FindPackageShare('amps_cpp'), 'launch', 'segmentation_test.py'])
         ),
        
+       #vi skal måske lave en separat launch fil:
+        Node(
+            package="amps_python",
+            executable="classi_test",
+            name="classi_test",
+            output="screen",
+            prefix=[venv_python, " "],
+        ),
+
         Node(
             package="amps_python",
             executable="classified_image",
