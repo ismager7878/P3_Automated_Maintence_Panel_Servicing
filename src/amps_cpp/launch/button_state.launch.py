@@ -1,60 +1,54 @@
 from launch_ros.actions import Node
-from launch.actions import IncludeLaunchDescription, TimerAction, ExecuteProcess
+from launch.actions import IncludeLaunchDescription, TimerAction, ExecuteProcess, DeclareLaunchArgument
 from launch import LaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
 import os
 from ament_index_python.packages import get_package_share_directory
 
+from launch.conditions import IfCondition, UnlessCondition
+
+
 
 def generate_launch_description():
-    preprocessing = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('amps_python'), 'launch', 'preprocessing.launch.py')]),
+    training_data_converter = IncludeLaunchDescription(
+        PathJoinSubstitution([FindPackageShare('amps_cpp'), 'launch', 'training_data.launch.py']),
+        condition=UnlessCondition(LaunchConfiguration('use_classification'))
     )
 
-    dataset_broadcaster = Node(
+
+    classificationNode = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([os.path.join(
+                get_package_share_directory('amps_python'), 'launch', 'classification_launch.py')]),
+            condition=IfCondition(LaunchConfiguration('use_classification'))
+    )
+
+    button_state_detector_test = Node(
         package='amps_cpp',
-        executable='dataset_broadcaster',
-        name='dataset_broadcaster',
+        executable='button_state_detector',
+        name='button_state_detector',
         output='screen',
-        
-    )
-
-    ground_truth_broadcaster = Node(
-        package='amps_cpp',
-        executable='ground_truth_broadcaster',
-        name='ground_truth_broadcaster',
-        output='screen',
-        arguments=['--ros-args', '--log-level', 'WARN']
-    )
-
-    state_broadcaster_node = Node(
-        package='amps_cpp',
-        executable='state_broadcaster',
-        name='state_broadcaster_node',
-        output='screen'
-    )
+        condition=UnlessCondition(LaunchConfiguration('use_classification'))
+    )  
 
     button_state_detector = Node(
         package='amps_cpp',
         executable='button_state_detector',
         name='button_state_detector',
         output='screen',
-    )   
-
-    set_state = ExecuteProcess(
-        cmd=['ros2', 'topic', 'pub', '--once', '/amps/set_program_state', 'amps_cpp/msg/ProgramState', '{state: 7, state_str: "inital_state"}'],
-        output='screen',
+        remappings=[('/amps/training_data', 'object_classification_topic')],
+        condition=IfCondition(LaunchConfiguration('use_classification'))
     )
 
     return LaunchDescription([
-        preprocessing,
-        dataset_broadcaster,
+        DeclareLaunchArgument(
+            'use_classification',
+            default_value='true',
+            description='Whether to use test data or use live data from the robot.'
+        ),
+        training_data_converter,
         button_state_detector,
-        ground_truth_broadcaster,
-        state_broadcaster_node,
-        TimerAction(
-            period=2.0,  # Wait for other nodes to initialize
-            actions=[set_state]
-        )
+        classificationNode,
+        button_state_detector_test,
     ])

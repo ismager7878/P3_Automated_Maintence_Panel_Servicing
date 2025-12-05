@@ -14,12 +14,9 @@
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include <cv_bridge/cv_bridge.hpp>
-
 #include "amps_cpp/msg/program_state.hpp"
-#include "amps_cpp/msg/cropped_img_debug.hpp"
 
 using ProgramState = amps_cpp::msg::ProgramState;
-using CroppedImgDebug = amps_cpp::msg::CroppedImgDebug;
 
 int test(int &minDepth, int &maxDepth, cv::Mat &depthFloat, cv::Mat &color);
 cv::Mat depth_check(int,int,cv::Mat&);
@@ -200,12 +197,17 @@ void segmentation(cv::Mat &image, cv::Mat &depth)
     
     cutArduco(image,markerCorners);
     cv::cvtColor(image, image, cv::COLOR_BGR2HSV);
+    
 
-    cv::Mat mask;        
-    // Cut out board
-    cv::inRange(image,board_color_lower,board_color_upper,mask);
-    cv::cvtColor(image, image, cv::COLOR_HSV2BGR);
-    Erode(mask);
+    //Plug Disabled
+
+    cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);     
+
+    // // Cut out board
+    // // cv::inRange(image,board_color_lower,board_color_upper,mask);
+    // // cv::cvtColor(image, image, cv::COLOR_HSV2BGR);
+    // // Erode(mask);
+
     
     makeBoundingBoxes(depthMasked,mask,image);   
     //cv::imshow("Detected Markers",outputImage);
@@ -251,7 +253,7 @@ cv::Mat dynamicDepthCheck(cv::Mat &depth_img){
     int minDepth = median - 23;
     int maxDepth = median - 3;  
 
-    minDepth = 0;
+    minDepth = 1;
     maxDepth = 135;
     cv::Mat mask; 
     cv::inRange(depth_img,minDepth,maxDepth,mask);  
@@ -436,7 +438,6 @@ void makeBoundingBoxes(const cv::Mat &depth_binary, const cv::Mat &image_binary,
                             cv::Point point1(rect.x, rect.y);
                             cv::Point point2(rect.x + rect.width, rect.y + rect.height);
                             cv::rectangle(img, point1, point2, rectangleColor, 2, cv::LINE_AA);
-
                             number_of_blobs += 1;
                 }
             }

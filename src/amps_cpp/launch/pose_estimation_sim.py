@@ -92,6 +92,21 @@ def generate_launch_description():
         ]
     )
 
+    state_broadcaster = ExecuteProcess(
+        cmd=['ros2', 'run', 'amps_cpp', 'state_broadcaster'],
+        output='screen'
+    )
+
+    delayed_set_state = TimerAction(
+        period=12.0,
+        actions=[
+            ExecuteProcess(
+                cmd=['ros2', 'topic', 'pub', '--once', '/amps/set_program_state', 'amps_cpp/msg/ProgramState', '{state: 1, state_str: "inital_state"}'],
+                output='screen'
+            ),
+        ]
+    )
+
     staticCamFrameBroadcaster = Node(
             package='tf2_ros',
             executable='static_transform_publisher',
@@ -117,4 +132,6 @@ def generate_launch_description():
         staticCamFrameBroadcaster,
         delayed_controller_disable,
         delayed_nodes_start,
+        state_broadcaster,
+        delayed_set_state,
     ])

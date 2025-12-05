@@ -3,7 +3,7 @@ from rclpy.node import Node
 from cv_bridge import CvBridge
 import cv2 as cv
 import numpy as np
-from amps_cpp.msg import FrameWithPose, CroppedImgDebug, ClassifiedButton, ProgramState, GroundTruthButton, GroundTruth
+from amps_cpp.msg import FrameWithPose, ClassifiedButton, ProgramState, GroundTruthButton, GroundTruth
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32MultiArray
 import json
@@ -66,8 +66,8 @@ class PreprocessingNode(Node):
                 rclpy.shutdown()
                 return
             self.publisher_ground_truth = self.create_publisher(GroundTruth, 'amps/set_ground_truth', 10)
-            self.publisher_segmentation_bypass_color = self.create_publisher(Image, 'segmentation_test_color', 10)
-            self.publisher_segmentation_bypass_points = self.create_publisher(Float32MultiArray, 'segmentation_topic', 10)
+            #self.publisher_segmentation_bypass_color = self.create_publisher(Image, 'segmentation_test_color', 10)
+            #self.publisher_segmentation_bypass_points = self.create_publisher(Float32MultiArray, 'segmentation_topic', 10)
     
         # Create publishers for transformed depth and color images
         self.publisher_depth = self.create_publisher(Image, 'amps_python/vision/transformed_depth_image', 10)
@@ -76,7 +76,7 @@ class PreprocessingNode(Node):
 
     # Program state management
     def program_state_callback(self, msg):
-        self.get_logger().info(f'Received program state: {msg.state}')
+        #self.get_logger().info(f'Received program state: {msg.state}')
         self.current_state = msg.state
 
     def setProgramState(self, state:int, state_str:str = ""):
@@ -168,7 +168,7 @@ class PreprocessingNode(Node):
                         setattr(pub_msg, type_name, getattr(pub_msg, type_name) + [button_instance])
             
             self.publisher_ground_truth.publish(pub_msg)
-            self.get_logger().info('Published CroppedImgDebug message with transformed images.')
+            self.get_logger().info('Published GroundTruth message with transformed images.')
             
             # Also publish segmentation bypass topics
             # Reshape bounding boxes into a single list
@@ -183,8 +183,8 @@ class PreprocessingNode(Node):
             transformed_color_msg = self.bridge.cv2_to_imgmsg(transformed_color_image, encoding="bgr8")
             
             # Publish bypass topics
-            self.publisher_segmentation_bypass_points.publish(point_array_msg)
-            self.publisher_segmentation_bypass_color.publish(transformed_color_msg)
+            #self.publisher_segmentation_bypass_points.publish(point_array_msg)
+            #self.publisher_segmentation_bypass_color.publish(transformed_color_msg)
         
 
         self.publisher_depth.publish(transformed_depth_msg)

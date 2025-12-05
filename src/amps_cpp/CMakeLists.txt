@@ -8,6 +8,8 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(ur_client_library REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
@@ -22,6 +24,8 @@ find_package(OpenCV REQUIRED)
 find_package(tinyxml2_vendor REQUIRED)
 find_package(TinyXML2 REQUIRED)
 find_package(realsense2_camera_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(unique_identifier_msgs REQUIRED)
 
 # Find Python and NumPy for rosidl_generator_py
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
@@ -35,6 +39,8 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 include_directories(${Python3_INCLUDE_DIRS} ${NUMPY_INCLUDE_DIR})
+
+
 
 
 ## Action Client
@@ -77,9 +83,6 @@ add_executable(segmentation_test src/tests/segmentation_test.cpp
 src/utils/csvManager.cpp)
 ament_target_dependencies(segmentation_test rclcpp sensor_msgs cv_bridge OpenCV std_msgs)
 
-##State Broadcaster
-add_executable(state_broadcaster src/state_broadcaster.cpp)
-ament_target_dependencies(state_broadcaster rclcpp std_msgs)
 
 ##Frame and Pose Matcher
 add_executable(fp_matcher src/pose_estimation/fp_matcher.cpp)
@@ -89,7 +92,7 @@ ament_target_dependencies(fp_matcher rclcpp geometry_msgs sensor_msgs realsense2
 add_executable(pose_estimation 
   src/pose_estimation/pose_estimator.cpp
   src/utils/csvManager.cpp) 
-ament_target_dependencies(pose_estimation rclcpp geometry_msgs sensor_msgs cv_bridge OpenCV TinyXML2 rclcpp_action control_msgs tf2 tf2_geometry_msgs)
+ament_target_dependencies(pose_estimation rclcpp realsense2_camera_msgs geometry_msgs sensor_msgs cv_bridge OpenCV TinyXML2 rclcpp_action control_msgs tf2 tf2_geometry_msgs)
 
 ##Frame Broadcaster
 add_executable(frame_broadcaster src/pose_estimation/frame_broadcaster.cpp)
@@ -107,18 +110,25 @@ ament_target_dependencies(button_state_detector rclcpp sensor_msgs cv_bridge Ope
 add_executable(ground_truth_broadcaster src/tests/ground_truth_broadcaster.cpp)
 ament_target_dependencies(ground_truth_broadcaster rclcpp sensor_msgs cv_bridge OpenCV)
 
+##State Broadcaster
+add_executable(state_broadcaster src/state_broadcaster.cpp)
+ament_target_dependencies(state_broadcaster rclcpp std_msgs)
+
+## Training Data Converter
+add_executable(training_data_converter src/training_data_converter.cpp)
+ament_target_dependencies(training_data_converter rclcpp sensor_msgs cv_bridge OpenCV)
+
 ##Custom Interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FrameWithPose.msg"
   "msg/ProgramState.msg"
-  "msg/GripperStatus.msg"
-  "action/MoveGripper.action"
   "msg/ClassifiedButton.msg"
   "msg/ClassifiedButtonsArray.msg"
-  "msg/CroppedImgDebug.msg"
   "msg/GroundTruth.msg"
   "msg/GroundTruthButton.msg"
-  DEPENDENCIES geometry_msgs sensor_msgs builtin_interfaces
+  "msg/GripperStatus.msg"
+  "action/MoveGripper.action"
+  DEPENDENCIES geometry_msgs sensor_msgs unique_identifier_msgs
 )
 
 rosidl_get_typesupport_target(cpp_typesupport_target
@@ -128,13 +138,14 @@ target_link_libraries(fp_matcher "${cpp_typesupport_target}")
 target_link_libraries(pose_estimation "${cpp_typesupport_target}")
 target_link_libraries(action_client "${cpp_typesupport_target}")
 target_link_libraries(ur_wrapper "${cpp_typesupport_target}")
-target_link_libraries(dataset_broadcaster "${cpp_typesupport_target}")
-target_link_libraries(button_state_detector "${cpp_typesupport_target}")
 target_link_libraries(segmentation "${cpp_typesupport_target}")
-target_link_libraries(segmentation_test "${cpp_typesupport_target}")
 target_link_libraries(state_broadcaster "${cpp_typesupport_target}")
-target_link_libraries(frame_broadcaster "${cpp_typesupport_target}")
+target_link_libraries(subscribe_segmentation "${cpp_typesupport_target}")
+target_link_libraries(publisher_segmentation "${cpp_typesupport_target}")
+target_link_libraries(button_state_detector "${cpp_typesupport_target}")
 target_link_libraries(ground_truth_broadcaster "${cpp_typesupport_target}")
+target_link_libraries(dataset_broadcaster "${cpp_typesupport_target}")
+target_link_libraries(training_data_converter "${cpp_typesupport_target}")
 
 
 ## Directories to include
@@ -147,10 +158,12 @@ install(TARGETS
   fp_matcher
   pose_estimation
   frame_broadcaster
-  dataset_broadcaster
   segmentation
-  segmentation_test
+  subscribe_segmentation
+  publisher_segmentation
+  dataset_broadcaster
   ground_truth_broadcaster
+  training_data_converter
   DESTINATION lib/${PROJECT_NAME})
 
 ## Install libraries
@@ -165,6 +178,7 @@ install(TARGETS
 install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}/
+
 )
 
 if(BUILD_TESTING)
