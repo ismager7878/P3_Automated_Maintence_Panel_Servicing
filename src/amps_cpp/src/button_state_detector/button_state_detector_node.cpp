@@ -40,6 +40,7 @@ public:
         );
 
         resultPub_ = this->create_publisher<ClassifiedButtonsArray>("amps/classified_buttons_with_state", 10);
+        resultImagePub_ = this->create_publisher<sensor_msgs::msg::Image>("amps/classified_buttons_image", 10);
 
         groundTruthSub_ = this->create_subscription<GroundTruth>(
             "amps/ground_truth", 10,
@@ -51,6 +52,7 @@ private:
 
     rclcpp::Subscription<ClassifiedButtonsArray>::SharedPtr classifiedButtonsSub_;
     rclcpp::Publisher<ClassifiedButtonsArray>::SharedPtr resultPub_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr resultImagePub_;
 
     rclcpp::Publisher<ProgramState>::SharedPtr programStatePub_;
     rclcpp::Subscription<ProgramState>::SharedPtr programStateSub_;
@@ -67,6 +69,16 @@ private:
         RCLCPP_INFO(this->get_logger(), "Received Classified Buttons Array with %zu buttons.", msg->buttons.size());
 
         ClassifiedButtonsArray resultMsg = *msg;
+
+        // Check if images have valid encoding before attempting conversion
+        if (msg->rgb_image.encoding.empty()) {
+            RCLCPP_ERROR(this->get_logger(), "RGB image has empty encoding. Skipping this message.");
+            return;
+        }
+        if (msg->depth_image.encoding.empty()) {
+            RCLCPP_ERROR(this->get_logger(), "Depth image has empty encoding. Skipping this message.");
+            return;
+        }
 
         cv::Mat rgbImage = cv_bridge::toCvCopy(msg->rgb_image, "bgr8")->image;
         cv::Mat depthImage = cv_bridge::toCvCopy(msg->depth_image, "8UC1")->image;
@@ -118,15 +130,31 @@ private:
 
             resultMsg.buttons.push_back(button);
 
+            rgbImage(
+                cv::Rect(
+                    button.bounding_box[0],
+                    button.bounding_box[1],
+                    button.bounding_box[2] - button.bounding_box[0],
+                    button.bounding_box[3] - button.bounding_box[1]
+                )
+            ) = buttonRgbCutOut;
+
+            sensor_msgs::msg::Image::SharedPtr resultImageMsg = cv_bridge::CvImage(
+                std_msgs::msg::Header(),
+                "bgr8",
+                rgbImage
+            ).toImageMsg();
+
+            resultImagePub_->publish(*resultImageMsg);
+
         }
 
         resultPub_->publish(resultMsg);
+        setProgramState(ProgramState::PREPROCESSING_MODE);
     }
 
     void classifyThreeStateSwitch(cv::Mat& buttonRgbCutOut, cv::Mat& buttonDepthCutOut, string& stateStr)
     {
-        //rgb unused for now
-        (void)buttonRgbCutOut;
 
         cv::Mat mask;
         
@@ -143,22 +171,22 @@ private:
 
         this->findLargestDistance(largestContour, pt1, pt2);
 
-        // cv::drawContours(mask, vector<vector<cv::Point>>{largestContour}, -1, cv::Scalar(155), cv::FILLED);
-        // cv::line(mask, pt1, pt2, cv::Scalar(255), 2);
+        cv::drawContours(mask, vector<vector<cv::Point>>{largestContour}, -1, cv::Scalar(155), cv::FILLED);
+        cv::line(mask, pt1, pt2, cv::Scalar(255), 2);
 
         double angle = atan2(static_cast<double>(pt2.y - pt1.y), static_cast<double>(pt2.x - pt1.x)) * 180.0 / CV_PI;
 
         if(angle < -25){
             RCLCPP_INFO(this->get_logger(), "Three State Switch is in 2 position. Angle: %.2f", angle);
-            //cv::putText(buttonRgbCutOut, "1", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
+            cv::putText(buttonRgbCutOut, "1", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
             stateStr = "1";
         } else if(angle > 25){
             RCLCPP_INFO(this->get_logger(), "Three State Switch is in 1 position. Angle: %.2f", angle);
-            //cv::putText(buttonRgbCutOut, "2", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
+            cv::putText(buttonRgbCutOut, "2", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
             stateStr = "2";
         } else{
             RCLCPP_INFO(this->get_logger(), "Three State Switch is in 0 position. Angle: %.2f", angle);
-            //cv::putText(buttonRgbCutOut, "0", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
+            cv::putText(buttonRgbCutOut, "0", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
             stateStr = "0";
         }
         
@@ -171,9 +199,6 @@ private:
 
     void classifyBreaker(cv::Mat& buttonRgbCutOut, cv::Mat& buttonDepthCutOut, string& stateStr)
     {
-        //rgb unused for now
-        (void)buttonRgbCutOut;
-
         cv::Mat mask;
         
         this->topPointTresholding(buttonDepthCutOut, mask, 3, 0.5, 0.3);
@@ -187,16 +212,16 @@ private:
         cv::Point comM;
         this->findCenterOfMass(largestContour, comM);
 
-        //cv::drawKeypoints(mask, vector<cv::KeyPoint>{cv::KeyPoint(comM, 1)}, mask, cv::Scalar(255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+        cv::drawKeypoints(mask, vector<cv::KeyPoint>{cv::KeyPoint(comM, 1)}, mask, cv::Scalar(255), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 
         double middleX = mask.cols / 2.0;
         if(comM.x < middleX){
             RCLCPP_INFO(this->get_logger(), "Breaker is in ON position.");
-            //cv::putText(buttonRgbCutOut, "On", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
+            cv::putText(buttonRgbCutOut, "On", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
             stateStr = "on";
         } else{
             RCLCPP_INFO(this->get_logger(), "Breaker is in OFF position.");
-            //cv::putText(buttonRgbCutOut, "Off", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
+            cv::putText(buttonRgbCutOut, "Off", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
             stateStr = "off";
         }
         
@@ -208,8 +233,6 @@ private:
 
     void classifyEmergencyStop(cv::Mat& buttonRgbCutOut, cv::Mat& buttonDepthCutOut, string& stateStr)
     {
-        //rgb unused for now
-        (void)buttonRgbCutOut;
 
         cv::Mat mask;
 
@@ -226,18 +249,18 @@ private:
 
         this->findLargestDistance(largestContour, pt1, pt2);
 
-        //cv::drawContours(mask, vector<vector<cv::Point>>{largestContour}, -1, cv::Scalar(155), cv::FILLED);
-        //cv::line(mask, pt1, pt2, cv::Scalar(255), 2);
+        cv::drawContours(mask, vector<vector<cv::Point>>{largestContour}, -1, cv::Scalar(155), cv::FILLED);
+        cv::line(mask, pt1, pt2, cv::Scalar(255), 2);
 
         double angle = atan2(static_cast<double>(pt2.y - pt1.y), static_cast<double>(pt2.x - pt1.x)) * 180.0 / CV_PI;
 
         if(abs(angle) < 45){
             RCLCPP_INFO(this->get_logger(), "Three State Switch is in 2 position. Angle: %.2f", angle);
-            //cv::putText(buttonRgbCutOut, "On", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
+            cv::putText(buttonRgbCutOut, "On", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
             stateStr = "on";
         } else{
             RCLCPP_INFO(this->get_logger(), "Three State Switch is in 1 position. Angle: %.2f", angle);
-            //cv::putText(buttonRgbCutOut, "Off", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
+            cv::putText(buttonRgbCutOut, "Off", cv::Point(10,30), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 255, 0), 2);
             stateStr = "off";
         }
 

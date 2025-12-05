@@ -177,11 +177,11 @@ void segmentation(cv::Mat &image, cv::Mat &depth)
 
     cv::Mat depthMasked = dynamicDepthCheck(depth);
 /*     RCLCPP_INFO(this->get_logger(), "Displaying depth mask");
- */ cv::imshow("depth image",depthMasked);
+ */ //cv::imshow("depth image",depthMasked);
     Erode(depthMasked);
     Dilate(depthMasked);
     Dilate(depthMasked); 
-    cv::imshow("newmaske image",depthMasked);
+    //cv::imshow("newmaske image",depthMasked);
     cv::waitKey(1);
 
     // Detect Aruco markers
@@ -197,12 +197,20 @@ void segmentation(cv::Mat &image, cv::Mat &depth)
     
     cutArduco(image,markerCorners);
     cv::cvtColor(image, image, cv::COLOR_BGR2HSV);
+    
 
-    cv::Mat mask;        
-    // Cut out board
-    cv::inRange(image,board_color_lower,board_color_upper,mask);
-    cv::cvtColor(image, image, cv::COLOR_HSV2BGR);
-    Erode(mask);
+    //Plug Disabled
+
+    cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);     
+
+    // // Cut out board
+    // cv::inRange(image,board_color_lower,board_color_upper,mask);
+    // cv::cvtColor(image, image, cv::COLOR_HSV2BGR);
+    // Erode(mask);
+
+    // //Make mask black
+
+    // mask = 255 - mask;
     
     makeBoundingBoxes(depthMasked,mask,image);   
     //cv::imshow("Detected Markers",outputImage);
@@ -248,7 +256,7 @@ cv::Mat dynamicDepthCheck(cv::Mat &depth_img){
     int minDepth = median - 23;
     int maxDepth = median - 3;  
 
-    minDepth = 0;
+    minDepth = 1;
     maxDepth = 135;
     cv::Mat mask; 
     cv::inRange(depth_img,minDepth,maxDepth,mask);  

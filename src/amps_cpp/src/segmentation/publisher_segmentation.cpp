@@ -28,7 +28,6 @@ public:
         color_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("segmentation_test_color",10);
 
 
-
         programStatePub_ = this->create_publisher<ProgramState>("amps/program_state", 10);
         programStateSub_ = this->create_subscription<ProgramState>(
             "amps/program_state", 10,std::bind(&PublisherSegmentation::programStateCallback, this, std::placeholders::_1)

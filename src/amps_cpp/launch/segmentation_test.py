@@ -28,7 +28,8 @@ def generate_launch_description():
         package='amps_cpp',
         executable='segmentation',
         name='segmentation_node',
-        output='screen'
+        output='screen',
+        arguments=['--ros-args', '--log-level', 'WARN']
     )
 
     ground_truth_broadcaster = Node(

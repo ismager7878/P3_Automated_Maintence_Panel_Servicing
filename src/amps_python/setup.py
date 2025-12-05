@@ -46,6 +46,7 @@ setup(
             'preprocessing_node = amps_python.preprocessing_node.preprocessing_node:main',
             'classified_image = amps_python.position.object_classification:main',
             "classi_test = amps_python.test.classification_test:main"
+            'knn_node = amps_python.position.features_extraction:main',
         ],
     },
 )

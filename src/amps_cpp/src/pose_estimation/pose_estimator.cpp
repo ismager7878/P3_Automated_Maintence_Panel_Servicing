@@ -20,12 +20,14 @@
 #include "geometry_msgs/msg/pose.hpp"
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include "realsense2_camera_msgs/msg/extrinsics.hpp"
 #include "sensor_msgs/msg/camera_info.hpp"
 #include "std_msgs/msg/bool.hpp"
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_listener.hpp>
 #include <tf2_ros/buffer.hpp>
 
@@ -39,6 +41,7 @@ using ExcecuteMotion = control_msgs::action::ExecuteMotionPrimitiveSequence;
 using GoalHandleExcecuteMotion = rclcpp_action::ClientGoalHandle<ExcecuteMotion>;
 using ProgramStateMsg = amps_cpp::msg::ProgramState;
 using TransformStamped = geometry_msgs::msg::TransformStamped;
+using ExtrinsicsMsg = realsense2_camera_msgs::msg::Extrinsics;
 
 
 class PoseEstimation : public rclcpp::Node
@@ -63,6 +66,12 @@ public:
             10,
             std::bind(&PoseEstimation::cameraInfoCallback, this, _1)
         );
+        // this->camDepthToRGBSub_ = this->create_subscription<ExtrinsicsMsg>(
+        //     "/camera/camera/extrinsics/depth_to_color",
+        //     10,
+        //     std::bind(&PoseEstimation::camDepthToRGBCallback, this, _1)
+        // );
+
         this->isBoardReachablePub_ = this->create_publisher<std_msgs::msg::Bool>("amps_cpp/pose_estimation/is_board_reachable", 10);
         this->isBoardReachablePub_->publish(std_msgs::msg::Bool().set__data(false));
         this->arucoDetectionPub_ = this->create_publisher<sensor_msgs::msg::Image>("amps_cpp/pose_estimation/aruco_detection_image", 10);
@@ -75,6 +84,7 @@ public:
 
         // TF Broadcaster
         this->addToBroadcastPub_ = this->create_publisher<TransformStamped>("amps_cpp/pose_estimation/broadcast_transform", 10);
+        this->tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
         this->tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
         this->tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
@@ -113,7 +123,7 @@ public:
             cv::Vec3d(0.002, 0.002, 0.002)   // tvec threshold
         };
 
-        this->setProgramState(ProgramState::FINDING_PANEL);
+        //this->setProgramState(ProgramState::FINDING_PANEL);
 
         //# ------- Load image from file for testing --------
         
@@ -126,6 +136,7 @@ public:
         //     rclcpp::sleep_for(std::chrono::milliseconds(100));
         // }
         // this->detectAndEstimatePose(img, rvec, tvec, id, true);
+
     }
 private:
     void send_goal(const control_msgs::action::ExecuteMotionPrimitiveSequence_Goal & goal_msg){
@@ -147,6 +158,30 @@ private:
         RCLCPP_INFO(this->get_logger(), "Sending goal");
     
         this->moveClient_->async_send_goal(goal_msg, send_goal_options);
+    }
+
+
+    void camDepthToRGBCallback(const ExtrinsicsMsg msg){
+
+        RCLCPP_INFO(this->get_logger(), "Broadcast, depth to rgbb");
+        tf2::Transform depthToRgbTransform;
+
+        tf2::Matrix3x3 rotationMatrix(
+            msg.rotation[0], msg.rotation[1], msg.rotation[2],
+            msg.rotation[3], msg.rotation[4], msg.rotation[5],
+            msg.rotation[6], msg.rotation[7], msg.rotation[8]
+        );
+        tf2::Vector3 translationVector(
+            msg.translation[0],
+            msg.translation[1],
+            msg.translation[2]
+        );
+
+        depthToRgbTransform.setBasis(rotationMatrix);
+        depthToRgbTransform.setOrigin(translationVector);
+
+        RCLCPP_INFO(this->get_logger(), "Adding Broadcast, depth to rgbb");
+        broadcastTransform(depthToRgbTransform, "camera", "camera_origin");
     }
 
     void cameraInfoCallback(const sensor_msgs::msg::CameraInfo::SharedPtr msg){
@@ -247,7 +282,7 @@ private:
 
     void programStateCallback(const ProgramState::SharedPtr msg){
 
-        RCLCPP_INFO(this->get_logger(), "Received New Program State: %i", msg->state);
+        //RCLCPP_INFO(this->get_logger(), "Received New Program State: %i", msg->state);
 
         this->programState = msg->state;
     }
@@ -303,11 +338,27 @@ private:
         for(vector<cv::Vec3d>::size_type i = 0; i < rvecs.size(); i++ )
             {
                 cv::drawFrameAxes(imgOut, this->cameraMatrix, this->distCoeffs, rvecs[i], tvecs[i], 0.1f);
+
+                tf2::Transform markerTransform;
+                tf2::Matrix3x3 rotationMatrix;
+                cv::Mat rotMat;
+                cv::Rodrigues(rvecs[i], rotMat);
+
+                markerTransform.setOrigin(tf2::Vector3(tvecs[i][0], tvecs[i][1], tvecs[i][2]));
+                rotationMatrix.setValue(
+                    rotMat.at<double>(0,0), rotMat.at<double>(0,1), rotMat.at<double>(0,2),
+                    rotMat.at<double>(1,0), rotMat.at<double>(1,1), rotMat.at<double>(1,2),
+                    rotMat.at<double>(2,0), rotMat.at<double>(2,1), rotMat.at<double>(2,2)
+                );
+                markerTransform.setBasis(rotationMatrix);
+                std::string markerFrameId = "marker_" + std::to_string(this->markerIds[i]);
+
+                broadcastTransform(markerTransform, "camera", markerFrameId);
             }
 
         (void)imgOut; // Unused variable
 
-        if(/*rvecs.size() != 3 &&*/ !getGoalPose){
+        if(rvecs.size() != 3 && !getGoalPose){
 
             rvecOut = rvecs[0];
             tvecOut= tvecs[0];
@@ -409,7 +460,7 @@ private:
 
         //RCLCPP_INFO(this->get_logger(), "Estimated board pose successfully");
 
-        cv::drawFrameAxes(imgOut, this->cameraMatrix, this->distCoeffs, rvec, tvec, 0.3f);
+        //cv::drawFrameAxes(imgOut, this->cameraMatrix, this->distCoeffs, rvec, tvec, 0.3f);
 
         cv::imshow("Aruco Detection", imgOut);
         cv::waitKey(1);
@@ -634,13 +685,43 @@ private:
 
     void frameCallback(const amps_cpp::msg::FrameWithPose::SharedPtr msg){
 
+        // ExtrinsicsMsg depthToRgbT;
+
+        // depthToRgbT.rotation = { 
+        //     0.9999980926513672, 
+        //     -0.0012165356893092394,
+        //     0.0015198299661278725,
+        //     0.0012112563708797097,
+        //     0.9999932646751404,
+        //     0.0034697011578828096,
+        //     -0.0015240407083183527,
+        //     -0.003467853646725416,
+        //     0.999992847442627
+        // };
+
+        // depthToRgbT.translation = {
+        //     0.014888470992445946,
+        //     0.0001583270204719156,
+        //     3.5073928302153945e-05
+        // };
+
+        // camDepthToRGBCallback(depthToRgbT);
+
         // Early exit conditions - camera parameters not set or not in correct program state
         if(this->cameraMatrix.empty() || this->distCoeffs.empty()){
             RCLCPP_WARN(this->get_logger(), "Camera parameters not set yet, cannot process frame");
             return;
         }
         
-        if((this->programState != ProgramState::FINDING_PANEL && this->programState != ProgramState::APPROACHING_PANEL) || this->correctionActive){
+        if((this->programState != ProgramState::FINDING_PANEL && this->programState != ProgramState::APPROACHING_PANEL)){
+            RCLCPP_INFO(this->get_logger(), "Not in correct state");
+            RCLCPP_INFO(this->get_logger(), "Current State: %i, not %i, or %i", this->programState, ProgramState::FINDING_PANEL, ProgramState::APPROACHING_PANEL);
+
+            return;
+        }
+
+        if(this->correctionActive){
+            RCLCPP_INFO(this->get_logger(), "Correction already active, skipping frame");
             return;
         }
 
@@ -678,7 +759,7 @@ private:
 
         if(checkPosition(rvec, tvec, id) && isAccuacyTest == false){
             RCLCPP_INFO(this->get_logger(), "Goal Pose Reached within Thresholds");
-            this->setProgramState(ProgramState::SERVICING_PANEL);
+            this->setProgramState(ProgramState::PREPROCESSING_MODE);
             this->correctionActive = false;
             return;
         }
@@ -700,9 +781,9 @@ private:
             return;
         }
 
-        if(isAccuacyTest){
-            this->logCorrection();
-        }
+        // if(isAccuacyTest){
+        //     this->logCorrection();
+        // }
         
         control_msgs::action::ExecuteMotionPrimitiveSequence_Goal goal_msg;
 
@@ -718,8 +799,8 @@ private:
     bool camParametersLoaded = false;
     cv::Mat cameraMatrix, distCoeffs;
     cv::Ptr<cv::aruco::Board> board;
-    double markerSize;
-    int programState;
+    double markerSize;  
+    int programState = 0;  // Initialize to prevent segfault
     vector<int> goalPoseMakerIds;
     vector<cv::Vec3d> goalPoseTreshold;
     vector<vector<cv::Vec3d>> goalPoses;
@@ -735,9 +816,11 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr cameraInfoSub_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr isBoardReachablePub_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr arucoDetectionPub_;
+    rclcpp::Subscription<ExtrinsicsMsg>::SharedPtr camDepthToRGBSub_;
 
 
     rclcpp::Publisher<TransformStamped>::SharedPtr addToBroadcastPub_;
+    std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_{nullptr};
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
 };

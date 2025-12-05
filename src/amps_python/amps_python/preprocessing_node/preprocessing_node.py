@@ -66,8 +66,8 @@ class PreprocessingNode(Node):
                 rclpy.shutdown()
                 return
             self.publisher_ground_truth = self.create_publisher(GroundTruth, 'amps/set_ground_truth', 10)
-            self.publisher_segmentation_bypass_color = self.create_publisher(Image, 'segmentation_test_color', 10)
-            self.publisher_segmentation_bypass_points = self.create_publisher(Float32MultiArray, 'segmentation_topic', 10)
+            #self.publisher_segmentation_bypass_color = self.create_publisher(Image, 'segmentation_test_color', 10)
+            #self.publisher_segmentation_bypass_points = self.create_publisher(Float32MultiArray, 'segmentation_topic', 10)
     
         # Create publishers for transformed depth and color images
         self.publisher_depth = self.create_publisher(Image, 'amps_python/vision/transformed_depth_image', 10)
@@ -183,8 +183,8 @@ class PreprocessingNode(Node):
             transformed_color_msg = self.bridge.cv2_to_imgmsg(transformed_color_image, encoding="bgr8")
             
             # Publish bypass topics
-            self.publisher_segmentation_bypass_points.publish(point_array_msg)
-            self.publisher_segmentation_bypass_color.publish(transformed_color_msg)
+            #self.publisher_segmentation_bypass_points.publish(point_array_msg)
+            #self.publisher_segmentation_bypass_color.publish(transformed_color_msg)
         
 
         self.publisher_depth.publish(transformed_depth_msg)

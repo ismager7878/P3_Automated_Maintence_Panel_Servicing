@@ -93,7 +93,7 @@ ament_target_dependencies(fp_matcher rclcpp geometry_msgs sensor_msgs realsense2
 add_executable(pose_estimation 
   src/pose_estimation/pose_estimator.cpp
   src/utils/csvManager.cpp) 
-ament_target_dependencies(pose_estimation rclcpp geometry_msgs sensor_msgs cv_bridge OpenCV TinyXML2 rclcpp_action control_msgs tf2 tf2_geometry_msgs)
+ament_target_dependencies(pose_estimation rclcpp realsense2_camera_msgs geometry_msgs sensor_msgs cv_bridge OpenCV TinyXML2 rclcpp_action control_msgs tf2 tf2_geometry_msgs)
 
 ##Frame Broadcaster
 add_executable(frame_broadcaster src/pose_estimation/frame_broadcaster.cpp)

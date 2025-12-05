@@ -8,137 +8,195 @@ from amps_cpp.msg import ClassifiedButtonsArray, ClassifiedButton
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
 
 class KNN_Node(Node):
     def __init__(self):
         super().__init__("KNN_node")
 
-        self.image_subscription = self.create_subscription(ClassifiedButtonsArray, "amps/training_data", KNN_callback,)
+        self.image_subscription = self.create_subscription(ClassifiedButtonsArray, "amps/training_data", self.KNN_callback, 10)
+
+        self.image_publisher = self.create_publisher(Image, 'debugging_image', 10)
+
+        self.bridge = CvBridge()
+        self.X = []
+        self.y = []
 
 
 
-#Tager alle RGB channel værdierne og finder deres gennemsnitlige værdi og gør at de har samme gennemsnits værdi
-def balance_white(img):
-    result = img.copy().astype(np.float32)
-    avg_b = np.mean(result[:,:,0])
-    avg_g = np.mean(result[:,:,1])
-    avg_r = np.mean(result[:,:,2])
-    avg_gray = (avg_b + avg_g + avg_r) / 3
-    result[:,:,0] *= avg_gray / (avg_b + 1e-5)
-    result[:,:,1] *= avg_gray / (avg_g + 1e-5)
-    result[:,:,2] *= avg_gray / (avg_r + 1e-5)
-    return np.clip(result, 0, 255).astype(np.uint8)
+    #Tager alle RGB channel værdierne og finder deres gennemsnitlige værdi og gør at de har samme gennemsnits værdi
+    def balance_white(self, img):
+        result = img.copy().astype(np.float32)
+        avg_b = np.mean(result[:,:,0])
+        avg_g = np.mean(result[:,:,1])
+        avg_r = np.mean(result[:,:,2])
+        avg_gray = (avg_b + avg_g + avg_r) / 3
+        result[:,:,0] *= avg_gray / (avg_b + 1e-5)
+        result[:,:,1] *= avg_gray / (avg_g + 1e-5)
+        result[:,:,2] *= avg_gray / (avg_r + 1e-5)
+        return np.clip(result, 0, 255).astype(np.uint8)
 
-#Henter feature af edges density, edge contours, standard deviation of intensity, mean intensity, mean hue, mean saturation, mean value
-def feature_extraction(roi_img):
-    roi_img = balance_white(roi_img)
-    hsv = cv.cvtColor(roi_img, cv.COLOR_BGR2HSV)
-    gray = cv.cvtColor(roi_img, cv.COLOR_BGR2GRAY)
-    blur = cv.GaussianBlur(gray, (5,5), 1.2)
-    edges = cv.Canny(blur, threshold1=50, threshold2=100)
+    #Henter feature af edges density, edge contours, standard deviation of intensity, mean intensity, mean hue, mean saturation, mean value
+    def feature_extraction(self, roi_img, roi_depth):
+        #roi_img = self.balance_white(roi_img)
+        hsv = cv.cvtColor(roi_img, cv.COLOR_BGR2HSV)
+        gray = cv.cvtColor(roi_img, cv.COLOR_BGR2GRAY)
+        blur = cv.GaussianBlur(gray, (5,5), 1.2)
+        edges = cv.Canny(blur, threshold1=50, threshold2=100)
 
-    contours, _ = cv.findContours(edges, cv.RETR_EXTERNAL, cv .CHAIN_APPROX_SIMPLE)
+        #contours, _ = cv.findContours(edges, cv.RETR_EXTERNAL, cv .CHAIN_APPROX_SIMPLE)
 
-    edge_density = np.count_nonzero(edges) / edges.size
-    num_contours = len(contours)
-    std_intensity = np.std(gray)
-    mean_intensity = np.mean(gray)
-    mean_hue = np.mean(hsv[:,:,0])
-    mean_sat = np.mean(hsv[:,:,1])
-    mean_value = np.mean(hsv[:,:,2])
+        depth_top = self.top_pixels_coutour(roi_depth, p=.05)
 
-    return edge_density, num_contours, std_intensity, mean_intensity, mean_hue, mean_sat, mean_value
+        topShape = cv.minAreaRect(depth_top)
+        box = cv.boxPoints(topShape)
+        box = np.int0(box)
 
-#scatter plot for visualizing features
-def scatter_plot(X, y):
-    colors = {
-        "breaker": "blue",
-        "black_switch": "black",
-        "red_switch": "red"
-    }
+        box_height = np.linalg.norm(box[0] - box[1])
+        box_width = np.linalg.norm(box[1] - box[2])
 
-    plt.rcParams['toolbar'] = 'none'
-    fig = plt.figure(figsize=(8,6))
-    fig.canvas.manager.set_window_title('')
+        if(box_width == 0):
+            box_width = 1
 
-    for label in np.unique(y):
-        idx = np.where(y == label)
-        plt.scatter(X[idx, 0], X[idx, 3], label=label, s=20, color=colors[label])
+        HW_ratio = box_height / box_width
 
-    plt.xlabel("enedge density")
-    plt.ylabel("standard deviation of intensity")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+        area = cv.contourArea(depth_top)
 
+        #histogram = cv.calcHist([hsv], [0], None, [10], [0, 256])
 
-def KNN_callback():
-    pass 
-      
-#main function to generate features and labels from dataset images
-#only run when this file is executed directly
-if __name__ == "__main__":
+        #edge_density = np.count_nonzero(edges) / edges.size
+        #num_contours = len(contours)
+        std_intensity = np.std(gray)
+        std_depth = np.std(roi_depth)
+        #mean_intensity = np.mean(gray)
+        #mean_hue = np.mean(hsv[:,:,0])
+        min_hue = np.min(hsv[:,:,0])
+        max_hue = np.max(hsv[:,:,0])
+        mean_sat = np.mean(hsv[:,:,1])
+        #mean_value = np.mean(hsv[:,:,2])
 
-    X = []   # features
-    y = []   # labels
-    rois_list = []  # List to store ROIs for each image
-    image_rgb_files = []
-    img = None
-
-
-    for rois in rois_list:
-        for label, (y1, y2, x1, x2) in rois.items():
-
-            # FIX: koordinaterne kan være byttet → sorter dem
-            y_top    = min(y1, y2)
-            y_bottom = max(y1, y2)
-            x_left   = min(x1, x2)
-            x_right  = max(x1, x2)
-
-            # Tegn boks
-            cv.rectangle(img, (x_left, y_top), (x_right, y_bottom), (0, 255, 0), 2)
-            cv.putText(img, label, (x_left, y_top - 5),
-                    cv.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
-
-    # --- VIS BILLEDE ---
-    cv.imshow("ROI debug", img)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
-
-    for rois in rois_list:  # Brug det første billede som eksempel
-        for label, (y1, y2, x1, x2) in rois.items():
-            cv.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv.putText(img, label, (x1, y1 - 10), cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2) 
-
-
-    for img_file in image_rgb_files:
-        img = cv.imread(img_file)
-        for rois in rois_list:
-            for label, (y1, y2, x1, x2) in rois.items():
-                roi = img[y1:y2, x1:x2]
-                roi = cv.resize(roi, (150,150))
-                f1, f2, f3, f4, f5, f6, f7 = feature_extraction(roi)
-                X.append([f1, f2, f3, f4, f5, f6, f7])
-                y.append(label)
-
-    X = np.array(X)
-    y = np.array(y)
-
-    scaler = StandardScaler()
-    X = scaler.fit_transform(X)
-
-    #print("TRAIN FEATURES:", X[0:10])
+        # Concatenate scalar features with histogram
+        scalar_features = np.array([std_depth, std_intensity, min_hue, max_hue, area, HW_ratio])
+        all_features = np.concatenate([scalar_features])
+        
+        return all_features
     
-    #Path hvor KNN og scaler skal gemmes
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    folder = os.path.join(BASE_DIR, "npy_files")
+    def top_pixels_coutour(self, depth_img, p=0.1):
+        # Flatten the depth image and get the indices of the top n smallest values (closest points)
+        flat_depth = depth_img.flatten()
+        n_top = int(len(flat_depth) * p)
+        top_n_indices = np.argpartition(flat_depth, n_top)[:n_top]
 
-    np.save(os.path.join(folder, "features.npy"), X)
-    np.save(os.path.join(folder, "labels.npy"), y)
+        # Create a binary mask for the top n pixels
+        mask = np.zeros_like(flat_depth, dtype=bool)
+        mask[top_n_indices] = True
+        mask = mask.reshape(depth_img.shape)
+
+        # Find contours in the mask
+        contours, _ = cv.findContours(mask.astype(np.uint8), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        sorted_contours = sorted(contours, key=cv.contourArea, reverse=True)
+        
+        main_contour = sorted_contours[0]
+
+        return main_contour
+    
+    def KNN_callback(self, msg):  
+        img = self.bridge.imgmsg_to_cv2(msg.rgb_image, "bgr8")
+        depth_img = self.bridge.imgmsg_to_cv2(msg.depth_image, "32FC1")
+
+        debug_img = img.copy()
+        color = (0, 255, 0)
+
+        for button in msg.buttons:
+            if button.type == 1:
+                label = "BREAKER"
+            elif button.type == 2:
+                label = "THREE_STATE_SWITCH"
+            elif button.type == 3:
+                label = "EMERGENCY_STOP"
+            elif button.type == 4:
+                label = "PLUG"
+                continue
+            else:
+                label = "UNKNOWN"
+
+            x1, y1, x2, y2 = button.bounding_box
+
+            roi = img[y1:y2, x1:x2]
+            dRoi = depth_img[y1:y2, x1:x2]
+
+            if roi.size == 0:
+                continue
+            
+
+            cv.rectangle(debug_img, (x1, y1), (x2, y2), color, 2)
+            cv.putText(debug_img, f"T:{button.type}",
+                   (x1, y1 - 4),
+                   cv.FONT_HERSHEY_SIMPLEX,
+                   0.5, color, 1)
+            
+
+            roi = cv.resize(roi, (150,150))
+            dRoi = cv.resize(dRoi, (150,150))
+            features = self.feature_extraction(roi, dRoi)
+
+            self.X.append(features)
+            self.y.append(label)
+
+        debug_msg = self.bridge.cv2_to_imgmsg(debug_img, encoding="bgr8")
+        self.image_publisher.publish(debug_msg)
+        self.get_logger().info(f"Received {len(msg.buttons)} buttons. Total samples: {len(self.X)}")
+
+    def find_workspace_root(self,start_path):
+        current = start_path
+        while current != "/":
+            if "src" in os.listdir(current) and "install" in os.listdir(current):
+                return current
+            current = os.path.abspath(os.path.join(current, ".."))
+        raise RuntimeError("Workspace root not found")
 
 
-    np.save(os.path.join(folder, "scaler_mean.npy"), scaler.mean_)
-    np.save(os.path.join(folder, "scaler_scale.npy"), scaler.scale_)
+    def save_model(self):
+        X = np.array(self.X, dtype=np.float16)
+        y = np.array(self.y, dtype=str)
+
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        # Find path relative to *src folder*, ikke install folder.
+        BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+        WORKSPACE_ROOT = self.find_workspace_root(BASE_DIR)
+
+        
+        folder = os.path.join(WORKSPACE_ROOT, "datasets", "KNN_scaler_data")
+        os.makedirs(folder, exist_ok=True)
+
+        np.save(os.path.join(folder, "features.npy"), X_scaled)
+        np.save(os.path.join(folder, "labels.npy"), y)
+        np.save(os.path.join(folder, "scaler_mean.npy"), scaler.mean_)
+        np.save(os.path.join(folder, "scaler_scale.npy"), scaler.scale_)
+
+        self.get_logger().info(f"Training complete. Saved {len(self.X)} samples to {folder}")
+
+        print("Feature generation DONE.")
 
 
-    print("Feature generation DONE.")
+def main(args=None):
+    rclpy.init(args=args)
+
+    node = KNN_Node()   
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("Shutdown requested (KeyboardInterrupt). Saving data...")
+    finally:
+        # Gem data før vi lukker helt ned
+        try:
+            node.save_model()
+        except Exception as e:
+            node.get_logger().error(f"Error saving model: {e}")
+        node.destroy_node()
+        rclpy.shutdown()
+
+if __name__ == "__main__":
+    main()
