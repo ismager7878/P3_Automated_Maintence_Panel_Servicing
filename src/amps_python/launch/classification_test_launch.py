@@ -5,6 +5,8 @@ from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 import os
 from launch_ros.substitutions import FindPackageShare  
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     # Launch file runs from: install/amps_python/share/amps_python/launch/
@@ -15,10 +17,24 @@ def generate_launch_description():
 
     return LaunchDescription([
 
+        DeclareLaunchArgument(
+            'training_data',
+            default_value='true'
+        ),
+
         IncludeLaunchDescription(
-             PathJoinSubstitution([FindPackageShare('amps_cpp'), 'launch', 'segmentation_test.py'])
+             PathJoinSubstitution([FindPackageShare('amps_cpp'), 'launch', 'segmentation_test.py']),
+             launch_arguments={'training_data': LaunchConfiguration('training_data')}.items(),
         ),
        
+       #vi skal måske lave en separat launch fil:
+        Node(
+            package="amps_python",
+            executable="classi_test",
+            name="classi_test",
+            output="screen",
+            prefix=[venv_python, " "],
+        ),
 
         Node(
             package="amps_python",

@@ -380,7 +380,7 @@ def go_through_all_data():
 
 def json_output(breaker, rotary, main, plug, false_negative, P, R, f1):
     data = {
-        "confucion_score": {
+        "confusion_score": {
             "breaker_score": breaker,
             "rotary_score": rotary,
             "main_score": main,
