@@ -1,4 +1,3 @@
-from amps_python.position.features_extraction import feature_extraction
 from amps_cpp.msg import ClassifiedButton, ClassifiedButtonsArray, ProgramState
 import cv2 as cv
 import rclpy
@@ -35,7 +34,6 @@ class ObjectClassificationNode(Node):
 
         #Publicer ClassifiedButtonsArray
         self.classification_publisher = self.create_publisher(ClassifiedButtonsArray, 'object_classification_topic', 10)
-
         self.programState_sub = self.create_publisher(ProgramState, 'amps/set_program_state', 10)
 
         #publicer billede med klassificering og bounding boxes for visualisering
@@ -62,7 +60,7 @@ class ObjectClassificationNode(Node):
         x_train, X_test, y_train, y_test = train_test_split(
             x, y, test_size=0.3, random_state=0
         )   
-        self.knn = KNeighborsClassifier(n_neighbors=3, weights='distance')
+        self.knn = KNeighborsClassifier(n_neighbors=5, weights='distance')
         self.knn.fit(x_train, y_train)
 
         self.get_logger().info("Object Classification Node has been started.")
@@ -112,7 +110,6 @@ class ObjectClassificationNode(Node):
         if self.received_image and self.received_depth:
             self.process_roi()
 
-
     #splitter den store ROI med breakswitchs i mindre del-ROIs
     #Det område at fast 13 knapper, der er count=13 som standard
     def ROI_split(self, image_roi, count=13):
@@ -132,6 +129,69 @@ class ObjectClassificationNode(Node):
 
         return sub_rois
     
+    def feature_extraction(self, roi_img, roi_depth):
+        #roi_img = self.balance_white(roi_img)
+        hsv = cv.cvtColor(roi_img, cv.COLOR_BGR2HSV)
+        gray = cv.cvtColor(roi_img, cv.COLOR_BGR2GRAY)
+        blur = cv.GaussianBlur(gray, (5,5), 1.2)
+        edges = cv.Canny(blur, threshold1=50, threshold2=100)
+
+        #contours, _ = cv.findContours(edges, cv.RETR_EXTERNAL, cv .CHAIN_APPROX_SIMPLE)
+
+        depth_top = self.top_pixels_coutour(roi_depth, p=.05)
+
+        topShape = cv.minAreaRect(depth_top)
+        box = cv.boxPoints(topShape)
+        box = np.int0(box)
+
+        box_height = np.linalg.norm(box[0] - box[1])
+        box_width = np.linalg.norm(box[1] - box[2])
+
+        if(box_width == 0):
+            box_width = 1
+
+        HW_ratio = box_height / box_width
+
+        area = cv.contourArea(depth_top)
+
+        #histogram = cv.calcHist([hsv], [0], None, [10], [0, 256])
+
+        #edge_density = np.count_nonzero(edges) / edges.size
+        #num_contours = len(contours)
+        std_intensity = np.std(gray)
+        std_depth = np.std(roi_depth)
+        #mean_intensity = np.mean(gray)
+        #mean_hue = np.mean(hsv[:,:,0])
+        min_hue = np.min(hsv[:,:,0])
+        max_hue = np.max(hsv[:,:,0])
+        mean_sat = np.mean(hsv[:,:,1])
+        #mean_value = np.mean(hsv[:,:,2])
+
+        # Concatenate scalar features with histogram
+        scalar_features = np.array([std_depth, std_intensity, min_hue, max_hue, area, HW_ratio])
+        all_features = np.concatenate([scalar_features])
+        
+        return all_features
+    
+    def top_pixels_coutour(self, depth_img, p=0.1):
+        # Flatten the depth image and get the indices of the top n smallest values (closest points)
+        flat_depth = depth_img.flatten()
+        n_top = int(len(flat_depth) * p)
+        top_n_indices = np.argpartition(flat_depth, n_top)[:n_top]
+
+        # Create a binary mask for the top n pixels
+        mask = np.zeros_like(flat_depth, dtype=bool)
+        mask[top_n_indices] = True
+        mask = mask.reshape(depth_img.shape)
+
+        # Find contours in the mask
+        contours, _ = cv.findContours(mask.astype(np.uint8), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        sorted_contours = sorted(contours, key=cv.contourArea, reverse=True)
+        
+        main_contour = sorted_contours[0]
+
+        return main_contour
+    
     def process_roi(self):
         #if self.processed:
         #    return
@@ -140,6 +200,8 @@ class ObjectClassificationNode(Node):
 
         #copyer billedet og henter den seneste ROI
         image = self.current_image.copy()
+        depth_image = self.current_depth.copy()
+
         rois = self.latest_roi
 
         #Opret array til at samle alle klassificerede buttons
@@ -162,7 +224,9 @@ class ObjectClassificationNode(Node):
             #Ellers klassificer den ligesom de andre ROIs bliver og lægger dem i buttons_array
             if h >300 or w >300:
                 big_roi = image[y1:y2, x1:x2]
+                big_droi = depth_image[y1:y2, x1:x2]
                 sub_rois = self.ROI_split(big_roi, count=13)
+                sub_drois = self.ROI_split(big_droi, count=13)
 
                 for (sx1, sy1, sx2, sy2) in sub_rois:
                     sx1_global = x1 + sx1
@@ -177,14 +241,17 @@ class ObjectClassificationNode(Node):
                         continue
 
                     sub_roi = image[sy1_global:sy2_global, sx1_global:sx2_global]
+                    sub_droi = depth_image[sy1_global:sy2_global, sx1_global:sx2_global]
+
                     if sub_roi.size == 0:
                         continue
                     
                     #Her resizees sub-ROI til 150x150 for feature extraction
                     sub_roi = cv.resize(sub_roi, (150,150))
+                    sub_droi = cv.resize(sub_droi, (150,150))
 
                     #henter features til sub-ROI
-                    features = np.array(feature_extraction(sub_roi))
+                    features = np.array(self.feature_extraction(sub_roi, sub_droi))
 
                     #scale features
                     features = (features - self.mean) / self.scale
@@ -202,13 +269,13 @@ class ObjectClassificationNode(Node):
                     
                     #Her gemmer vi den klassificerede button i classifiedButton beskeden
                     classifiedButton = ClassifiedButton()
-                    if sub_pred == "circuitBreaker":
+                    if sub_pred == "BREAKER":
                         classifiedButton.type = ClassifiedButton.BREAKER
-                    elif sub_pred == "MainSwitch":
+                    elif sub_pred == "EMERGENCY_STOP":
                         classifiedButton.type = ClassifiedButton.EMERGENCY_STOP
-                    elif sub_pred == "SelectorSwitch":
+                    elif sub_pred == "THREE_STATE_SWITCH":
                         classifiedButton.type = ClassifiedButton.THREE_STATE_SWITCH
-                    elif sub_pred == "Plug":
+                    elif sub_pred == "PLUG":
                         classifiedButton.type = ClassifiedButton.PLUG
                     else:
                         classifiedButton.type = ClassifiedButton.UNKNOWN
@@ -225,15 +292,17 @@ class ObjectClassificationNode(Node):
                 continue
 
             roi = image[y1:y2, x1:x2]
+            droi = depth_image[y1:y2, x1:x2]
 
             if roi.size == 0:
                 continue
             
             #her resizees ROI til 150x150 for feature extraction
             roi = cv.resize(roi, (150,150))
+            droi = cv.resize(droi, (150,150))
 
             #henter features til ROI
-            features = np.array(feature_extraction(roi))
+            features = np.array(self.feature_extraction(roi, droi))
 
             #scale features
             features = (features - self.mean) / self.scale
@@ -253,11 +322,11 @@ class ObjectClassificationNode(Node):
             
             #Her gemmer vi den klassificerede button i classifiedButton beskeden
             classifiedButton = ClassifiedButton()
-            if pred == "circuitBreaker":
+            if pred == "BREAKER":
                 classifiedButton.type = ClassifiedButton.BREAKER
-            elif pred == "MainSwitch":
+            elif pred == "EMERGENCY_STOP":
                 classifiedButton.type = ClassifiedButton.EMERGENCY_STOP
-            elif pred == "SelectorSwitch":
+            elif pred == "THREE_STATE_SWITCH":
                 classifiedButton.type = ClassifiedButton.THREE_STATE_SWITCH
             elif pred == "Plug":
                 classifiedButton.type = ClassifiedButton.PLUG

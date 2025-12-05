@@ -37,27 +37,72 @@ class KNN_Node(Node):
         return np.clip(result, 0, 255).astype(np.uint8)
 
     #Henter feature af edges density, edge contours, standard deviation of intensity, mean intensity, mean hue, mean saturation, mean value
-    def feature_extraction(self, roi_img):
+    def feature_extraction(self, roi_img, roi_depth):
         #roi_img = self.balance_white(roi_img)
         hsv = cv.cvtColor(roi_img, cv.COLOR_BGR2HSV)
         gray = cv.cvtColor(roi_img, cv.COLOR_BGR2GRAY)
         blur = cv.GaussianBlur(gray, (5,5), 1.2)
         edges = cv.Canny(blur, threshold1=50, threshold2=100)
 
-        contours, _ = cv.findContours(edges, cv.RETR_EXTERNAL, cv .CHAIN_APPROX_SIMPLE)
+        #contours, _ = cv.findContours(edges, cv.RETR_EXTERNAL, cv .CHAIN_APPROX_SIMPLE)
 
-        edge_density = np.count_nonzero(edges) / edges.size
-        num_contours = len(contours)
+        depth_top = self.top_pixels_coutour(roi_depth, p=.05)
+
+        topShape = cv.minAreaRect(depth_top)
+        box = cv.boxPoints(topShape)
+        box = np.int0(box)
+
+        box_height = np.linalg.norm(box[0] - box[1])
+        box_width = np.linalg.norm(box[1] - box[2])
+
+        if(box_width == 0):
+            box_width = 1
+
+        HW_ratio = box_height / box_width
+
+        area = cv.contourArea(depth_top)
+
+        #histogram = cv.calcHist([hsv], [0], None, [10], [0, 256])
+
+        #edge_density = np.count_nonzero(edges) / edges.size
+        #num_contours = len(contours)
         std_intensity = np.std(gray)
-        mean_intensity = np.mean(gray)
-        mean_hue = np.mean(hsv[:,:,0])
+        std_depth = np.std(roi_depth)
+        #mean_intensity = np.mean(gray)
+        #mean_hue = np.mean(hsv[:,:,0])
+        min_hue = np.min(hsv[:,:,0])
+        max_hue = np.max(hsv[:,:,0])
         mean_sat = np.mean(hsv[:,:,1])
-        mean_value = np.mean(hsv[:,:,2])
+        #mean_value = np.mean(hsv[:,:,2])
 
-        return edge_density, num_contours, std_intensity, mean_intensity, mean_hue, mean_sat, mean_value
+        # Concatenate scalar features with histogram
+        scalar_features = np.array([std_depth, std_intensity, min_hue, max_hue, area, HW_ratio])
+        all_features = np.concatenate([scalar_features])
+        
+        return all_features
+    
+    def top_pixels_coutour(self, depth_img, p=0.1):
+        # Flatten the depth image and get the indices of the top n smallest values (closest points)
+        flat_depth = depth_img.flatten()
+        n_top = int(len(flat_depth) * p)
+        top_n_indices = np.argpartition(flat_depth, n_top)[:n_top]
+
+        # Create a binary mask for the top n pixels
+        mask = np.zeros_like(flat_depth, dtype=bool)
+        mask[top_n_indices] = True
+        mask = mask.reshape(depth_img.shape)
+
+        # Find contours in the mask
+        contours, _ = cv.findContours(mask.astype(np.uint8), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        sorted_contours = sorted(contours, key=cv.contourArea, reverse=True)
+        
+        main_contour = sorted_contours[0]
+
+        return main_contour
     
     def KNN_callback(self, msg):  
         img = self.bridge.imgmsg_to_cv2(msg.rgb_image, "bgr8")
+        depth_img = self.bridge.imgmsg_to_cv2(msg.depth_image, "32FC1")
 
         debug_img = img.copy()
         color = (0, 255, 0)
@@ -71,12 +116,14 @@ class KNN_Node(Node):
                 label = "EMERGENCY_STOP"
             elif button.type == 4:
                 label = "PLUG"
+                continue
             else:
                 label = "UNKNOWN"
 
             x1, y1, x2, y2 = button.bounding_box
 
             roi = img[y1:y2, x1:x2]
+            dRoi = depth_img[y1:y2, x1:x2]
 
             if roi.size == 0:
                 continue
@@ -90,7 +137,8 @@ class KNN_Node(Node):
             
 
             roi = cv.resize(roi, (150,150))
-            features = self.feature_extraction(roi)
+            dRoi = cv.resize(dRoi, (150,150))
+            features = self.feature_extraction(roi, dRoi)
 
             self.X.append(features)
             self.y.append(label)
