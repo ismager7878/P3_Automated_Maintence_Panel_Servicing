@@ -139,9 +139,8 @@ target_link_libraries(pose_estimation "${cpp_typesupport_target}")
 target_link_libraries(action_client "${cpp_typesupport_target}")
 target_link_libraries(ur_wrapper "${cpp_typesupport_target}")
 target_link_libraries(segmentation "${cpp_typesupport_target}")
+target_link_libraries(segmentation_test "${cpp_typesupport_target}")
 target_link_libraries(state_broadcaster "${cpp_typesupport_target}")
-target_link_libraries(subscribe_segmentation "${cpp_typesupport_target}")
-target_link_libraries(publisher_segmentation "${cpp_typesupport_target}")
 target_link_libraries(button_state_detector "${cpp_typesupport_target}")
 target_link_libraries(ground_truth_broadcaster "${cpp_typesupport_target}")
 target_link_libraries(dataset_broadcaster "${cpp_typesupport_target}")
@@ -159,8 +158,6 @@ install(TARGETS
   pose_estimation
   frame_broadcaster
   segmentation
-  subscribe_segmentation
-  publisher_segmentation
   dataset_broadcaster
   ground_truth_broadcaster
   training_data_converter

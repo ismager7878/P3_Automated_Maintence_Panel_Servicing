@@ -9,9 +9,13 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     # Launch file runs from: install/amps_python/share/amps_python/launch/
     # .venv is at workspace root, so go up 5 levels: ../../../../../.venv
-    launch_dir = os.path.dirname(os.path.realpath(__file__))
-    ws_root = os.path.abspath(os.path.join(launch_dir, "../../../../../"))
-    venv_python = os.path.join(ws_root, ".venv", "bin", "python3")
+
+    ws_path = os.path.expanduser("~/anaconda3/envs/P3")
+    venv_python = os.path.join(ws_path, "bin", "python")
+
+    # launch_dir = os.path.dirname(os.path.realpath(__file__))
+    # ws_root = os.path.abspath(os.path.join(launch_dir, "../../../../../"))
+    # venv_python = os.path.join(ws_root, ".venv", "bin", "python3")
 
     return LaunchDescription([
 
