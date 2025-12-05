@@ -1,19 +1,5 @@
 [
   {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      533,
-      375,
-      573,
-      449
-    ],
-    "dot_position": [
-      553,
-      412
-    ]
-  },
-  {
     "type": 3,
     "state": "",
     "bounding_box": [
@@ -196,7 +182,7 @@
     ]
   },
   {
-    "type": 1,
+    "type": 2,
     "state": "",
     "bounding_box": [
       205,
@@ -238,7 +224,7 @@
     ]
   },
   {
-    "type": 4,
+    "type": 1,
     "state": "",
     "bounding_box": [
       381,
@@ -252,7 +238,7 @@
     ]
   },
   {
-    "type": 4,
+    "type": 2,
     "state": "",
     "bounding_box": [
       385,
@@ -266,7 +252,7 @@
     ]
   },
   {
-    "type": 4,
+    "type": 2,
     "state": "",
     "bounding_box": [
       380,
@@ -305,20 +291,6 @@
     "dot_position": [
       245,
       94
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      615,
-      375,
-      657,
-      451
-    ],
-    "dot_position": [
-      636,
-      413
     ]
   }
 ]

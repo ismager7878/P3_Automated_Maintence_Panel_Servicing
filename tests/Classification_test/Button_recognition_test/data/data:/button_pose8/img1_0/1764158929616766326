@@ -1,19 +1,5 @@
 [
   {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      619,
-      378,
-      656,
-      451
-    ],
-    "dot_position": [
-      637,
-      414
-    ]
-  },
-  {
     "type": 3,
     "state": "",
     "bounding_box": [
@@ -28,7 +14,7 @@
     ]
   },
   {
-    "type": 4,
+    "type": 2,
     "state": "",
     "bounding_box": [
       382,
@@ -45,56 +31,14 @@
     "type": 3,
     "state": "",
     "bounding_box": [
-      539,
-      205,
-      673,
-      335
-    ],
-    "dot_position": [
-      606,
-      270
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
       384,
-      315,
-      467,
-      370
+      194,
+      454,
+      266
     ],
     "dot_position": [
-      425,
-      342
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      391,
-      536,
-      449,
-      605
-    ],
-    "dot_position": [
-      420,
-      570
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      387,
-      420,
-      445,
-      485
-    ],
-    "dot_position": [
-      416,
-      452
+      419,
+      230
     ]
   },
   {
@@ -283,14 +227,56 @@
     "type": 2,
     "state": "",
     "bounding_box": [
-      384,
-      194,
-      454,
-      266
+      387,
+      420,
+      445,
+      485
     ],
     "dot_position": [
-      419,
-      230
+      416,
+      452
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      391,
+      536,
+      449,
+      605
+    ],
+    "dot_position": [
+      420,
+      570
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      384,
+      317,
+      467,
+      370
+    ],
+    "dot_position": [
+      425,
+      343
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      539,
+      205,
+      673,
+      335
+    ],
+    "dot_position": [
+      606,
+      270
     ]
   },
   {
@@ -305,20 +291,6 @@
     "dot_position": [
       252,
       95
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      537,
-      376,
-      573,
-      450
-    ],
-    "dot_position": [
-      555,
-      413
     ]
   }
 ]

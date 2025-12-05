@@ -1,44 +1,86 @@
 [
   {
-    "type": 4,
+    "type": 3,
     "state": "",
     "bounding_box": [
-      617,
-      376,
-      655,
-      453
+      534,
+      53,
+      665,
+      186
     ],
     "dot_position": [
-      636,
-      414
+      599,
+      119
     ]
   },
   {
-    "type": 4,
+    "type": 1,
     "state": "",
     "bounding_box": [
-      385,
-      58,
-      448,
-      128
+      216,
+      68,
+      286,
+      114
     ],
     "dot_position": [
-      416,
-      93
+      251,
+      91
     ]
   },
   {
-    "type": 4,
+    "type": 2,
     "state": "",
     "bounding_box": [
-      385,
-      196,
-      447,
-      262
+      536,
+      209,
+      671,
+      335
+    ],
+    "dot_position": [
+      603,
+      272
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      389,
+      298,
+      444,
+      366
     ],
     "dot_position": [
       416,
-      229
+      332
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      388,
+      565,
+      454,
+      602
+    ],
+    "dot_position": [
+      421,
+      583
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      385,
+      434,
+      455,
+      484
+    ],
+    "dot_position": [
+      420,
+      459
     ]
   },
   {
@@ -224,101 +266,31 @@
     ]
   },
   {
-    "type": 4,
+    "type": 2,
     "state": "",
     "bounding_box": [
       385,
-      434,
-      455,
-      484
-    ],
-    "dot_position": [
-      420,
-      459
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      388,
-      565,
-      454,
-      602
-    ],
-    "dot_position": [
-      421,
-      583
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      389,
-      298,
-      444,
-      366
+      196,
+      447,
+      262
     ],
     "dot_position": [
       416,
-      332
+      229
     ]
   },
   {
-    "type": 4,
+    "type": 2,
     "state": "",
     "bounding_box": [
-      536,
-      209,
-      671,
-      335
+      385,
+      58,
+      448,
+      128
     ],
     "dot_position": [
-      603,
-      272
-    ]
-  },
-  {
-    "type": 1,
-    "state": "",
-    "bounding_box": [
-      216,
-      68,
-      286,
-      114
-    ],
-    "dot_position": [
-      251,
-      91
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      534,
-      53,
-      665,
-      186
-    ],
-    "dot_position": [
-      599,
-      119
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      535,
-      376,
-      571,
-      452
-    ],
-    "dot_position": [
-      553,
-      414
+      416,
+      93
     ]
   }
 ]

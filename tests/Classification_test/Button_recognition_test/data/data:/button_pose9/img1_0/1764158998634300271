@@ -1,19 +1,5 @@
 [
   {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      617,
-      378,
-      654,
-      450
-    ],
-    "dot_position": [
-      635,
-      414
-    ]
-  },
-  {
     "type": 3,
     "state": "",
     "bounding_box": [
@@ -45,56 +31,14 @@
     "type": 3,
     "state": "",
     "bounding_box": [
-      533,
-      202,
-      685,
-      344
-    ],
-    "dot_position": [
-      609,
+      370,
+      190,
+      460,
       273
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
-      380,
-      303,
-      473,
-      386
-    ],
-    "dot_position": [
-      426,
-      344
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      382,
-      547,
-      445,
-      627
-    ],
-    "dot_position": [
-      413,
-      587
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      383,
-      430,
-      447,
-      507
     ],
     "dot_position": [
       415,
-      468
+      231
     ]
   },
   {
@@ -283,14 +227,56 @@
     "type": 2,
     "state": "",
     "bounding_box": [
-      370,
-      190,
-      460,
-      273
+      383,
+      430,
+      447,
+      507
     ],
     "dot_position": [
       415,
-      231
+      468
+    ]
+  },
+  {
+    "type": 3,
+    "state": "",
+    "bounding_box": [
+      382,
+      547,
+      445,
+      627
+    ],
+    "dot_position": [
+      413,
+      587
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      380,
+      303,
+      473,
+      386
+    ],
+    "dot_position": [
+      426,
+      344
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      533,
+      202,
+      685,
+      344
+    ],
+    "dot_position": [
+      609,
+      273
     ]
   },
   {
@@ -305,20 +291,6 @@
     "dot_position": [
       245,
       96
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      535,
-      378,
-      571,
-      449
-    ],
-    "dot_position": [
-      553,
-      413
     ]
   }
 ]

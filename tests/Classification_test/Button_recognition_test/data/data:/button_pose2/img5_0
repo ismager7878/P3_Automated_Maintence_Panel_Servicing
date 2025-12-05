@@ -1,30 +1,58 @@
 [
   {
-    "type": 4,
+    "type": 2,
     "state": "",
     "bounding_box": [
-      548,
-      70,
-      645,
-      175
+      357,
+      179,
+      457,
+      269
     ],
     "dot_position": [
-      596,
-      122
+      407,
+      224
     ]
   },
   {
-    "type": 4,
+    "type": 2,
     "state": "",
     "bounding_box": [
-      611,
-      378,
-      648,
-      453
+      368,
+      295,
+      451,
+      389
     ],
     "dot_position": [
-      629,
-      415
+      409,
+      342
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      380,
+      556,
+      437,
+      626
+    ],
+    "dot_position": [
+      408,
+      591
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      377,
+      425,
+      446,
+      491
+    ],
+    "dot_position": [
+      411,
+      458
     ]
   },
   {
@@ -210,87 +238,17 @@
     ]
   },
   {
-    "type": 4,
+    "type": 3,
     "state": "",
     "bounding_box": [
-      377,
-      425,
-      446,
-      491
+      194,
+      70,
+      288,
+      122
     ],
     "dot_position": [
-      411,
-      458
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      380,
-      556,
-      437,
-      626
-    ],
-    "dot_position": [
-      408,
-      591
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
-      368,
-      295,
-      451,
-      389
-    ],
-    "dot_position": [
-      409,
-      342
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
-      357,
-      179,
-      457,
-      269
-    ],
-    "dot_position": [
-      407,
-      224
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      529,
-      381,
-      564,
-      453
-    ],
-    "dot_position": [
-      546,
-      417
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      546,
-      217,
-      651,
-      322
-    ],
-    "dot_position": [
-      598,
-      269
+      241,
+      96
     ]
   }
 ]

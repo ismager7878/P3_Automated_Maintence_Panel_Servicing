@@ -1,20 +1,6 @@
 [
   {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      614,
-      376,
-      652,
-      449
-    ],
-    "dot_position": [
-      633,
-      412
-    ]
-  },
-  {
-    "type": 2,
+    "type": 3,
     "state": "",
     "bounding_box": [
       528,
@@ -45,14 +31,56 @@
     "type": 2,
     "state": "",
     "bounding_box": [
-      376,
-      180,
-      445,
-      254
+      533,
+      201,
+      671,
+      335
     ],
     "dot_position": [
-      410,
-      217
+      602,
+      268
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      376,
+      310,
+      451,
+      366
+    ],
+    "dot_position": [
+      413,
+      338
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      381,
+      533,
+      443,
+      603
+    ],
+    "dot_position": [
+      412,
+      568
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      382,
+      428,
+      444,
+      502
+    ],
+    "dot_position": [
+      413,
+      465
     ]
   },
   {
@@ -238,59 +266,17 @@
     ]
   },
   {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      376,
-      310,
-      451,
-      366
-    ],
-    "dot_position": [
-      413,
-      338
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      381,
-      533,
-      443,
-      603
-    ],
-    "dot_position": [
-      412,
-      568
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      382,
-      428,
-      444,
-      502
-    ],
-    "dot_position": [
-      413,
-      465
-    ]
-  },
-  {
     "type": 2,
     "state": "",
     "bounding_box": [
-      533,
-      201,
-      671,
-      335
+      376,
+      180,
+      445,
+      254
     ],
     "dot_position": [
-      602,
-      268
+      410,
+      217
     ]
   },
   {
@@ -305,20 +291,6 @@
     "dot_position": [
       245,
       89
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      532,
-      376,
-      568,
-      448
-    ],
-    "dot_position": [
-      550,
-      412
     ]
   }
 ]

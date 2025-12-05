@@ -1,19 +1,5 @@
 [
   {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      532,
-      374,
-      571,
-      452
-    ],
-    "dot_position": [
-      551,
-      413
-    ]
-  },
-  {
     "type": 3,
     "state": "",
     "bounding_box": [
@@ -42,59 +28,17 @@
     ]
   },
   {
-    "type": 3,
-    "state": "",
-    "bounding_box": [
-      535,
-      208,
-      670,
-      336
-    ],
-    "dot_position": [
-      602,
-      272
-    ]
-  },
-  {
-    "type": 4,
+    "type": 2,
     "state": "",
     "bounding_box": [
       379,
-      314,
-      458,
-      371
-    ],
-    "dot_position": [
-      418,
-      342
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      380,
-      419,
-      441,
-      483
-    ],
-    "dot_position": [
-      410,
-      451
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      384,
-      535,
-      443,
-      605
+      193,
+      448,
+      268
     ],
     "dot_position": [
       413,
-      570
+      230
     ]
   },
   {
@@ -283,14 +227,56 @@
     "type": 2,
     "state": "",
     "bounding_box": [
-      379,
-      193,
-      448,
-      268
+      380,
+      419,
+      441,
+      483
+    ],
+    "dot_position": [
+      410,
+      451
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      384,
+      535,
+      443,
+      605
     ],
     "dot_position": [
       413,
-      230
+      570
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      379,
+      314,
+      458,
+      371
+    ],
+    "dot_position": [
+      418,
+      342
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      535,
+      208,
+      670,
+      336
+    ],
+    "dot_position": [
+      602,
+      272
     ]
   },
   {
@@ -305,20 +291,6 @@
     "dot_position": [
       244,
       93
-    ]
-  },
-  {
-    "type": 4,
-    "state": "",
-    "bounding_box": [
-      614,
-      375,
-      656,
-      452
-    ],
-    "dot_position": [
-      635,
-      413
     ]
   }
 ]

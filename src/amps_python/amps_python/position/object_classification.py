@@ -23,6 +23,8 @@ def find_workspace_root(start_path):
 class ObjectClassificationNode(Node):
     def __init__(self):
         super().__init__('object_classification_node')
+
+        self.declare_parameter('button_state', 'false')
         
         #subscribe til segmenteret billede
         self.image_subscription = self.create_subscription(Image, 'amps_python/vision/transformed_color_image', self.image_callback, 10)
@@ -350,7 +352,8 @@ class ObjectClassificationNode(Node):
         self.get_logger().info("classification Done")
         # Reset flags to wait for next image+ROI pair
 
-        
+        if(self.get_parameter('button_state').get_parameter_value().string_value == 'false'):
+            self.set_program_state(ProgramState.PREPROCESSING_MODE, "Button State Detection Mode")
         ##self.set_program_state(ProgramState.PREPROCESSING_MODE)
 
         self.received_image = False
