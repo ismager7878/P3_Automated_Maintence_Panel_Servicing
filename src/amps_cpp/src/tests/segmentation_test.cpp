@@ -124,7 +124,7 @@ private:
     void logCorrection(std::string filename,std::string groundtruth_list, std::string boundingbox_list, std::string bottomtype){
 
         if(!this->accuracyLogFile){
-            this->accuracyLogFile = CsvManager::CsvFile("segmenation/segmentation_accuracy_log.csv", 
+            this->accuracyLogFile = CsvManager::CsvFile("segmenation/raw_data/segmentation_accuracy_log.csv", 
                 {"Filename","Bottom_type","Groundtruth_boundingbox","Detected_boundingbox"});     
         }
         
