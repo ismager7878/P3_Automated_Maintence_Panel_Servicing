@@ -3,7 +3,6 @@ import cv2 as cv
 import rclpy
 from rclpy.node import Node
 import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image 
@@ -56,12 +55,9 @@ class ObjectClassificationNode(Node):
         x = np.load(os.path.join(folder, "features.npy"))
         y = np.load(os.path.join(folder, "labels.npy"), allow_pickle=True)
 
-
-        x_train, X_test, y_train, y_test = train_test_split(
-            x, y, test_size=0.3, random_state=0
-        )   
+  
         self.knn = KNeighborsClassifier(n_neighbors=5, weights='distance')
-        self.knn.fit(x_train, y_train)
+        self.knn.fit(x, y)
 
         self.get_logger().info("Object Classification Node has been started.")
 
