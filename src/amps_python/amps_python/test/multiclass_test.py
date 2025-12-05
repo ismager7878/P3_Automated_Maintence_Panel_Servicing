@@ -353,30 +353,39 @@ def go_through_all_data():
 
     # Lav par (én test, én ground_truth)
     for test_fil, ground_fil in zip(test_filer, ground_filer):
-        #print("Test fil:     ", test_fil)
-        #print("Ground truth: ", ground_fil)
-        #print("----")
+
         confucion_matrix(test_fil, ground_fil)
 
-        print("------------------------------------------------------------------------------------------------------------------------------")
-        print(f"Breaker TP: {sum(all_b_b)}, FP as rotary: {sum(all_b_r)}, FP as main: {sum(all_b_m)}, FP as plug: {sum(all_b_p)}")
-        print(f"Rotary TP: {sum(all_r_r)}, FP as breaker: {sum(all_r_b)}, FP as main: {sum(all_r_m)}, FP as plug: {sum(all_r_p)}")
-        print(f"Main TP: {sum(all_m_m)}, FP as breaker: {sum(all_m_b)}, FP as rotary: {sum(all_m_r)}, FP as plug: {sum(all_m_p)}")
-        print(f"Plug TP: {sum(all_p_p)}, FP as breaker: {sum(all_p_b)}, FP as rotary: {sum(all_p_r)}, FP as main: {sum(all_p_m)}")
-        print(f"False Negatives (no match): {sum(all_false_negative)}")
-        print("================================================================================================================================")
-            
-go_through_all_data()
+    breaker_res = [sum(all_b_b), sum(all_b_r), sum(all_b_m), sum(all_b_p)]
+    rotary_res = [sum(all_r_r), sum(all_r_b), sum(all_r_m), sum(all_r_p)]
+    main_res = [sum(all_m_m), sum(all_m_b), sum(all_m_r), sum(all_m_p)]
+    plug_res = [sum(all_p_p), sum(all_p_b), sum(all_p_r), sum(all_p_m)]
+    fn_res = sum(all_false_negative)
 
+    print("------------------------------------------------------------------------------------------------------------------------------")
+    print(f"Breaker TP: {sum(all_b_b)}, FP as rotary: {sum(all_b_r)}, FP as main: {sum(all_b_m)}, FP as plug: {sum(all_b_p)}")
+    print(f"Rotary TP: {sum(all_r_r)}, FP as breaker: {sum(all_r_b)}, FP as main: {sum(all_r_m)}, FP as plug: {sum(all_r_p)}")
+    print(f"Main TP: {sum(all_m_m)}, FP as breaker: {sum(all_m_b)}, FP as rotary: {sum(all_m_r)}, FP as plug: {sum(all_m_p)}")
+    print(f"Plug TP: {sum(all_p_p)}, FP as breaker: {sum(all_p_b)}, FP as rotary: {sum(all_p_r)}, FP as main: {sum(all_p_m)}")
+    print(f"False Negatives (no match): {sum(all_false_negative)}")
+    print("================================================================================================================================")
 
-def json_putput(file_name, breaker, rotary, main, plug, false_negative, P, R, f1):
+    print(breaker_res)
+    print(rotary_res)
+    print(main_res)
+    print(plug_res)
+    print(fn_res)
+
+    return breaker_res, rotary_res, main_res, plug_res, fn_res
+
+def json_output(breaker, rotary, main, plug, false_negative, P, R, f1):
     data = {
         "confucion_score": {
-            "breaker_score": [breaker],
-            "rotary_score": [rotary],
-            "main_score": [main],
-            "plug_score": [plug],
-            "false_negative": [false_negative],
+            "breaker_score": breaker,
+            "rotary_score": rotary,
+            "main_score": main,
+            "plug_score": plug,
+            "false_negative": false_negative,
         },
         "precision": P,
         "recall": R,
@@ -387,8 +396,13 @@ def json_putput(file_name, breaker, rotary, main, plug, false_negative, P, R, f1
     folder_path = "tests/Classification_test/Button_recognition_test/results/All_data"
     os.makedirs(folder_path, exist_ok=True)  # Opret mappen hvis den ikke findes
 
-    file_path = os.path.join(folder_path, file_name)
+    file_path = os.path.join(folder_path, "confusion matrix")
 
     # Gem som JSON
     with open(file_path, "w") as file:
         json.dump(data, file, indent=4) 
+    print("file updated")
+
+breaker_res, rotary_res, main_res, plug_res, fn_res = go_through_all_data()
+
+json_output(breaker_res, rotary_res, main_res, plug_res, fn_res, None, None, None)

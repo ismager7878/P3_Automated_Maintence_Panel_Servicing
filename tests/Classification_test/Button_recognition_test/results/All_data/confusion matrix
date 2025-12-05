@@ -1,0 +1,32 @@
+{
+    "confusion_score": {
+        "breaker_score": [
+            423,
+            4,
+            2,
+            1
+        ],
+        "rotary_score": [
+            58,
+            2,
+            17,
+            0
+        ],
+        "main_score": [
+            38,
+            8,
+            0,
+            0
+        ],
+        "plug_score": [
+            59,
+            0,
+            100,
+            15
+        ],
+        "false_negative": 12
+    },
+    "precision": null,
+    "recall": null,
+    "f1": null
+}
