@@ -7,7 +7,7 @@ package_name = 'amps_python'
 setup(
     name=package_name,
     version='0.0.0',
-    packages=find_packages(exclude=['test']),
+    packages=find_packages(),
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -45,6 +45,7 @@ setup(
             "GUI = amps_python.GUI.GUI:main",
             'preprocessing_node = amps_python.preprocessing_node.preprocessing_node:main',
             'classified_image = amps_python.position.object_classification:main',
+            "classi_test = amps_python.test.classification_test:main",
             'knn_node = amps_python.position.features_extraction:main',
         ],
     },

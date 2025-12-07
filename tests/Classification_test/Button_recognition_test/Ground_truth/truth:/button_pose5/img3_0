@@ -1,0 +1,211 @@
+{
+  "image_filename": "datasets/auto_aligned_dataset/button_pose5/img3_0",
+  "btn_config": 5,
+  "circuit_breaker": [
+    {
+      "states": [
+        "on",
+        "on",
+        "on",
+        "off",
+        "on",
+        "off",
+        "off",
+        "on",
+        "off",
+        "on",
+        "off",
+        "on",
+        "off"
+      ],
+      "pos_xy": [
+        432,
+        249,
+        515,
+        657
+      ],
+      "transformed_pos_xy": [
+        204,
+        213,
+        286,
+        618
+      ]
+    },
+    {
+      "states": [
+        "on"
+      ],
+      "pos_xy": [
+        432,
+        105,
+        515,
+        143
+      ],
+      "transformed_pos_xy": [
+        205,
+        70,
+        287,
+        108
+      ]
+    }
+  ],
+  "selector_switch": [
+    {
+      "states": [
+        "1"
+      ],
+      "pos_xy": [
+        594,
+        559,
+        682,
+        650
+      ],
+      "transformed_pos_xy": [
+        364,
+        521,
+        452,
+        612
+      ]
+    },
+    {
+      "states": [
+        "2"
+      ],
+      "pos_xy": [
+        595,
+        445,
+        681,
+        532
+      ],
+      "transformed_pos_xy": [
+        366,
+        408,
+        451,
+        494
+      ]
+    },
+    {
+      "states": [
+        "0"
+      ],
+      "pos_xy": [
+        595,
+        329,
+        681,
+        415
+      ],
+      "transformed_pos_xy": [
+        366,
+        293,
+        451,
+        378
+      ]
+    },
+    {
+      "states": [
+        "1"
+      ],
+      "pos_xy": [
+        596,
+        213,
+        681,
+        299
+      ],
+      "transformed_pos_xy": [
+        367,
+        177,
+        452,
+        263
+      ]
+    },
+    {
+      "states": [
+        "2"
+      ],
+      "pos_xy": [
+        596,
+        94,
+        681,
+        185
+      ],
+      "transformed_pos_xy": [
+        368,
+        59,
+        452,
+        150
+      ]
+    }
+  ],
+  "main_switch": [
+    {
+      "states": [
+        "off"
+      ],
+      "pos_xy": [
+        761,
+        237,
+        889,
+        363
+      ],
+      "transformed_pos_xy": [
+        531,
+        202,
+        658,
+        327
+      ]
+    },
+    {
+      "states": [
+        "on"
+      ],
+      "pos_xy": [
+        764,
+        94,
+        892,
+        221
+      ],
+      "transformed_pos_xy": [
+        535,
+        60,
+        661,
+        186
+      ]
+    }
+  ],
+  "plug": [
+    {
+      "states": [
+        "out"
+      ],
+      "pos_xy": [
+        758,
+        403,
+        802,
+        492
+      ],
+      "transformed_pos_xy": [
+        528,
+        367,
+        571,
+        455
+      ]
+    },
+    {
+      "states": [
+        "out"
+      ],
+      "pos_xy": [
+        841,
+        403,
+        886,
+        492
+      ],
+      "transformed_pos_xy": [
+        610,
+        367,
+        655,
+        455
+      ]
+    }
+  ]
+}

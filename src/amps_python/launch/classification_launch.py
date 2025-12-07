@@ -19,6 +19,7 @@ def generate_launch_description():
              PathJoinSubstitution([FindPackageShare('amps_cpp'), 'launch', 'segmentation_test.py'])
         ),
        
+
         Node(
             package="amps_python",
             executable="classified_image",

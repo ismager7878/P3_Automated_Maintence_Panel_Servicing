@@ -3,7 +3,6 @@ import cv2 as cv
 import rclpy
 from rclpy.node import Node
 import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image 
@@ -24,6 +23,8 @@ def find_workspace_root(start_path):
 class ObjectClassificationNode(Node):
     def __init__(self):
         super().__init__('object_classification_node')
+
+        self.declare_parameter('button_state', 'false')
         
         #subscribe til segmenteret billede
         self.image_subscription = self.create_subscription(Image, 'amps_python/vision/transformed_color_image', self.image_callback, 10)
@@ -56,12 +57,9 @@ class ObjectClassificationNode(Node):
         x = np.load(os.path.join(folder, "features.npy"))
         y = np.load(os.path.join(folder, "labels.npy"), allow_pickle=True)
 
-
-        x_train, X_test, y_train, y_test = train_test_split(
-            x, y, test_size=0.3, random_state=0
-        )   
+  
         self.knn = KNeighborsClassifier(n_neighbors=5, weights='distance')
-        self.knn.fit(x_train, y_train)
+        self.knn.fit(x, y)
 
         self.get_logger().info("Object Classification Node has been started.")
 
@@ -341,17 +339,21 @@ class ObjectClassificationNode(Node):
             buttons_array.buttons.append(classifiedButton)
 
         #publicer alle klassificerede buttons og billedet med visualisering
-        self.get_logger().info(f"Publishing {len(buttons_array.buttons)} buttons")
-        self.classification_publisher.publish(buttons_array)
-        
         image_msg = self.bridge.cv2_to_imgmsg(image, encoding='bgr8')
+
+        buttons_array.rgb_image = image_msg
+
+        self.get_logger().info(f"Publishing {len(buttons_array.buttons)} buttons")
+        self.classification_publisher.publish(buttons_array)        
+        
         self.image_publisher.publish(image_msg)
         time.sleep(0.1)
 
         self.get_logger().info("classification Done")
         # Reset flags to wait for next image+ROI pair
 
-        
+        if(self.get_parameter('button_state').get_parameter_value().string_value == 'false'):
+            self.set_program_state(ProgramState.PREPROCESSING_MODE, "Button State Detection Mode")
         ##self.set_program_state(ProgramState.PREPROCESSING_MODE)
 
         self.received_image = False

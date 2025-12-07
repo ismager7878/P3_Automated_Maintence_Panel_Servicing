@@ -116,7 +116,7 @@ class KNN_Node(Node):
                 label = "EMERGENCY_STOP"
             elif button.type == 4:
                 label = "PLUG"
-                continue
+                continue  # Skip plugs for now
             else:
                 label = "UNKNOWN"
 

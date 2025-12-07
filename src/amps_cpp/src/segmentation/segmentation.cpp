@@ -210,13 +210,10 @@ void segmentation(cv::Mat &image, cv::Mat &depth)
     cv::Mat mask = cv::Mat::zeros(image.size(), CV_8UC1);     
 
     // // Cut out board
-    // cv::inRange(image,board_color_lower,board_color_upper,mask);
-    // cv::cvtColor(image, image, cv::COLOR_HSV2BGR);
-    // Erode(mask);
+    // // cv::inRange(image,board_color_lower,board_color_upper,mask);
+    // // cv::cvtColor(image, image, cv::COLOR_HSV2BGR);
+    // // Erode(mask);
 
-    // //Make mask black
-
-    // mask = 255 - mask;
     
     makeBoundingBoxes(depthMasked,mask,image);   
     //cv::imshow("Detected Markers",outputImage);

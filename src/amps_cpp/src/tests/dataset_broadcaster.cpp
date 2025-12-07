@@ -19,7 +19,9 @@ class DatasetBroadcaster : public rclcpp::Node
 public:
     DatasetBroadcaster() : Node("dataset_broadcaster_node")
     {
-
+        // Declare parameter with default value
+        this->declare_parameter<std::string>("dataset_path", "datasets/auto_aligned_dataset/training_paths.csv");
+        
         statePub_ = this->create_publisher<ProgramState>("amps/set_program_state", 10);
         stateSub_ = this->create_subscription<ProgramState>(
             "amps/program_state", 10,
@@ -28,7 +30,10 @@ public:
 
         framePub_ = this->create_publisher<FrameWithPose>("amps_cpp/pose_estimation/frame_with_pose", 10);
 
-        datasetPath = "datasets/auto_aligned_dataset/training_paths.csv";
+        // Get parameter value
+        datasetPath = this->get_parameter("dataset_path").as_string();
+
+        RCLCPP_WARN(this->get_logger(), "Using dataset path: %s", datasetPath.c_str());
 
         load_dataset();
 
