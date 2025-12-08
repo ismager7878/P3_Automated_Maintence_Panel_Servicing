@@ -62,7 +62,10 @@ class KNN_Node(Node):
 
         area = cv.contourArea(depth_top)
 
-        #histogram = cv.calcHist([hsv], [0], None, [10], [0, 256])
+        histogram = cv.calcHist([hsv], [0], None, [8], [0, 256])
+
+        min_value = hsv[:,:,0].min()
+        max_value = hsv[:,:,0].max()
 
         #edge_density = np.count_nonzero(edges) / edges.size
         #num_contours = len(contours)
@@ -76,8 +79,8 @@ class KNN_Node(Node):
         #mean_value = np.mean(hsv[:,:,2])
 
         # Concatenate scalar features with histogram
-        scalar_features = np.array([std_depth, std_intensity, min_hue, max_hue, area, HW_ratio])
-        all_features = np.concatenate([scalar_features])
+        scalar_features = np.array([std_depth, std_intensity, min_hue, max_hue, area, HW_ratio, min_value, max_value])
+        all_features = np.concatenate([scalar_features], histogram.flatten())
         
         return all_features
     

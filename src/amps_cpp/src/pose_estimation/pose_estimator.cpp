@@ -669,43 +669,25 @@ private:
     void logCorrection(){
 
         if(!this->accuracyLogFile){
-            this->accuracyLogFile = CsvManager::CsvFile("auto_aligement/alignment__accuracy_single_maker_log.csv", 
-                {"corr_lenght"});     
+            this->accuracyLogFile = CsvManager::CsvFile("auto_aligement_with_angles_single_marker/alignment__accuracy_log.csv", 
+                {"corr_lenght, corr_angle_x, corr_angle_y, corr_angle_z"});     
         }
+
         tf2::Transform correctionT;
         this->getTransformBroadcast(correctionT ,"camera", "correction");
 
         tf2::Vector3 corrTransVec = correctionT.getOrigin();
 
+        double angleX, angleY, angleZ;
+        tf2::Matrix3x3(correctionT.getRotation()).getEulerYPR(angleZ, angleY, angleX);
+
         double corrLenght = corrTransVec.length();
 
-        this->accuracyLogFile->addRow({to_string(corrLenght)});
+        this->accuracyLogFile->addRow({to_string(corrLenght), to_string(angleX), to_string(angleY), to_string(angleZ)});
 
     }
 
     void frameCallback(const amps_cpp::msg::FrameWithPose::SharedPtr msg){
-
-        // ExtrinsicsMsg depthToRgbT;
-
-        // depthToRgbT.rotation = { 
-        //     0.9999980926513672, 
-        //     -0.0012165356893092394,
-        //     0.0015198299661278725,
-        //     0.0012112563708797097,
-        //     0.9999932646751404,
-        //     0.0034697011578828096,
-        //     -0.0015240407083183527,
-        //     -0.003467853646725416,
-        //     0.999992847442627
-        // };
-
-        // depthToRgbT.translation = {
-        //     0.014888470992445946,
-        //     0.0001583270204719156,
-        //     3.5073928302153945e-05
-        // };
-
-        // camDepthToRGBCallback(depthToRgbT);
 
         // Early exit conditions - camera parameters not set or not in correct program state
         if(this->cameraMatrix.empty() || this->distCoeffs.empty()){
@@ -781,9 +763,9 @@ private:
             return;
         }
 
-        // if(isAccuacyTest){
-        //     this->logCorrection();
-        // }
+        if(isAccuacyTest){
+            this->logCorrection();
+        }
         
         control_msgs::action::ExecuteMotionPrimitiveSequence_Goal goal_msg;
 
