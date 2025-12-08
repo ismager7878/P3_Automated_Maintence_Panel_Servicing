@@ -43,6 +43,8 @@ public:
 
         this->publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("segmentation__topic", 10);
 
+        this->seg_image_pub_ = this->create_publisher<sensor_msgs::msg::Image>("amps/segmented_image_topic",10);
+
         // color_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_color",10,std::bind(&Segmention::color_callback,this,std::placeholders::_1));
         // depth_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_depth",10,std::bind(&Segmention::depth_callback,this,std::placeholders::_1));
 
@@ -60,6 +62,8 @@ public:
     
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr color_img_sub_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr depth_img_sub_;
+
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr seg_image_pub_;
 
     rclcpp::Publisher<ProgramState>::SharedPtr programStatePub_;
     rclcpp::Subscription<ProgramState>::SharedPtr programStateSub_;
@@ -182,7 +186,9 @@ void segmentation(cv::Mat &image, cv::Mat &depth)
     Dilate(depthMasked);
     Dilate(depthMasked); 
     //cv::imshow("newmaske image",depthMasked);
-    cv::waitKey(1);
+    //cv::waitKey(1);
+
+    seg_image_pub_->publish(*cv_bridge::CvImage(std_msgs::msg::Header(), "8UC1", depthMasked).toImageMsg());
 
     // Detect Aruco markers
     std::vector<int> markerIds;
