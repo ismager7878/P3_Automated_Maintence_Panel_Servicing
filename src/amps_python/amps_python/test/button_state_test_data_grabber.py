@@ -31,9 +31,7 @@ class CallibrationTest(Node):
             qos
         )
 
-
-
-        self.get_logger().info("Noden kører :)")
+        self.get_logger().info("Gemmer data fra topic: amps/classified_buttons_with_state")
 
         self.frame_id = 0
 
@@ -48,41 +46,6 @@ class CallibrationTest(Node):
 
         self.data_id = None
         self.ground_truth = None
-
-
-    def classification_callback(self, msg):
-            buttons_list = []
-
-            for btn in msg.buttons:
-                buttons_list.append({
-                    "type": btn.type,
-                    "state": btn.state,
-                    "bounding_box": list(btn.bounding_box),
-                    "dot_position": list(btn.dot_position)
-                })
-
-            #filename_data = os.path.join(self.test_folder, f"classification_{self.frame_id}")
-            #filename_ground = os.path.join(self.ground_truth_folder, f"btn_cf:{self.btn_config}_img:{self.frame_id}")
-
-            filename_data = os.path.join(self.test_folder, f"data:{self.data_id}")
-            filename_ground = os.path.join(self.ground_truth_folder, f"truth:{self.data_id}")
-
-            # Opret mappen hvis den ikke eksisterer
-            os.makedirs(os.path.dirname(filename_data), exist_ok=True)
-            os.makedirs(os.path.dirname(filename_ground), exist_ok=True)
-
-            with open(filename_data, "w") as f:
-                json.dump(buttons_list, f, indent=2)
-
-            self.get_logger().info(f"Saved: {filename_data}")
-            self.frame_id += 1
-
-            if self.ground_truth is not None:
-                with open(filename_ground, "w") as f:
-                    json.dump(self.ground_truth, f, indent=2)
-                self.get_logger().info(f"Saved: {filename_ground}")
-            else:
-                self.get_logger().warn("Ingen ground truth data endnu")
         
     
     def ground_truth_callback(self, msg):
@@ -106,24 +69,16 @@ class CallibrationTest(Node):
             })
 
         filename_data = os.path.join(self.button_state_folder, f"data:{self.data_id}")
-        filename_ground = os.path.join(self.ground_truth_folder, f"truth:{self.data_id}")
 
         # Opret mappen hvis den ikke eksisterer
         os.makedirs(os.path.dirname(filename_data), exist_ok=True)
-        os.makedirs(os.path.dirname(filename_ground), exist_ok=True)
+        #os.makedirs(os.path.dirname(filename_ground), exist_ok=True)
 
         with open(filename_data, "w") as f:
             json.dump(buttons_list, f, indent=2)
 
         self.get_logger().info(f"Saved: {filename_data}")
         self.frame_id += 1
-
-        if self.ground_truth is not None:
-            with open(filename_ground, "w") as f:
-                json.dump(self.ground_truth, f, indent=2)
-            self.get_logger().info(f"Saved: {filename_ground}")
-        else:
-            self.get_logger().warn("Ingen ground truth data endnu")
 
     
 def main(args=None):
