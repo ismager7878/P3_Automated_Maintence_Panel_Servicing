@@ -14,14 +14,6 @@ class CallibrationTest(Node):
     def __init__(self):
         super().__init__('json_saver_node')
         qos = QoSProfile(depth=10)
-        
-        # classification subscription
-        self.create_subscription(
-            ClassifiedButtonsArray,
-            'object_classification_topic',
-            self.classification_callback,
-            qos
-        )
 
         # Groundtruth subscription:
         self.create_subscription(
@@ -30,13 +22,29 @@ class CallibrationTest(Node):
             self.ground_truth_callback,
             qos
         )
+
+        # Button classification subscription:
+        self.create_subscription(
+            ClassifiedButtonsArray,
+            "amps/classified_buttons_with_state",
+            self.button_state_callback,
+            qos
+        )
+
+
+
         self.get_logger().info("Noden kører :)")
 
         self.frame_id = 0
 
         # stier til mapperne
-        self.test_folder = "tests/Classification_test/Button_recognition_test/data"
-        self.ground_truth_folder = "tests/Classification_test/Button_recognition_test/Ground_truth"     
+        #self.test_folder = "tests/Classification_test/Button_recognition_test/data"
+        self.button_state_folder = "tests/Classification_test/Button_recognition_test/button_data"
+        #self.ground_truth_folder = "tests/Classification_test/Button_recognition_test/Ground_truth"
+
+        # holder styr på button config
+        self.btn_config = None       
+
 
         self.data_id = None
         self.ground_truth = None
@@ -86,6 +94,37 @@ class CallibrationTest(Node):
         prefix = "datasets/auto_aligned_dataset"
         self.data_id = image_filename[len(prefix):]   
 
+    def button_state_callback(self, msg):
+        buttons_list = []
+
+        for btn in msg.buttons:
+            buttons_list.append({
+                "type": btn.type,
+                "state": btn.state,
+                "bounding_box": list(btn.bounding_box),
+                "dot_position": list(btn.dot_position)
+            })
+
+        filename_data = os.path.join(self.button_state_folder, f"data:{self.data_id}")
+        filename_ground = os.path.join(self.ground_truth_folder, f"truth:{self.data_id}")
+
+        # Opret mappen hvis den ikke eksisterer
+        os.makedirs(os.path.dirname(filename_data), exist_ok=True)
+        os.makedirs(os.path.dirname(filename_ground), exist_ok=True)
+
+        with open(filename_data, "w") as f:
+            json.dump(buttons_list, f, indent=2)
+
+        self.get_logger().info(f"Saved: {filename_data}")
+        self.frame_id += 1
+
+        if self.ground_truth is not None:
+            with open(filename_ground, "w") as f:
+                json.dump(self.ground_truth, f, indent=2)
+            self.get_logger().info(f"Saved: {filename_ground}")
+        else:
+            self.get_logger().warn("Ingen ground truth data endnu")
+
     
 def main(args=None):
     rclpy.init(args=args)
@@ -99,4 +138,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
