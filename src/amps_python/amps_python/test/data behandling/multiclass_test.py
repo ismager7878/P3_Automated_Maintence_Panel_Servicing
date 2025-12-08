@@ -431,7 +431,7 @@ def json_output(breaker, rotary, main, plug, false_negative, P, R, f1):
     folder_path = "tests/Classification_test/Button_recognition_test/results/All_data"
     os.makedirs(folder_path, exist_ok=True)  # Opret mappen hvis den ikke findes
 
-    file_path = os.path.join(folder_path, "confusion matrix")
+    file_path = os.path.join(folder_path, "confusion matrix 1")
 
     # Gem som JSON
     with open(file_path, "w") as file:

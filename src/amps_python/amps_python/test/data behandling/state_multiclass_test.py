@@ -261,6 +261,7 @@ print(breaker_states)
 testable_breaker_0 = []
 testable_breaker_1 = []
 
+# sorter false positive fra:
 for i in range(len(breaker_0)):
     for j in range(len(b_b)):
         if breaker_0[i] == b_b[j]:
@@ -271,10 +272,27 @@ for i in range(len(breaker_1)):
         if breaker_1[i] == b_b[j]:
             testable_breaker_0.append(breaker_1[i])
 
+# validering:
 for i in range(len(testable_breaker_0)):
-    for j in range(len(breakers)):
-        pass
+    detected_breaker = testable_breaker_0[i]
+    
+    # Find den ground truth breaker med højest IoU
+    iou_scores = []
+    for gt_breaker in breakers:
+        iou_scores.append(IoU(detected_breaker, gt_breaker))
+    
+    if iou_scores:
+        best_iou = max(iou_scores)
+        best_index = iou_scores.index(best_iou)
+        best_gt_breaker = breakers[best_index]
         
+      
+        print(f"Detected breaker {i}: Best match index {best_index}, IoU: {best_iou:.3f}")
+        # Nu kan du bruge best_index til at få states fra breaker_states
+        # eller best_gt_breaker til videre processering
+
+        if best_index == breaker_states[0][gt_breaker]:
+           print("pray for me, mo fu er")
         
 
 def go_through_all_data():
