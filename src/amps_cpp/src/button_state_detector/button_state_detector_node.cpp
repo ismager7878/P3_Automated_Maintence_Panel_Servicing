@@ -39,6 +39,8 @@ public:
             std::bind(&ButtonStateDetectorNode::programStateCallback, this, std::placeholders::_1)
         );
 
+        
+
         resultPub_ = this->create_publisher<ClassifiedButtonsArray>("amps/classified_buttons_with_state", 10);
         resultImagePub_ = this->create_publisher<sensor_msgs::msg::Image>("amps/classified_buttons_image", 10);
 
@@ -158,7 +160,7 @@ private:
 
         cv::Mat mask;
         
-        this->topPointTresholding(buttonDepthCutOut, mask, 50);
+        this->topPointTresholding(buttonDepthCutOut, mask, 50); 
 
         vector<vector<cv::Point>> contours;
         cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
@@ -233,7 +235,6 @@ private:
 
     void classifyEmergencyStop(cv::Mat& buttonRgbCutOut, cv::Mat& buttonDepthCutOut, string& stateStr)
     {
-
         cv::Mat mask;
 
         this->topPointTresholding(buttonDepthCutOut, mask, 4);
@@ -250,6 +251,7 @@ private:
         this->findLargestDistance(largestContour, pt1, pt2);
 
         cv::drawContours(mask, vector<vector<cv::Point>>{largestContour}, -1, cv::Scalar(155), cv::FILLED);
+
         cv::line(mask, pt1, pt2, cv::Scalar(255), 2);
 
         double angle = atan2(static_cast<double>(pt2.y - pt1.y), static_cast<double>(pt2.x - pt1.x)) * 180.0 / CV_PI;
