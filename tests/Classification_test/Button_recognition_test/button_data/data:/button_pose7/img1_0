@@ -1,6 +1,6 @@
 [
   {
-    "type": 2,
+    "type": 3,
     "state": "",
     "bounding_box": [
       535,
@@ -280,7 +280,7 @@
     ]
   },
   {
-    "type": 2,
+    "type": 1,
     "state": "",
     "bounding_box": [
       211,
@@ -294,8 +294,8 @@
     ]
   },
   {
-    "type": 2,
-    "state": "1",
+    "type": 3,
+    "state": "off",
     "bounding_box": [
       535,
       51,
@@ -574,8 +574,8 @@
     ]
   },
   {
-    "type": 2,
-    "state": "0",
+    "type": 1,
+    "state": "off",
     "bounding_box": [
       211,
       59,

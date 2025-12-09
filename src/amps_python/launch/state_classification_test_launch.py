@@ -15,11 +15,17 @@ def generate_launch_description():
     ws_root = os.path.abspath(os.path.join(launch_dir, "../../../../../"))
     venv_python = os.path.join(ws_root, ".venv", "bin", "python3")
 
+    fox_glove_launch_dir = PathJoinSubstitution([FindPackageShare('foxglove_bridge'), 'launch', 'foxglove_bridge_launch.xml'])
+
+    foxglove_bridge = IncludeLaunchDescription(
+        fox_glove_launch_dir,
+    )
     return LaunchDescription([
+        foxglove_bridge,
 
         DeclareLaunchArgument(
             'training_data',
-            default_value='true'
+            default_value='false'
         ),
 
         IncludeLaunchDescription(
@@ -30,8 +36,8 @@ def generate_launch_description():
        #vi skal måske lave en separat launch fil:
         Node(
             package="amps_python",
-            executable="classi_test",
-            name="classi_test",
+            executable="state_test",
+            name="state_test",
             output="screen",
             prefix=[venv_python, " "],
         ),

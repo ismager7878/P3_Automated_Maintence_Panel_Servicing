@@ -80,7 +80,7 @@ class KNN_Node(Node):
 
         # Concatenate scalar features with histogram
         scalar_features = np.array([std_depth, std_intensity, min_hue, max_hue, area, HW_ratio, min_value, max_value])
-        all_features = np.concatenate([scalar_features], histogram.flatten())
+        all_features = np.concatenate([scalar_features, histogram.flatten()])
         
         return all_features
     

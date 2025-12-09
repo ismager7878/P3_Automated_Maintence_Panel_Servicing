@@ -154,7 +154,7 @@
     ]
   },
   {
-    "type": 2,
+    "type": 1,
     "state": "",
     "bounding_box": [
       211,
@@ -448,8 +448,8 @@
     ]
   },
   {
-    "type": 2,
-    "state": "1",
+    "type": 1,
+    "state": "off",
     "bounding_box": [
       211,
       462,

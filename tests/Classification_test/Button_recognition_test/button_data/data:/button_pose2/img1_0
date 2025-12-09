@@ -140,7 +140,7 @@
     ]
   },
   {
-    "type": 2,
+    "type": 1,
     "state": "",
     "bounding_box": [
       197,
@@ -238,7 +238,7 @@
     ]
   },
   {
-    "type": 2,
+    "type": 1,
     "state": "",
     "bounding_box": [
       197,
@@ -406,8 +406,8 @@
     ]
   },
   {
-    "type": 2,
-    "state": "1",
+    "type": 1,
+    "state": "on",
     "bounding_box": [
       197,
       368,
@@ -504,8 +504,8 @@
     ]
   },
   {
-    "type": 2,
-    "state": "1",
+    "type": 1,
+    "state": "on",
     "bounding_box": [
       197,
       585,
