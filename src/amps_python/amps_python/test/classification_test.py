@@ -8,7 +8,6 @@ from rclpy.qos import QoSProfile
 from rosidl_runtime_py.convert import message_to_ordereddict
 from amps_cpp.msg import ClassifiedButtonsArray
 from amps_cpp.msg import GroundTruth
-from amps_cpp.msg import GroundTruthButton
 
 
 class CallibrationTest(Node):
@@ -37,12 +36,7 @@ class CallibrationTest(Node):
 
         # stier til mapperne
         self.test_folder = "tests/Classification_test/Button_recognition_test/data"
-        self.ground_truth_folder = "tests/Classification_test/Button_recognition_test/Ground_truth"
-
-        # holder styr på button config
-        self.btn_config = -1        
-
-        self.folder_size = len(os.listdir(self.test_folder))
+        self.ground_truth_folder = "tests/Classification_test/Button_recognition_test/Ground_truth"     
 
         self.data_id = None
         self.ground_truth = None

@@ -19,7 +19,7 @@ def generate_launch_description():
 
         DeclareLaunchArgument(
             'training_data',
-            default_value='true'
+            default_value='false'
         ),
 
         IncludeLaunchDescription(
