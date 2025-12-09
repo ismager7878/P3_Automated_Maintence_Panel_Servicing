@@ -14,7 +14,7 @@
     ]
   },
   {
-    "type": 3,
+    "type": 1,
     "state": "",
     "bounding_box": [
       208,
@@ -42,7 +42,7 @@
     ]
   },
   {
-    "type": 2,
+    "type": 3,
     "state": "",
     "bounding_box": [
       501,
@@ -56,7 +56,7 @@
     ]
   },
   {
-    "type": 1,
+    "type": 2,
     "state": "",
     "bounding_box": [
       386,
@@ -112,7 +112,7 @@
     ]
   },
   {
-    "type": 2,
+    "type": 1,
     "state": "",
     "bounding_box": [
       162,

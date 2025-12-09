@@ -2,7 +2,9 @@ import json
 import os
 
 file = "tests/Classification_test/Button_recognition_test/button_data/data:/button_pose1/img1_0"
+
 lukas_file = "tests/Classification_test/Button_recognition_test/data/data:/button_pose1/img1_0"
+
 ground_truth = "tests/Classification_test/Button_recognition_test/Ground_truth/truth:/button_pose1/img1_0"
 
 def grab_button_test_data(file_name):
@@ -56,11 +58,11 @@ def grab_ground_truth(file_name):
     with open(file_name, 'r') as file:
         data = json.load(file)
 
-    breakers  = []
-    breaker_states = []
+    breaker, breaker_states = [],[]
+    breaker_0, breaker_1 = [],[]
 
-    rotary    = []
-    mains     = []
+    rotary, rotary_states   = [],[]
+    mains, main_states      = [],[]
 
     # CircuitBreaker positioner:
     breaker_1_XY = data["circuit_breaker"][0]["transformed_pos_xy"]
@@ -78,17 +80,28 @@ def grab_ground_truth(file_name):
         last = bbox[1] + i_height * (i + 1)
         
         newbox = [bbox[0], first, bbox[2], last]
-        breakers.append(newbox)
+        breaker.append(newbox)
     #------------------------------------------------------------------------
     
-    breakers.append(breaker_2_XY)
+    breaker.append(breaker_2_XY)
     
     states_b1 = data["circuit_breaker"][0]["states"]
     states_b2 = data["circuit_breaker"][1]["states"]
 
-    breaker_states.append(states_b1)
-    breaker_states.append(states_b2) 
+    for i in range(len(states_b1)):
+        breaker_states.append(states_b1[i])
+    breaker_states.append(states_b2[0]) 
 
+    if len(breaker) != len(breaker_states):
+        print(f"WARNING: inbalance - {len(breaker)} breakers but {len(breaker_states)} states")
+    
+    # Opdel breakers efter ground truth state
+    for i in range(min(len(breaker), len(breaker_states))):
+        if breaker_states[i] == "off":
+            breaker_0.append(breaker[i])
+        elif breaker_states[i] == "on":
+            breaker_1.append(breaker[i])
+            
     # Rotary switch positioner:
     rotSwitch_1_XY = data["selector_switch"][0]["transformed_pos_xy"]
     rotSwitch_2_XY = data["selector_switch"][1]["transformed_pos_xy"]
@@ -109,7 +122,7 @@ def grab_ground_truth(file_name):
     mains.append(mainSwitch_1_XY)
     mains.append(mainSwitch_2_XY)
     
-    return breakers, breaker_states, rotary, mains
+    return breaker, breaker_0, breaker_1, rotary, mains
 
 def grab_test_data(file_name):
     with open(file_name, 'r') as file:
@@ -162,7 +175,7 @@ def true_positives(test_file_path, ground_file_path):
     file_ground = ground_file_path
 
     breaker, rotary, main = grab_test_data(file_test)
-    g_breaker, breaker_states, g_rotory, g_main = grab_ground_truth(file_ground)
+    g_breaker, breaker_0, breaker_1, g_rotory, g_main = grab_ground_truth(file_ground)
 
     b_b = [] #TP
     b_r = [] #FP
@@ -253,13 +266,9 @@ def true_positives(test_file_path, ground_file_path):
 
 breaker_0, breaker_1, rotory_0, rotory_1, rotory_2, main_0, main_1 = grab_button_test_data(file)
 b_b, r_r, m_m = true_positives(lukas_file, ground_truth)
-breakers, breaker_states, rotary, mains = grab_ground_truth(ground_truth)
+g_breaker, g_breaker_0, g_breaker_1, rotary, mains = grab_ground_truth(ground_truth)
 
-print(breakers)
-print(breaker_states)
-
-testable_breaker_0 = []
-testable_breaker_1 = []
+testable_breaker_0, testable_breaker_1 = [],[]
 
 # sorter false positive fra:
 for i in range(len(breaker_0)):
@@ -270,30 +279,72 @@ for i in range(len(breaker_0)):
 for i in range(len(breaker_1)):
     for j in range(len(b_b)):
         if breaker_1[i] == b_b[j]:
-            testable_breaker_0.append(breaker_1[i])
+            testable_breaker_1.append(breaker_1[i])
 
-# validering:
-for i in range(len(testable_breaker_0)):
-    detected_breaker = testable_breaker_0[i]
-    
-    # Find den ground truth breaker med højest IoU
-    iou_scores = []
-    for gt_breaker in breakers:
-        iou_scores.append(IoU(detected_breaker, gt_breaker))
-    
-    if iou_scores:
-        best_iou = max(iou_scores)
-        best_index = iou_scores.index(best_iou)
-        best_gt_breaker = breakers[best_index]
-        
-      
-        print(f"Detected breaker {i}: Best match index {best_index}, IoU: {best_iou:.3f}")
-        # Nu kan du bruge best_index til at få states fra breaker_states
-        # eller best_gt_breaker til videre processering
+# Confusion Matrix: [GT_state][Predicted_state]
+off_off = 0  # GT: OFF, Pred: OFF (Correct)
+off_on = 0   # GT: OFF, Pred: ON (Incorrect)
+on_off = 0   # GT: ON, Pred: OFF (Incorrect)
+on_on = 0    # GT: ON, Pred: ON (Correct)
 
-        if best_index == breaker_states[0][gt_breaker]:
-           print("pray for me, mo fu er")
-        
+treshold = 0.5
+
+# Validering: Predicted OFF breakers
+for breaker in testable_breaker_0:
+    b_0_iou, b_1_iou = [], []
+    
+    for gt_b in g_breaker_0:
+        b_0_iou.append(IoU(breaker, gt_b))
+    for gt_b in g_breaker_1:
+        b_1_iou.append(IoU(breaker, gt_b))
+    
+    max_b0 = max(b_0_iou) if b_0_iou else 0
+    max_b1 = max(b_1_iou) if b_1_iou else 0
+    best_match = max(max_b0, max_b1)
+    
+    if best_match >= treshold:
+        if max_b0 == best_match:
+            off_off += 1  # Predicted: OFF, GT: OFF ✓
+        elif max_b1 == best_match:
+            on_off += 1   # Predicted: OFF, GT: ON ✗
+
+# Validering: Predicted ON breakers
+for breaker in testable_breaker_1:
+    b_0_iou, b_1_iou = [], []
+    
+    for gt_b in g_breaker_0:
+        b_0_iou.append(IoU(breaker, gt_b))
+    for gt_b in g_breaker_1:
+        b_1_iou.append(IoU(breaker, gt_b))
+    
+    max_b0 = max(b_0_iou) if b_0_iou else 0
+    max_b1 = max(b_1_iou) if b_1_iou else 0
+    best_match = max(max_b0, max_b1)
+    
+    if best_match >= treshold:
+        if max_b1 == best_match:
+            on_on += 1    # Predicted: ON, GT: ON ✓
+        elif max_b0 == best_match:
+            off_on += 1   # Predicted: ON, GT: OFF ✗
+
+# Print Confusion Matrix
+print("\n=== BREAKER STATE CONFUSION MATRIX ===")
+print(f"{'':12} | {'Pred: OFF':12} | {'Pred: ON':12}")
+print("-" * 42)
+print(f"{'GT: OFF':12} | {off_off:12} | {off_on:12}")
+print(f"{'GT: ON':12} | {on_off:12} | {on_on:12}")
+print("=" * 42)
+
+# Beregn metrics
+total = off_off + off_on + on_off + on_on
+if total > 0:
+    accuracy = (off_off + on_on) / total
+    print(f"\nAccuracy: {accuracy:.2%}")
+    print(f"Correct: {off_off + on_on}/{total}")
+    print(f"Incorrect: {off_on + on_off}/{total}")
+
+
+
 
 def go_through_all_data():
 

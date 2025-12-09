@@ -4,7 +4,7 @@ import json
 from matplotlib import cm
 
 def grab_ground_truth():
-    with open("tests/Classification_test/Button_recognition_test/results/All_data/confusion matrix", 'r') as file:
+    with open("tests/Classification_test/Button_recognition_test/results/All_data/confusion matrix 2", 'r') as file:
         data = json.load(file)
 
     breaker = data["confusion_score"]["breaker_score"]

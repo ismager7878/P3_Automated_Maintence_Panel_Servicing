@@ -238,7 +238,7 @@
     ]
   },
   {
-    "type": 1,
+    "type": 3,
     "state": "",
     "bounding_box": [
       387,
@@ -266,7 +266,7 @@
     ]
   },
   {
-    "type": 2,
+    "type": 3,
     "state": "",
     "bounding_box": [
       535,
