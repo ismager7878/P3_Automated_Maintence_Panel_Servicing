@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 import seaborn as sns
+from scipy.spatial.transform import Rotation
 
 # Set style for better-looking plots
 sns.set_style("whitegrid")
@@ -37,14 +38,29 @@ def load_all_csv_files(directory, skip_first=3, max_per_file=100):
     
     if all_data:
         combined_df = pd.concat(all_data, ignore_index=True)
-        # Add combined angle metric (Euclidean norm of angle corrections)
-        combined_df['corr_angle_magnitude'] = np.sqrt(
-            combined_df['corr_angle_x']**2 + 
-            combined_df['corr_angle_y']**2 + 
-            combined_df['corr_angle_z']**2
-        )
+        
+        # Convert Euler angles (x, y, z rotations) to axis-angle magnitude
+        # Euler angles represent rotations around x, y, z axes
+        # We need to compose them properly to get the total rotation angle
+        rotation_angles = []
+        for idx, row in combined_df.iterrows():
+            # Create rotation from Euler angles (intrinsic rotations: x, y, z)
+            # Assuming the order is XYZ (can be changed if needed)
+            r = Rotation.from_euler('xyz', [row['corr_angle_x'], 
+                                            row['corr_angle_y'], 
+                                            row['corr_angle_z']], degrees=False)
+            # Get the axis-angle representation
+            axis_angle = r.as_rotvec()
+            # The magnitude of the rotation vector is the rotation angle in radians
+            angle_magnitude = np.linalg.norm(axis_angle)
+            rotation_angles.append(angle_magnitude)
+        
+        combined_df['corr_angle_magnitude'] = rotation_angles
+        
         # Convert length from meters to millimeters
         combined_df['corr_lenght_mm'] = combined_df['corr_lenght'] * 1000
+        # Convert angle magnitude from radians to degrees
+        combined_df['corr_angle_magnitude_deg'] = np.degrees(combined_df['corr_angle_magnitude'])
         
         return combined_df
     return None
@@ -76,8 +92,8 @@ def create_comparison_charts(df1, df2, label1, label2):
     fig.suptitle(f'Alignment Accuracy Comparison (Steady State):\n{label1} vs {label2}', 
                  fontsize=16, fontweight='bold')
     
-    columns = ['corr_lenght_mm', 'corr_angle_magnitude']
-    column_labels = ['Correction Length (mm)', 'Combined Angle Magnitude (rad)']
+    columns = ['corr_lenght_mm', 'corr_angle_magnitude_deg']
+    column_labels = ['Correction Length (mm)', 'Combined Angle Magnitude (deg)']
     colors = ['#1f77b4', '#ff7f0e']  # Blue and orange
     
     # 1. Distribution comparison (box plots)
@@ -162,12 +178,12 @@ def create_comparison_charts(df1, df2, label1, label2):
     
     # 6. Convergence for combined angle magnitude
     ax = axes[2, 1]
-    ax.plot(iterations, df1['corr_angle_magnitude'].iloc[:n_points], 
+    ax.plot(iterations, df1['corr_angle_magnitude_deg'].iloc[:n_points], 
             label=f'{label1} - Angle', color=colors[0], alpha=0.7, linewidth=2)
-    ax.plot(iterations, df2['corr_angle_magnitude'].iloc[:n_points], 
+    ax.plot(iterations, df2['corr_angle_magnitude_deg'].iloc[:n_points], 
             label=f'{label2} - Angle', color=colors[1], alpha=0.7, linewidth=2)
     ax.set_xlabel('Iteration')
-    ax.set_ylabel('Combined Angle Magnitude')
+    ax.set_ylabel('Combined Angle Magnitude (deg)')
     ax.set_title('Convergence Comparison (Combined Angle Magnitude)')
     ax.legend()
     ax.grid(True, alpha=0.3)
@@ -325,13 +341,13 @@ def create_histogram_comparison(df1, df2, label1, label2, metric_name, metric_co
                linewidth=2, alpha=0.8)
     
     # Add statistics text
-    stats_text1 = f'{label1}:\nMean: {df1[metric_col].mean():.4f}\nMedian: {df1[metric_col].median():.4f}\nStd: {df1[metric_col].std():.4f}'
-    stats_text2 = f'{label2}:\nMean: {df2[metric_col].mean():.4f}\nMedian: {df2[metric_col].median():.4f}\nStd: {df2[metric_col].std():.4f}'
+    stats_text1 = f'{label1}:\nMean: {df1[metric_col].mean():.4f}\nMedian: {df1[metric_col].median():.4f}\nStd: {df1[metric_col].std():.4f}\nMax: {df1[metric_col].max():.4f}'
+    stats_text2 = f'{label2}:\nMean: {df2[metric_col].mean():.4f}\nMedian: {df2[metric_col].median():.4f}\nStd: {df2[metric_col].std():.4f}\nMax: {df2[metric_col].max():.4f}'
     
     ax.text(0.98, 0.98, stats_text1, transform=ax.transAxes, 
             fontsize=9, verticalalignment='top', horizontalalignment='right',
             bbox=dict(boxstyle='round', facecolor=colors[0], alpha=0.3))
-    ax.text(0.98, 0.78, stats_text2, transform=ax.transAxes, 
+    ax.text(0.98, 0.73, stats_text2, transform=ax.transAxes, 
             fontsize=9, verticalalignment='top', horizontalalignment='right',
             bbox=dict(boxstyle='round', facecolor=colors[1], alpha=0.3))
     
@@ -392,7 +408,7 @@ def main():
     print(f"Saved: {base_dir / 'alignment_metrics_length.png'}")
     
     fig4 = create_metrics_bar_chart(df1, df2, label1, label2, 
-                                     'Combined Angle Magnitude', 'corr_angle_magnitude', unit='rad')
+                                     'Combined Angle Magnitude', 'corr_angle_magnitude_deg', unit='deg')
     fig4.savefig(base_dir / 'alignment_metrics_angle.png', dpi=300, bbox_inches='tight')
     print(f"Saved: {base_dir / 'alignment_metrics_angle.png'}")
     
@@ -404,7 +420,7 @@ def main():
     print(f"Saved: {base_dir / 'alignment_histogram_length.png'}")
     
     fig6 = create_histogram_comparison(df1, df2, label1, label2, 
-                                        'Combined Angle Magnitude', 'corr_angle_magnitude', unit='rad')
+                                        'Combined Angle Magnitude', 'corr_angle_magnitude_deg', unit='deg')
     fig6.savefig(base_dir / 'alignment_histogram_angle.png', dpi=300, bbox_inches='tight')
     print(f"Saved: {base_dir / 'alignment_histogram_angle.png'}")
     
@@ -429,10 +445,10 @@ def main():
     print("COMBINED ANGLE METRIC COMPARISON")
     print("="*60)
     print(f"\nCombined Angle Magnitude (Euclidean norm of angle corrections):")
-    print(f"  {label1}: mean = {df1['corr_angle_magnitude'].mean():.6f}, std = {df1['corr_angle_magnitude'].std():.6f}")
-    print(f"  {label2}: mean = {df2['corr_angle_magnitude'].mean():.6f}, std = {df2['corr_angle_magnitude'].std():.6f}")
+    print(f"  {label1}: mean = {df1['corr_angle_magnitude_deg'].mean():.4f} deg, std = {df1['corr_angle_magnitude_deg'].std():.4f} deg")
+    print(f"  {label2}: mean = {df2['corr_angle_magnitude_deg'].mean():.4f} deg, std = {df2['corr_angle_magnitude_deg'].std():.4f} deg")
     
-    angle_improvement = (df2['corr_angle_magnitude'].mean() - df1['corr_angle_magnitude'].mean()) / df2['corr_angle_magnitude'].mean() * 100
+    angle_improvement = (df2['corr_angle_magnitude_deg'].mean() - df1['corr_angle_magnitude_deg'].mean()) / df2['corr_angle_magnitude_deg'].mean() * 100
     print(f"  → {label1} is {abs(angle_improvement):.1f}% {'better' if angle_improvement > 0 else 'worse'} than {label2}")
 
 if __name__ == "__main__":
