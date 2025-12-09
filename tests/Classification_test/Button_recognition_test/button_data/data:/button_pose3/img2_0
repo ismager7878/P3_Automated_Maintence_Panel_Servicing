@@ -14,7 +14,7 @@
     ]
   },
   {
-    "type": 1,
+    "type": 2,
     "state": "",
     "bounding_box": [
       199,
@@ -42,7 +42,7 @@
     ]
   },
   {
-    "type": 1,
+    "type": 3,
     "state": "",
     "bounding_box": [
       479,
@@ -266,7 +266,7 @@
     ]
   },
   {
-    "type": 2,
+    "type": 1,
     "state": "",
     "bounding_box": [
       188,
@@ -280,7 +280,7 @@
     ]
   },
   {
-    "type": 3,
+    "type": 2,
     "state": "",
     "bounding_box": [
       371,
@@ -308,8 +308,8 @@
     ]
   },
   {
-    "type": 1,
-    "state": "off",
+    "type": 2,
+    "state": "0",
     "bounding_box": [
       199,
       66,
@@ -336,8 +336,8 @@
     ]
   },
   {
-    "type": 1,
-    "state": "off",
+    "type": 3,
+    "state": "on",
     "bounding_box": [
       479,
       208,
@@ -560,8 +560,8 @@
     ]
   },
   {
-    "type": 2,
-    "state": "1",
+    "type": 1,
+    "state": "on",
     "bounding_box": [
       188,
       579,
@@ -574,8 +574,8 @@
     ]
   },
   {
-    "type": 3,
-    "state": "off",
+    "type": 2,
+    "state": "1",
     "bounding_box": [
       371,
       57,

@@ -37,9 +37,7 @@ public:
         programStateSub_ = this->create_subscription<ProgramState>(
             "amps/set_program_state", 10,
             std::bind(&ButtonStateDetectorNode::programStateCallback, this, std::placeholders::_1)
-        );
-
-        
+        );        
 
         resultPub_ = this->create_publisher<ClassifiedButtonsArray>("amps/classified_buttons_with_state", 10);
         resultImagePub_ = this->create_publisher<sensor_msgs::msg::Image>("amps/classified_buttons_image", 10);
@@ -141,15 +139,17 @@ private:
                 )
             ) = buttonRgbCutOut;
 
-            sensor_msgs::msg::Image::SharedPtr resultImageMsg = cv_bridge::CvImage(
+            
+
+        }
+        
+        sensor_msgs::msg::Image::SharedPtr resultImageMsg = cv_bridge::CvImage(
                 std_msgs::msg::Header(),
                 "bgr8",
                 rgbImage
             ).toImageMsg();
 
-            resultImagePub_->publish(*resultImageMsg);
-
-        }
+        resultImagePub_->publish(*resultImageMsg);
 
         resultPub_->publish(resultMsg);
         setProgramState(ProgramState::PREPROCESSING_MODE);
