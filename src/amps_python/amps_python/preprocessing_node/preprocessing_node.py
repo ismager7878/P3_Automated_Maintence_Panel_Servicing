@@ -12,6 +12,8 @@ class PreprocessingNode(Node):
     def __init__(self):
         super().__init__('preprocessing_node')
         self.declare_parameter('debugging', True)
+        self.declare_parameter('bypass_segmentation', False)
+
         self.get_logger().info('Preprocessing Node has been started.')
 
         # Setup Program State Control
@@ -65,9 +67,15 @@ class PreprocessingNode(Node):
                 self.get_logger().error("Shutting down node.")
                 rclpy.shutdown()
                 return
+            
             self.publisher_ground_truth = self.create_publisher(GroundTruth, 'amps/set_ground_truth', 10)
-            #self.publisher_segmentation_bypass_color = self.create_publisher(Image, 'segmentation_test_color', 10)
-            #self.publisher_segmentation_bypass_points = self.create_publisher(Float32MultiArray, 'segmentation_topic', 10)
+            if(self.get_parameter('bypass_segmentation').value == True):
+                self.get_logger().info('Bypass segmentation is enabled, setting up bypass publishers.')
+                self.publisher_segmentation_bypass_points = self.create_publisher(Float32MultiArray, 'segmentation__topic', 10)
+            else:
+                self.get_logger().info('Bypass segmentation is disabled.')
+                
+            #self.publisher_segmentation_bypass_color = self.create_publisher(Image, 'segmentation_test_color', 1
     
         # Create publishers for transformed depth and color images
         self.publisher_depth = self.create_publisher(Image, 'amps_python/vision/transformed_depth_image', 10)
@@ -164,6 +172,7 @@ class PreprocessingNode(Node):
                         button_instance.pos_xy = [top_left[0], top_left[1], bottom_right[0], bottom_right[1]]
                         button_instance.transformed_pos_xy = [transformed_bbox[0][0], transformed_bbox[0][1], transformed_bbox[1][0], transformed_bbox[1][1]]
 
+                        ground_truth_buttons.append(button_instance)
                         # Append to the appropriate list in pub_msg
                         setattr(pub_msg, type_name, getattr(pub_msg, type_name) + [button_instance])
             
@@ -179,10 +188,15 @@ class PreprocessingNode(Node):
             reshaped_list = np.array(bbox_list).reshape(-1)
             point_array_msg.data = reshaped_list.tolist()
 
+            self.get_logger().info(f'Publishing bypass segmentation points: {ground_truth_buttons}')
+
             # Transform depth and color messages again for bypass topics
             transformed_color_msg = self.bridge.cv2_to_imgmsg(transformed_color_image, encoding="bgr8")
             
             # Publish bypass topics
+            if(self.get_parameter('bypass_segmentation').value == True):
+                self.get_logger().info('Publishing segmentation bypass topics.')
+                self.publisher_segmentation_bypass_points.publish(point_array_msg)
             #self.publisher_segmentation_bypass_points.publish(point_array_msg)
             #self.publisher_segmentation_bypass_color.publish(transformed_color_msg)
         

@@ -12,9 +12,15 @@ from launch.conditions import IfCondition, UnlessCondition
 
 
 def generate_launch_description():
+    test_data_arg = DeclareLaunchArgument(
+        'test_data',
+        default_value='true'
+    )
+
     training_data_converter = IncludeLaunchDescription(
         PathJoinSubstitution([FindPackageShare('amps_cpp'), 'launch', 'training_data.launch.py']),
-        condition=UnlessCondition(LaunchConfiguration('use_classification'))
+        condition=UnlessCondition(LaunchConfiguration('use_classification')),
+        launch_arguments={'test_data': LaunchConfiguration('test_data')}.items()
     )
 
 
@@ -47,6 +53,7 @@ def generate_launch_description():
             default_value='true',
             description='Whether to use test data or use live data from the robot.'
         ),
+        test_data_arg,
         training_data_converter,
         button_state_detector,
         classificationNode,

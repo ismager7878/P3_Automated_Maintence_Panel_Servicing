@@ -20,6 +20,12 @@ def generate_launch_description():
             default_value='true',
             description='Whether to run preprocessing in debugging mode.'
         ),
+
+        DeclareLaunchArgument(
+            'bypass_segmentation',
+            default_value='false',
+            description='Whether to bypass segmentation step.'
+        ),
         
         Node(
             package="amps_python",
@@ -28,7 +34,8 @@ def generate_launch_description():
             output="screen",
             prefix=[venv_python, " "],  # Run using venv Python
             parameters=[{
-                'debugging': LaunchConfiguration('debugging')
+                'debugging': LaunchConfiguration('debugging'),
+                'bypass_segmentation': LaunchConfiguration('bypass_segmentation')
             }]
         ),
     ])

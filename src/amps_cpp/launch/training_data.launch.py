@@ -5,12 +5,16 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch.substitutions import LaunchConfiguration
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
+from launch.actions import DeclareLaunchArgument
 
 
 def generate_launch_description():
 
-    
+    use_training_data_arg = DeclareLaunchArgument(
+        'test_data',
+        default_value='true'
+    )
 
     preprocessing = IncludeLaunchDescription(
             PythonLaunchDescriptionSource([os.path.join(
@@ -22,9 +26,22 @@ def generate_launch_description():
         executable='dataset_broadcaster',
         name='dataset_broadcaster',
         output='screen',
+        condition = UnlessCondition(LaunchConfiguration('test_data')),
         arguments=['--ros-args', '--log-level', 'WARN']
-        
     )
+
+    dataset_broadcaster_test = Node(
+        package='amps_cpp',
+        executable='dataset_broadcaster',
+        name='dataset_broadcaster',
+        output='screen',
+        arguments=['--ros-args', '--log-level', 'WARN'],
+        condition= IfCondition(LaunchConfiguration('test_data')),
+        parameters=[
+            {'dataset_path': 'datasets/auto_aligned_dataset/test_paths.csv'}
+        ],  
+    )
+
 
     ground_truth_broadcaster = Node(
         package='amps_cpp',
@@ -64,8 +81,10 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        use_training_data_arg,
         preprocessing,
         dataset_broadcaster,
+        dataset_broadcaster_test,
         ground_truth_broadcaster,
         state_broadcaster_node,
         training_data_converter,

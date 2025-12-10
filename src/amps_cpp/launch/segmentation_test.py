@@ -17,11 +17,18 @@ def generate_launch_description():
         default_value='true'
     )
 
+    segmentation_bypassArg = DeclareLaunchArgument(
+        'bypass_segmentation',
+        default_value='false'
+    )
+
     launchDesc.add_action(trainingArg)
+    launchDesc.add_action(segmentation_bypassArg)
 
     preprocessing = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('amps_python'), 'launch', 'preprocessing.launch.py')]),
+        launch_arguments={'bypass_segmentation': LaunchConfiguration('bypass_segmentation')}.items()
     )
 
     segmentation_node = Node(
@@ -29,6 +36,7 @@ def generate_launch_description():
         executable='segmentation',
         name='segmentation_node',
         output='screen',
+        condition =UnlessCondition(LaunchConfiguration('bypass_segmentation')),
         arguments=['--ros-args', '--log-level', 'WARN']
     )
 

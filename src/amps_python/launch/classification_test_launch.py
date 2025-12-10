@@ -22,9 +22,17 @@ def generate_launch_description():
             default_value='false'
         ),
 
+        DeclareLaunchArgument(
+            'module_test',
+            default_value='false'
+        ),
+
         IncludeLaunchDescription(
              PathJoinSubstitution([FindPackageShare('amps_cpp'), 'launch', 'segmentation_test.py']),
-             launch_arguments={'training_data': LaunchConfiguration('training_data')}.items(),
+             launch_arguments=[
+                    ('training_data', LaunchConfiguration('training_data')),
+                    ('bypass_segmentation', LaunchConfiguration('module_test'))
+             ]
         ),
        
        #vi skal måske lave en separat launch fil:

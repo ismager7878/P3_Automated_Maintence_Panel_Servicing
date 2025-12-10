@@ -1,268 +1,296 @@
 [
   {
-    "type": 3,
-    "state": "",
-    "bounding_box": [
-      533,
-      50,
-      665,
-      188
-    ],
-    "dot_position": [
-      599,
-      119
-    ]
-  },
-  {
     "type": 1,
     "state": "",
     "bounding_box": [
-      204,
-      67,
-      286,
-      115
-    ],
-    "dot_position": [
-      245,
-      91
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
-      379,
-      191,
-      452,
-      264
-    ],
-    "dot_position": [
-      415,
-      227
-    ]
-  },
-  {
-    "type": 1,
-    "state": "",
-    "bounding_box": [
-      206,
-      209,
+      205,
+      212,
       288,
-      240
+      242
     ],
     "dot_position": [
-      247,
-      224
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      206,
-      240,
+      205,
+      242,
       288,
-      271
+      272
     ],
     "dot_position": [
-      247,
-      255
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      206,
-      271,
+      205,
+      272,
       288,
       302
     ],
     "dot_position": [
-      247,
-      286
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      206,
+      205,
       302,
       288,
-      333
+      332
     ],
     "dot_position": [
-      247,
-      317
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      206,
-      333,
+      205,
+      332,
       288,
-      364
+      362
     ],
     "dot_position": [
-      247,
-      348
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      206,
-      364,
+      205,
+      362,
       288,
-      395
+      392
     ],
     "dot_position": [
-      247,
-      379
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      206,
-      395,
+      205,
+      392,
       288,
-      426
+      422
     ],
     "dot_position": [
-      247,
-      410
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      206,
-      426,
+      205,
+      422,
       288,
+      452
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 1,
+    "state": "",
+    "bounding_box": [
+      205,
+      452,
+      288,
+      482
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 1,
+    "state": "",
+    "bounding_box": [
+      205,
+      482,
+      288,
+      512
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 1,
+    "state": "",
+    "bounding_box": [
+      205,
+      512,
+      288,
+      542
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 1,
+    "state": "",
+    "bounding_box": [
+      205,
+      542,
+      288,
+      572
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 1,
+    "state": "",
+    "bounding_box": [
+      205,
+      572,
+      288,
+      602
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 1,
+    "state": "",
+    "bounding_box": [
+      205,
+      70,
+      288,
+      114
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      365,
+      523,
+      452,
+      612
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      367,
+      408,
+      453,
+      496
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      367,
+      294,
+      453,
+      381
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      367,
+      178,
+      453,
+      264
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      368,
+      54,
+      454,
+      148
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 4,
+    "state": "",
+    "bounding_box": [
+      528,
+      367,
+      572,
+      453
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 4,
+    "state": "",
+    "bounding_box": [
+      610,
+      367,
+      656,
       457
     ],
     "dot_position": [
-      247,
-      441
-    ]
-  },
-  {
-    "type": 1,
-    "state": "",
-    "bounding_box": [
-      206,
-      457,
-      288,
-      488
-    ],
-    "dot_position": [
-      247,
-      472
-    ]
-  },
-  {
-    "type": 1,
-    "state": "",
-    "bounding_box": [
-      206,
-      488,
-      288,
-      519
-    ],
-    "dot_position": [
-      247,
-      503
-    ]
-  },
-  {
-    "type": 1,
-    "state": "",
-    "bounding_box": [
-      206,
-      519,
-      288,
-      550
-    ],
-    "dot_position": [
-      247,
-      534
-    ]
-  },
-  {
-    "type": 1,
-    "state": "",
-    "bounding_box": [
-      206,
-      550,
-      288,
-      581
-    ],
-    "dot_position": [
-      247,
-      565
-    ]
-  },
-  {
-    "type": 1,
-    "state": "",
-    "bounding_box": [
-      206,
-      581,
-      288,
-      614
-    ],
-    "dot_position": [
-      247,
-      597
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
-      379,
-      432,
-      456,
-      481
-    ],
-    "dot_position": [
-      417,
-      456
-    ]
-  },
-  {
-    "type": 1,
-    "state": "",
-    "bounding_box": [
-      385,
-      557,
-      452,
-      605
-    ],
-    "dot_position": [
-      418,
-      581
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
-      383,
-      295,
-      446,
-      368
-    ],
-    "dot_position": [
-      414,
-      331
+      -1,
+      -1
     ]
   },
   {
@@ -270,293 +298,321 @@
     "state": "",
     "bounding_box": [
       534,
-      207,
-      671,
-      339
+      205,
+      662,
+      327
     ],
     "dot_position": [
-      602,
-      273
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
-      379,
-      57,
-      451,
-      139
-    ],
-    "dot_position": [
-      415,
-      98
+      -1,
+      -1
     ]
   },
   {
     "type": 3,
-    "state": "off",
+    "state": "",
     "bounding_box": [
-      533,
-      50,
-      665,
-      188
+      535,
+      53,
+      660,
+      187
     ],
     "dot_position": [
-      599,
-      119
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "on",
     "bounding_box": [
-      204,
-      67,
-      286,
-      115
-    ],
-    "dot_position": [
-      245,
-      91
-    ]
-  },
-  {
-    "type": 2,
-    "state": "2",
-    "bounding_box": [
-      379,
-      191,
-      452,
-      264
-    ],
-    "dot_position": [
-      415,
-      227
-    ]
-  },
-  {
-    "type": 1,
-    "state": "on",
-    "bounding_box": [
-      206,
-      209,
+      205,
+      212,
       288,
-      240
+      242
     ],
     "dot_position": [
-      247,
-      224
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "off",
     "bounding_box": [
-      206,
-      240,
+      205,
+      242,
       288,
-      271
+      272
     ],
     "dot_position": [
-      247,
-      255
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "on",
     "bounding_box": [
-      206,
-      271,
+      205,
+      272,
       288,
       302
     ],
     "dot_position": [
-      247,
-      286
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "on",
     "bounding_box": [
-      206,
+      205,
       302,
       288,
-      333
+      332
     ],
     "dot_position": [
-      247,
-      317
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "off",
     "bounding_box": [
-      206,
-      333,
+      205,
+      332,
       288,
-      364
+      362
     ],
     "dot_position": [
-      247,
-      348
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "on",
     "bounding_box": [
-      206,
-      364,
+      205,
+      362,
       288,
-      395
+      392
     ],
     "dot_position": [
-      247,
-      379
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "on",
     "bounding_box": [
-      206,
-      395,
+      205,
+      392,
       288,
-      426
+      422
     ],
     "dot_position": [
-      247,
-      410
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "on",
     "bounding_box": [
-      206,
-      426,
+      205,
+      422,
       288,
-      457
+      452
     ],
     "dot_position": [
-      247,
-      441
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "off",
     "bounding_box": [
-      206,
-      457,
+      205,
+      452,
       288,
-      488
+      482
     ],
     "dot_position": [
-      247,
-      472
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "off",
     "bounding_box": [
-      206,
-      488,
+      205,
+      482,
       288,
-      519
+      512
     ],
     "dot_position": [
-      247,
-      503
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "on",
     "bounding_box": [
-      206,
-      519,
+      205,
+      512,
       288,
-      550
+      542
     ],
     "dot_position": [
-      247,
-      534
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "off",
     "bounding_box": [
-      206,
-      550,
+      205,
+      542,
       288,
-      581
+      572
     ],
     "dot_position": [
-      247,
-      565
+      -1,
+      -1
     ]
   },
   {
     "type": 1,
     "state": "off",
     "bounding_box": [
-      206,
-      581,
+      205,
+      572,
       288,
-      614
+      602
     ],
     "dot_position": [
-      247,
-      597
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 1,
+    "state": "on",
+    "bounding_box": [
+      205,
+      70,
+      288,
+      114
+    ],
+    "dot_position": [
+      -1,
+      -1
     ]
   },
   {
     "type": 2,
     "state": "0",
     "bounding_box": [
-      379,
-      432,
-      456,
-      481
+      365,
+      523,
+      452,
+      612
     ],
     "dot_position": [
-      417,
-      456
+      -1,
+      -1
     ]
   },
   {
-    "type": 1,
-    "state": "on",
+    "type": 2,
+    "state": "0",
     "bounding_box": [
-      385,
-      557,
-      452,
-      605
+      367,
+      408,
+      453,
+      496
     ],
     "dot_position": [
-      418,
-      581
+      -1,
+      -1
     ]
   },
   {
     "type": 2,
     "state": "1",
     "bounding_box": [
-      383,
-      295,
-      446,
-      368
+      367,
+      294,
+      453,
+      381
     ],
     "dot_position": [
-      414,
-      331
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 2,
+    "state": "2",
+    "bounding_box": [
+      367,
+      178,
+      453,
+      264
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 2,
+    "state": "1",
+    "bounding_box": [
+      368,
+      54,
+      454,
+      148
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 4,
+    "state": "out",
+    "bounding_box": [
+      528,
+      367,
+      572,
+      453
+    ],
+    "dot_position": [
+      -1,
+      -1
+    ]
+  },
+  {
+    "type": 4,
+    "state": "out",
+    "bounding_box": [
+      610,
+      367,
+      656,
+      457
+    ],
+    "dot_position": [
+      -1,
+      -1
     ]
   },
   {
@@ -564,27 +620,27 @@
     "state": "on",
     "bounding_box": [
       534,
-      207,
-      671,
-      339
+      205,
+      662,
+      327
     ],
     "dot_position": [
-      602,
-      273
+      -1,
+      -1
     ]
   },
   {
-    "type": 2,
-    "state": "1",
+    "type": 3,
+    "state": "off",
     "bounding_box": [
-      379,
-      57,
-      451,
-      139
+      535,
+      53,
+      660,
+      187
     ],
     "dot_position": [
-      415,
-      98
+      -1,
+      -1
     ]
   }
 ]

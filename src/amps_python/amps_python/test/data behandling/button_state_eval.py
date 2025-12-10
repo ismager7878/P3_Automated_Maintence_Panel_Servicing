@@ -284,18 +284,18 @@ def main():
         
         valid_classifications = find_valid_classifications(ground_data, state_data, ground_file, state_file)
 
-        # print(f"Processed files: {ground_file} and {state_file}")
-        # print("-----")
-        # print("")
-        # print("Found valid classifications:")
-        # for classification in valid_classifications:
-        #     print(f"State Button: {classification['state_button']}, \n Ground Button: {classification['ground_button']}, \n IoU: {classification['iou']}")
-        # print("")
-        # print("====================================")
+        print(f"Processed files: {ground_file} and {state_file}")
+        print("-----")
+        print("")
+        print("Found valid classifications:")
+        for classification in valid_classifications:
+            print(f"State Button: {classification['state_button']}, \n Ground Button: {classification['ground_button']}, \n IoU: {classification['iou']}")
+        print("")
+        print("====================================")
 
-        # if len(valid_classifications) == 0:
-        #     print("No valid classifications found in these files.")
-        #     print("====================================")
+        if len(valid_classifications) == 0:
+            print("No valid classifications found in these files.")
+            print("====================================")
 
         print("Calculating metrics...")
         new_breaker_matrix, new_main_switch_matrix, new_selector_matrix, new_breaker_fn, new_main_switch_fn, new_selector_fn = calculate_metrics(valid_classifications)
