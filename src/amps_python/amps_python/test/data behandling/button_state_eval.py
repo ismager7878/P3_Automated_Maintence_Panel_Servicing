@@ -224,7 +224,19 @@ def saveToJSON(breaker_matrix, main_switch_matrix, selector_matrix, breaker_fn, 
     }
     # Save results to JSON file, create directory if it doesn't exist
     os.makedirs("tests/Classification_test/Button_recognition_test/results", exist_ok=True)
-    with open("tests/Classification_test/Button_recognition_test/results/button_state_classification_results.json", "w") as f:
+    path = "tests/Classification_test/Button_recognition_test/results/button_state_classification_results.json"
+    if(os.path.exists(path)):
+        path_split = path.split(".json")
+        path = path_split[0] + "_1.json"
+        while(os.path.exists(path)):
+            path_split = path.split("_")
+            start = "_".join(path_split[:-1])
+            end = path_split[-1].split(".json")[0]
+            if end.isdigit():
+                new_end = str(int(end) + 1)
+                path =  start + "_" + new_end + ".json"
+
+    with open(path, "w") as f:
         json.dump(results, f, indent=4)
     
     print("Saved results to tests/Classification_test/Button_recognition_test/results/button_state_classification_results.json")

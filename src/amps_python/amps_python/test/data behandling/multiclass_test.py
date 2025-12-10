@@ -431,12 +431,21 @@ def json_output(breaker, rotary, main, plug, false_negative, P, R, f1):
     folder_path = "tests/Classification_test/Button_recognition_test/results/All_data"
     os.makedirs(folder_path, exist_ok=True)  # Opret mappen hvis den ikke findes
 
-    file_path = os.path.join(folder_path, "confusion matrix 2")
+    path = os.path.join(folder_path, "confusion_matrix.json")
 
-    # Gem som JSON
-    with open(file_path, "w") as file:
-        json.dump(data, file, indent=4) 
-    print("file updated")
+    if(os.path.exists(path)):
+        path_split = path.split(".json")
+        path = path_split[0] + "_1.json"
+        while(os.path.exists(path)):
+            path_split = path.split("_")
+            start = "_".join(path_split[:-1])
+            end = path_split[-1].split(".json")[0]
+            if end.isdigit():
+                new_end = str(int(end) + 1)
+                path =  start + "_" + new_end + ".json"
+
+    with open(path, "w") as f:
+        json.dump(data, f, indent=4)
 
 breaker_res, rotary_res, main_res, plug_res, fn_res = go_through_all_data()
 precision, recall, f1_score = precision_recall()
