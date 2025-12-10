@@ -1,0 +1,48 @@
+{
+    "circuit_breaker": {
+        "confusion_matrix": [
+            [
+                118,
+                2
+            ],
+            [
+                7,
+                108
+            ]
+        ],
+        "false_negatives": 17
+    },
+    "main_switch": {
+        "confusion_matrix": [
+            [
+                13,
+                0
+            ],
+            [
+                0,
+                18
+            ]
+        ],
+        "false_negatives": 5
+    },
+    "selector_switch": {
+        "confusion_matrix": [
+            [
+                16,
+                1,
+                0
+            ],
+            [
+                0,
+                29,
+                0
+            ],
+            [
+                0,
+                0,
+                33
+            ]
+        ],
+        "false_negatives": 11
+    }
+}

@@ -9,6 +9,11 @@ TYPE_DICTIONARY = {
     "main_switch": 3
 }
 
+CIRCUIT_BREAKER_COUNT = 14
+SELECTOR_COUNT = 5
+MAIN_SWITCH_COUNT = 2
+
+
 def convertGroundData(ground_data):
     new_ground_data = []
 
@@ -148,28 +153,83 @@ def find_valid_classifications(ground_data, state_data, ground_file, state_file)
     return validClassification
 
 def calculate_metrics(valid_classifications):
-    trues = 0
-    falses = 0
-    
-    for classification in valid_classifications:
-        if classification["ground_button"]["state"] == classification["state_button"]["state"]:
-            trues += 1
-        else:
-            print("Wrong Button State:")
-            print(f"State Button: {classification['state_button']}, \n Ground Button: {classification['ground_button']}")
-            falses += 1
+    breaker_matrix = [
+        [0,0],
+        [0,0]
+    ]
+    main_switch_matrix = [
+        [0,0],
+        [0,0]
+    ]
+    selector_matrix = [
+        [0,0,0],
+        [0,0,0],
+        [0,0,0],
+    ]
 
-    if trues + falses == 0:
-        return 0
+    breakers = filter(lambda x: x['ground_button']['type'] == 'circuit_breaker', valid_classifications)
+    main_switches = filter(lambda x: x['ground_button']['type'] == 'main_switch', valid_classifications)
+    selectors = filter(lambda x: x['ground_button']['type'] == 'selector_switch', valid_classifications)
+
+    for breaker in breakers:
+        if(breaker['ground_button']['state'] == 'on' and breaker['state_button']['state'] == 'on'):
+            breaker_matrix[0][0] += 1
+        elif(breaker['ground_button']['state'] == 'on' and breaker['state_button']['state'] == 'off'):
+            breaker_matrix[1][0] += 1
+        elif(breaker['ground_button']['state'] == 'off' and breaker['state_button']['state'] == 'on'):
+            breaker_matrix[0][1] += 1
+        elif(breaker['ground_button']['state'] == 'off' and breaker['state_button']['state'] == 'off'):
+            breaker_matrix[1][1] += 1
+
+    for main_switch in main_switches:
+        if(main_switch['ground_button']['state'] == 'on' and main_switch['state_button']['state'] == 'on'):
+            main_switch_matrix[0][0] += 1
+        elif(main_switch['ground_button']['state'] == 'on' and main_switch['state_button']['state'] == 'off'):
+            main_switch_matrix[1][0] += 1
+        elif(main_switch['ground_button']['state'] == 'off' and main_switch['state_button']['state'] == 'on'):
+            main_switch_matrix[0][1] += 1
+        elif(main_switch['ground_button']['state'] == 'off' and main_switch['state_button']['state'] == 'off'):
+            main_switch_matrix[1][1] += 1
+    
+    for selector in selectors:
+        ground_state = int(selector['ground_button']['state'])
+        state_state = int(selector['state_button']['state'])
+
+        selector_matrix[ground_state][state_state] += 1
+    
+
+    breaker_fn = CIRCUIT_BREAKER_COUNT - sum(breaker_matrix[0]) - sum(breaker_matrix[1])
+    main_switch_fn = MAIN_SWITCH_COUNT - sum(main_switch_matrix[0]) - sum(main_switch_matrix[1])
+    selector_fn = SELECTOR_COUNT - sum(selector_matrix[0]) - sum(selector_matrix[1]) - sum(selector_matrix[2])
+
+    return breaker_matrix, main_switch_matrix, selector_matrix, breaker_fn, main_switch_fn, selector_fn
+ 
+    
+    
+    
+def saveToJSON(breaker_matrix, main_switch_matrix, selector_matrix, breaker_fn, main_switch_fn, selector_fn):
+    results = {
+        "circuit_breaker": {
+            "confusion_matrix": breaker_matrix,
+            "false_negatives": breaker_fn
+        },
+        "main_switch": {
+            "confusion_matrix": main_switch_matrix,
+            "false_negatives": main_switch_fn
+        },
+        "selector_switch": {
+            "confusion_matrix": selector_matrix,
+            "false_negatives": selector_fn
+        }
+    }
+    # Save results to JSON file, create directory if it doesn't exist
+    os.makedirs("tests/Classification_test/Button_recognition_test/results", exist_ok=True)
+    with open("tests/Classification_test/Button_recognition_test/results/button_state_classification_results.json", "w") as f:
+        json.dump(results, f, indent=4)
+    
+    print("Saved results to tests/Classification_test/Button_recognition_test/results/button_state_classification_results.json")
+    
         
-    return (trues/(trues+falses)) 
-    
-    
-    
-
-        
-
-
 
 def main():
     root_ground = "tests/Classification_test/Button_recognition_test/Ground_truth/truth:"
@@ -190,6 +250,14 @@ def main():
     state_filer.sort()
 
     corr_pers = []
+
+    breaker_matrix = []
+    main_switch_matrix = []
+    selector_matrix = []
+
+    breaker_fn = 0
+    main_switch_fn = 0
+    selector_fn = 0
 
     for ground_file, state_file in zip(ground_filer, state_filer):
         with open(ground_file, 'r') as f:
@@ -216,16 +284,37 @@ def main():
         # if len(valid_classifications) == 0:
         #     print("No valid classifications found in these files.")
         #     print("====================================")
-        
-        corr_per = calculate_metrics(valid_classifications)
-        corr_pers.append(corr_per)
-        print(f"Correct classification percentage: {corr_per*100:.2f}%")
-        print("")
-        
+
+        print("Calculating metrics...")
+        new_breaker_matrix, new_main_switch_matrix, new_selector_matrix, new_breaker_fn, new_main_switch_fn, new_selector_fn = calculate_metrics(valid_classifications)
+
+        if len(breaker_matrix) == 0:
+            breaker_matrix = new_breaker_matrix
+        else:
+            for i in range(2):
+                for j in range(2):
+                    breaker_matrix[i][j] += new_breaker_matrix[i][j]    
     
-    overall_accuracy = sum(corr_pers) / len(corr_pers) if len(corr_pers) > 0 else 0
-    print(f"Overall Correct classification percentage across all files: {overall_accuracy*100:.2f}%")
-            
+        if len(main_switch_matrix) == 0:
+            main_switch_matrix = new_main_switch_matrix
+        else:
+            for i in range(2):
+                for j in range(2):
+                    main_switch_matrix[i][j] += new_main_switch_matrix[i][j]
+        
+        if len(selector_matrix) == 0:
+            selector_matrix = new_selector_matrix
+        else:
+            for i in range(3):
+                for j in range(3):
+                    selector_matrix[i][j] += new_selector_matrix[i][j]
+        
+        breaker_fn += new_breaker_fn
+        main_switch_fn += new_main_switch_fn
+        selector_fn += new_selector_fn
+    
+    saveToJSON(breaker_matrix, main_switch_matrix, selector_matrix, breaker_fn, main_switch_fn, selector_fn)
+
 
 
 if __name__ == "__main__":
