@@ -1,0 +1,36 @@
+{
+    "confusion_score": {
+        "breaker_score": [
+            241,
+            4,
+            0
+        ],
+        "rotary_score": [
+            86,
+            11,
+            2
+        ],
+        "main_score": [
+            34,
+            0,
+            0
+        ],
+        "false_negative": {
+            "breaker": 0,
+            "rotary": 0,
+            "main": 0
+        }
+    },
+    "breaker": {
+        "precision": 0.9836734693877551,
+        "recall": 1.0
+    },
+    "rotary": {
+        "precision": 0.8686868686868687,
+        "recall": 1.0
+    },
+    "main": {
+        "precision": 1.0,
+        "recall": 1.0
+    }
+}

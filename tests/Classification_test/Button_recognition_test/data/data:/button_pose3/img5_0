@@ -3,139 +3,139 @@
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      214,
+      208,
+      223,
       285,
-      245
+      253
     ],
     "dot_position": [
-      244,
-      229
+      246,
+      238
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      245,
+      208,
+      253,
       285,
-      276
+      283
     ],
     "dot_position": [
-      244,
-      260
+      246,
+      268
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      276,
+      208,
+      283,
       285,
-      307
+      313
     ],
     "dot_position": [
-      244,
-      291
+      246,
+      298
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      307,
+      208,
+      313,
       285,
-      338
+      343
     ],
     "dot_position": [
-      244,
-      322
+      246,
+      328
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      338,
+      208,
+      343,
       285,
-      369
+      373
     ],
     "dot_position": [
-      244,
-      353
+      246,
+      358
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      369,
+      208,
+      373,
       285,
-      400
+      403
     ],
     "dot_position": [
-      244,
-      384
+      246,
+      388
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      400,
+      208,
+      403,
       285,
-      431
+      433
     ],
     "dot_position": [
-      244,
-      415
+      246,
+      418
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      431,
+      208,
+      433,
       285,
-      462
+      463
     ],
     "dot_position": [
-      244,
-      446
+      246,
+      448
     ]
   },
   {
-    "type": 2,
+    "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      462,
+      208,
+      463,
       285,
       493
     ],
     "dot_position": [
-      244,
-      477
+      246,
+      478
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
+      208,
       493,
       285,
-      524
+      523
     ],
     "dot_position": [
-      244,
+      246,
       508
     ]
   },
@@ -143,182 +143,182 @@
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      524,
+      208,
+      523,
       285,
-      555
+      553
     ],
     "dot_position": [
-      244,
-      539
+      246,
+      538
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      555,
+      208,
+      553,
       285,
-      586
+      583
     ],
     "dot_position": [
-      244,
-      570
+      246,
+      568
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      586,
+      208,
+      583,
       285,
-      619
+      615
     ],
     "dot_position": [
-      244,
-      602
+      246,
+      599
     ]
   },
   {
     "type": 1,
     "state": "",
     "bounding_box": [
-      203,
-      71,
-      285,
-      109
+      212,
+      75,
+      286,
+      114
     ],
     "dot_position": [
-      244,
-      90
+      249,
+      94
     ]
   },
   {
     "type": 2,
     "state": "",
     "bounding_box": [
-      363,
-      522,
-      450,
-      612
-    ],
-    "dot_position": [
-      406,
-      567
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
-      364,
-      408,
-      449,
-      495
-    ],
-    "dot_position": [
-      406,
-      451
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
-      364,
-      293,
-      449,
-      379
-    ],
-    "dot_position": [
-      406,
-      336
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
-      365,
-      178,
-      449,
-      264
-    ],
-    "dot_position": [
-      407,
-      221
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
-      365,
-      60,
-      449,
-      150
-    ],
-    "dot_position": [
-      407,
-      105
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
-      528,
-      202,
-      654,
-      327
-    ],
-    "dot_position": [
-      591,
-      264
-    ]
-  },
-  {
-    "type": 3,
-    "state": "",
-    "bounding_box": [
-      531,
-      60,
-      657,
-      186
-    ],
-    "dot_position": [
-      594,
-      123
-    ]
-  },
-  {
-    "type": 2,
-    "state": "",
-    "bounding_box": [
+      367,
       525,
-      367,
-      568,
-      455
+      453,
+      613
     ],
     "dot_position": [
-      546,
-      411
+      410,
+      569
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      366,
+      413,
+      453,
+      498
+    ],
+    "dot_position": [
+      409,
+      455
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      367,
+      298,
+      453,
+      382
+    ],
+    "dot_position": [
+      410,
+      340
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      370,
+      178,
+      456,
+      267
+    ],
+    "dot_position": [
+      413,
+      222
+    ]
+  },
+  {
+    "type": 2,
+    "state": "",
+    "bounding_box": [
+      370,
+      57,
+      456,
+      149
+    ],
+    "dot_position": [
+      413,
+      103
     ]
   },
   {
     "type": 3,
     "state": "",
     "bounding_box": [
-      607,
-      367,
-      651,
-      455
+      540,
+      207,
+      661,
+      325
     ],
     "dot_position": [
-      629,
-      411
+      600,
+      266
+    ]
+  },
+  {
+    "type": 3,
+    "state": "",
+    "bounding_box": [
+      540,
+      58,
+      661,
+      185
+    ],
+    "dot_position": [
+      600,
+      121
+    ]
+  },
+  {
+    "type": 1,
+    "state": "",
+    "bounding_box": [
+      530,
+      371,
+      575,
+      457
+    ],
+    "dot_position": [
+      552,
+      414
+    ]
+  },
+  {
+    "type": 1,
+    "state": "",
+    "bounding_box": [
+      614,
+      371,
+      657,
+      460
+    ],
+    "dot_position": [
+      635,
+      415
     ]
   }
 ]

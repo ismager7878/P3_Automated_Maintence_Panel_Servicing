@@ -57,11 +57,11 @@ class CallibrationTest(Node):
             #filename_ground = os.path.join(self.ground_truth_folder, f"btn_cf:{self.btn_config}_img:{self.frame_id}")
 
             filename_data = os.path.join(self.test_folder, f"data:{self.data_id}")
-            filename_ground = os.path.join(self.ground_truth_folder, f"truth:{self.data_id}")
+            #filename_ground = os.path.join(self.ground_truth_folder, f"truth:{self.data_id}")
 
             # Opret mappen hvis den ikke eksisterer
             os.makedirs(os.path.dirname(filename_data), exist_ok=True)
-            os.makedirs(os.path.dirname(filename_ground), exist_ok=True)
+            #os.makedirs(os.path.dirname(filename_ground), exist_ok=True)
 
             with open(filename_data, "w") as f:
                 json.dump(buttons_list, f, indent=2)
@@ -69,12 +69,12 @@ class CallibrationTest(Node):
             self.get_logger().info(f"Saved: {filename_data}")
             self.frame_id += 1
 
-            if self.ground_truth is not None:
-                with open(filename_ground, "w") as f:
-                    json.dump(self.ground_truth, f, indent=2)
-                self.get_logger().info(f"Saved: {filename_ground}")
-            else:
-                self.get_logger().warn("Ingen ground truth data endnu")
+            # if self.ground_truth is not None:
+            #     with open(filename_ground, "w") as f:
+            #         json.dump(self.ground_truth, f, indent=2)
+            #     self.get_logger().info(f"Saved: {filename_ground}")
+            # else:
+            #     self.get_logger().warn("Ingen ground truth data endnu")
         
     
     def ground_truth_callback(self, msg):

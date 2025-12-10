@@ -88,22 +88,26 @@ private:
         {
             string stateStr;
             
-            cv::Mat buttonRgbCutOut = rgbImage(
-                cv::Rect(
-                    button.bounding_box[0],
-                    button.bounding_box[1],
-                    button.bounding_box[2] - button.bounding_box[0],
-                    button.bounding_box[3] - button.bounding_box[1]
-                )
-            );
-            cv::Mat buttonDepthCutOut = depthImage(
-                cv::Rect(
-                    button.bounding_box[0],
-                    button.bounding_box[1],
-                    button.bounding_box[2] - button.bounding_box[0],
-                    button.bounding_box[3] - button.bounding_box[1]
-                )
-            );
+            // Validate and clamp bounding box to image dimensions
+            int x = std::max(0, std::min(static_cast<int>(button.bounding_box[0]), rgbImage.cols - 1));
+            int y = std::max(0, std::min(static_cast<int>(button.bounding_box[1]), rgbImage.rows - 1));
+            int x2 = std::max(0, std::min(static_cast<int>(button.bounding_box[2]), rgbImage.cols));
+            int y2 = std::max(0, std::min(static_cast<int>(button.bounding_box[3]), rgbImage.rows));
+            int width = x2 - x;
+            int height = y2 - y;
+            
+            // Skip if bounding box is invalid
+            if (width <= 0 || height <= 0) {
+                RCLCPP_WARN(this->get_logger(), "Invalid bounding box for button: [%d, %d, %d, %d]. Skipping.",
+                    button.bounding_box[0], button.bounding_box[1], 
+                    button.bounding_box[2], button.bounding_box[3]);
+                continue;
+            }
+            
+            cv::Rect roi(x, y, width, height);
+            
+            cv::Mat buttonRgbCutOut = rgbImage(roi);
+            cv::Mat buttonDepthCutOut = depthImage(roi);
 
             switch(button.type)
             {
@@ -130,14 +134,8 @@ private:
 
             resultMsg.buttons.push_back(button);
 
-            rgbImage(
-                cv::Rect(
-                    button.bounding_box[0],
-                    button.bounding_box[1],
-                    button.bounding_box[2] - button.bounding_box[0],
-                    button.bounding_box[3] - button.bounding_box[1]
-                )
-            ) = buttonRgbCutOut;
+            // Write the processed cutout back to the image
+            rgbImage(roi) = buttonRgbCutOut;
 
             
 
@@ -307,15 +305,25 @@ private:
 
         int yMargin = input.rows * yMarginRatio;
         int xMargin = input.cols * xMarginRatio;
-
-        withMargins = input(
-            cv::Rect(
-                xMargin,
-                yMargin,
-                xSize - 2 * xMargin,
-                ySize - 1 * yMargin
-            )
-        );
+        
+        // Validate margins
+        int rectWidth = xSize - 2 * xMargin;
+        int rectHeight = ySize - 1 * yMargin;
+        
+        if (rectWidth <= 0 || rectHeight <= 0 || xMargin < 0 || yMargin < 0 || 
+            xMargin >= input.cols || yMargin >= input.rows) {
+            RCLCPP_WARN(this->get_logger(), "Invalid margins for topPointTresholding. Using full image.");
+            withMargins = input.clone();
+        } else {
+            withMargins = input(
+                cv::Rect(
+                    xMargin,
+                    yMargin,
+                    rectWidth,
+                    rectHeight
+                )
+            );
+        }
 
         //Insert every unique depth value into depthValues
         vector<uchar> depthValues = {};
