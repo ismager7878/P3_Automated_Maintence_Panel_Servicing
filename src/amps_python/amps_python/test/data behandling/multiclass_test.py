@@ -72,7 +72,7 @@ def grab_test_data(file_name):
         data = json.load(file)
 
     breaker = []
-    rotory  = []
+    rotary  = []
     main    = []
     plug    = []
 
@@ -83,7 +83,7 @@ def grab_test_data(file_name):
             breaker.append(data_entry["bounding_box"])
         
         if data_entry["type"] == 2:
-            rotory.append(data_entry["bounding_box"])
+            rotary.append(data_entry["bounding_box"])
 
         if data_entry["type"] == 3:
             main.append(data_entry["bounding_box"])
@@ -91,7 +91,7 @@ def grab_test_data(file_name):
         if data_entry["type"] == 4:
             plug.append(data_entry["bounding_box"])
 
-    return breaker, rotory, main, plug
+    return breaker, rotary, main, plug
 
 def IoU(boxA, boxB):
     # Box format: [x1, y1, x2, y2]
@@ -121,58 +121,45 @@ def IoU(boxA, boxB):
 all_b_b = [] #TP
 all_b_r = [] #FP
 all_b_m = [] #FP
-all_b_p = [] #FP
 
 all_r_b = [] #FP
 all_r_r = [] #TP
 all_r_m = [] #FP
-all_r_p = [] #FP
 
 all_m_b = [] #FP
 all_m_r = [] #FP
 all_m_m = [] #TP
-all_m_p = [] #FP
 
-all_p_b = [] #FP
-all_p_r = [] #FP
-all_p_m = [] #FP
-all_p_p = [] #TP
+# Track False Negatives per class (unmatched GT objects)
+all_fn_breaker = []
+all_fn_rotary = []
+all_fn_main = []
 
-all_false_negative = []
 
-def confucion_matrix(test_file_path, ground_file_path):
+def confusion_matrix(test_file_path, ground_file_path):
     file_test = test_file_path
     file_ground = ground_file_path
 
-    #file_test = "tests/Classification_test/Button_recognition_test/data/data:/button_pose2/img2_0"
-    #file_ground = "tests/Classification_test/Button_recognition_test/Ground_truth/truth:/button_pose2/img2_0"
-
     breaker, rotary, main, plug = grab_test_data(file_test)
-    g_breaker, g_rotory, g_main, g_plug = grab_ground_truth(file_ground)
+    g_breaker, g_rotary, g_main, g_plug = grab_ground_truth(file_ground)
 
     b_b = [] #TP
     b_r = [] #FP
     b_m = [] #FP
-    b_p = [] #FP
 
     r_b = [] #FP
     r_r = [] #TP
     r_m = [] #FP
-    r_p = [] #FP
 
     m_b = [] #FP
     m_r = [] #FP
     m_m = [] #TP
-    m_p = [] #FP
 
-    p_b = [] #FP
-    p_r = [] #FP
-    p_m = [] #FP
-    p_p = [] #TP
-
-    false_negative = []
-
-
+    # Track which ground truth objects have been matched
+    matched_gt_breakers = set()
+    matched_gt_rotary = set()
+    matched_gt_mains = set()
+    
     # Evaluer alle detekterede knapper
     treshold = 0.5
 
@@ -181,7 +168,7 @@ def confucion_matrix(test_file_path, ground_file_path):
         
         for gt_b in g_breaker:
             b_iou.append(IoU(detected_breaker, gt_b))
-        for gt_r in g_rotory:
+        for gt_r in g_rotary:
             r_iou.append(IoU(detected_breaker, gt_r))
         for gt_m in g_main:
             m_iou.append(IoU(detected_breaker, gt_m))
@@ -192,22 +179,29 @@ def confucion_matrix(test_file_path, ground_file_path):
         best_match = max(max_b, max_r, max_m, max_p)
         
         if best_match < treshold:
-            false_negative.append(detected_breaker)
+            pass  # Unmatched detection (ignored - not counted as FP or TP)
         elif max_b == best_match:
-            b_b.append(detected_breaker)  # TP
+            b_b.append(detected_breaker)  # TP - correctly classified as breaker
+            # Mark the matched GT breaker
+            matched_idx = b_iou.index(max_b)
+            matched_gt_breakers.add(matched_idx)
         elif max_r == best_match:
-            b_r.append(detected_breaker)  # FP
+            b_r.append(detected_breaker)  # FP - classified as breaker but is rotary
+            # Mark the matched GT rotary (it was detected, just misclassified)
+            matched_idx = r_iou.index(max_r)
+            matched_gt_rotary.add(matched_idx)
         elif max_m == best_match:
-            b_m.append(detected_breaker)  # FP
-        elif max_p == best_match:
-            b_p.append(detected_breaker)  # FP
+            b_m.append(detected_breaker)  # FP - classified as breaker but is main
+            # Mark the matched GT main (it was detected, just misclassified)
+            matched_idx = m_iou.index(max_m)
+            matched_gt_mains.add(matched_idx)
 
     for detected_rotary in rotary:
         b_iou, r_iou, m_iou, p_iou = [], [], [], []
         
         for gt_b in g_breaker:
             b_iou.append(IoU(detected_rotary, gt_b))
-        for gt_r in g_rotory:
+        for gt_r in g_rotary:
             r_iou.append(IoU(detected_rotary, gt_r))
         for gt_m in g_main:
             m_iou.append(IoU(detected_rotary, gt_m))
@@ -218,22 +212,29 @@ def confucion_matrix(test_file_path, ground_file_path):
         best_match = max(max_b, max_r, max_m, max_p)
         
         if best_match < treshold:
-            false_negative.append(detected_rotary)
+            pass  # Unmatched detection (ignored - not counted as FP or TP)
         elif max_b == best_match:
-            r_b.append(detected_rotary)  # FP
+            r_b.append(detected_rotary)  # FP - classified as rotary but is breaker
+            # Mark the matched GT breaker (it was detected, just misclassified)
+            matched_idx = b_iou.index(max_b)
+            matched_gt_breakers.add(matched_idx)
         elif max_r == best_match:
-            r_r.append(detected_rotary)  # TP
+            r_r.append(detected_rotary)  # TP - correctly classified as rotary
+            # Mark the matched GT rotary
+            matched_idx = r_iou.index(max_r)
+            matched_gt_rotary.add(matched_idx)
         elif max_m == best_match:
-            r_m.append(detected_rotary)  # FP
-        elif max_p == best_match:
-            r_p.append(detected_rotary)  # FP
+            r_m.append(detected_rotary)  # FP - classified as rotary but is main
+            # Mark the matched GT main (it was detected, just misclassified)
+            matched_idx = m_iou.index(max_m)
+            matched_gt_mains.add(matched_idx)
 
     for detected_main in main:
         b_iou, r_iou, m_iou, p_iou = [], [], [], []
         
         for gt_b in g_breaker:
             b_iou.append(IoU(detected_main, gt_b))
-        for gt_r in g_rotory:
+        for gt_r in g_rotary:
             r_iou.append(IoU(detected_main, gt_r))
         for gt_m in g_main:
             m_iou.append(IoU(detected_main, gt_m))
@@ -244,104 +245,47 @@ def confucion_matrix(test_file_path, ground_file_path):
         best_match = max(max_b, max_r, max_m, max_p)
         
         if best_match < treshold:
-            false_negative.append(detected_main)
+            pass  # Unmatched detection (ignored - not counted as FP or TP)
         elif max_b == best_match:
-            m_b.append(detected_main)  # FP
+            m_b.append(detected_main)  # FP - classified as main but is breaker
+            # Mark the matched GT breaker (it was detected, just misclassified)
+            matched_idx = b_iou.index(max_b)
+            matched_gt_breakers.add(matched_idx)
         elif max_r == best_match:
-            m_r.append(detected_main)  # FP
+            m_r.append(detected_main)  # FP - classified as main but is rotary
+            # Mark the matched GT rotary (it was detected, just misclassified)
+            matched_idx = r_iou.index(max_r)
+            matched_gt_rotary.add(matched_idx)
         elif max_m == best_match:
-            m_m.append(detected_main)  # TP
-        elif max_p == best_match:
-            m_p.append(detected_main)  # FP
+            m_m.append(detected_main)  # TP - correctly classified as main
+            # Mark the matched GT main
+            matched_idx = m_iou.index(max_m)
+            matched_gt_mains.add(matched_idx)
 
-    for detected_plug in plug:
-        b_iou, r_iou, m_iou, p_iou = [], [], [], []
-        
-        for gt_b in g_breaker:
-            b_iou.append(IoU(detected_plug, gt_b))
-        for gt_r in g_rotory:
-            r_iou.append(IoU(detected_plug, gt_r))
-        for gt_m in g_main:
-            m_iou.append(IoU(detected_plug, gt_m))
-        for gt_p in g_plug:
-            p_iou.append(IoU(detected_plug, gt_p))
-        
-        max_b, max_r, max_m, max_p = max(b_iou) if b_iou else 0, max(r_iou) if r_iou else 0, max(m_iou) if m_iou else 0, max(p_iou) if p_iou else 0
-        best_match = max(max_b, max_r, max_m, max_p)
-        
-        if best_match < treshold:
-            false_negative.append(detected_plug)
-        elif max_b == best_match:
-            p_b.append(detected_plug)  # FP
-        elif max_r == best_match:
-            p_r.append(detected_plug)  # FP
-        elif max_m == best_match:
-            p_m.append(detected_plug)  # FP
-        elif max_p == best_match:
-            p_p.append(detected_plug)  # TP
-
-    # Beregn actual False Negatives: ground truth knapper der ikke blev matchet
-    # Tæl hvor mange GT knapper der ikke har et match med IoU > threshold
-    matched_gt_breakers = set()
-    matched_gt_rotary = set()
-    matched_gt_mains = set()
-    matched_gt_plugs = set()
+    # Calculate False Negatives per class: GT objects that were NOT matched
+    # FN = ground truth objects that were not detected at all
+    fn_breaker = len(g_breaker) - len(matched_gt_breakers)
+    fn_rotary = len(g_rotary) - len(matched_gt_rotary)
+    fn_main = len(g_main) - len(matched_gt_mains)
     
-    # Find matchede ground truth knapper fra alle detektioner
-    all_detections = breaker + rotary + main + plug
-    for det in all_detections:
-        for i, gt_b in enumerate(g_breaker):
-            if IoU(det, gt_b) >= treshold:
-                matched_gt_breakers.add(i)
-        for i, gt_r in enumerate(g_rotory):
-            if IoU(det, gt_r) >= treshold:
-                matched_gt_rotary.add(i)
-        for i, gt_m in enumerate(g_main):
-            if IoU(det, gt_m) >= treshold:
-                matched_gt_mains.add(i)
-        for i, gt_p in enumerate(g_plug):
-            if IoU(det, gt_p) >= treshold:
-                matched_gt_plugs.add(i)
-    
-    # FN = GT knapper der ikke blev matchet
-    unmatched_breakers = len(g_breaker) - len(matched_gt_breakers)
-    unmatched_rotary = len(g_rotory) - len(matched_gt_rotary)
-    unmatched_mains = len(g_main) - len(matched_gt_mains)
-    unmatched_plugs = len(g_plug) - len(matched_gt_plugs)
-    
-    actual_FN = unmatched_breakers + unmatched_rotary + unmatched_mains + unmatched_plugs
-    """
-    print("------------------------------------------------------------------------------------------------------------------------------")
-    print(f"file path: {test_file_path}:")
-    print(f"Breaker TP: {len(b_b)}, FP as rotary: {len(b_r)}, FP as main: {len(b_m)}, FP as plug: {len(b_p)}")
-    print(f"Rotary TP: {len(r_r)}, FP as breaker: {len(r_b)}, FP as main: {len(r_m)}, FP as plug: {len(r_p)}")
-    print(f"Main TP: {len(m_m)}, FP as breaker: {len(m_b)}, FP as rotary: {len(m_r)}, FP as plug: {len(m_p)}")
-    print(f"Plug TP: {len(p_p)}, FP as breaker: {len(p_b)}, FP as rotary: {len(p_r)}, FP as main: {len(p_m)}")
-    print(f"False Negatives (no match): {actual_FN}")
-    print("================================================================================================================================")
-    """
+    # Note: Plugs are ignored in classification (as specified in requirements)
 
     all_b_b.append(len(b_b)) 
     all_b_r.append(len(b_r))
     all_b_m.append(len(b_m))
-    all_b_p.append(len(b_p))
 
     all_r_b.append(len(r_b))
     all_r_r.append(len(r_r))
     all_r_m.append(len(r_m))
-    all_r_p.append(len(r_p))
 
     all_m_b.append(len(m_b))
     all_m_r.append(len(m_r))
     all_m_m.append(len(m_m))
-    all_m_p.append(len(m_p))
 
-    all_p_b.append(len(p_b))
-    all_p_r.append(len(p_r))
-    all_p_m.append(len(p_m))
-    all_p_p.append(len(p_p))
-
-    all_false_negative.append(actual_FN)
+    # Accumulate FN per class
+    all_fn_breaker.append(fn_breaker)
+    all_fn_rotary.append(fn_rotary)
+    all_fn_main.append(fn_main)
 
 def go_through_all_data():
 
@@ -363,68 +307,78 @@ def go_through_all_data():
     test_filer.sort()
     ground_filer.sort()
 
-    alle_rotor_knapper = []
-
     # Lav par (én test, én ground_truth)
     for test_fil, ground_fil in zip(test_filer, ground_filer):
 
-        confucion_matrix(test_fil, ground_fil)
+        confusion_matrix(test_fil, ground_fil)
 
-    breaker_res = [sum(all_b_b), sum(all_b_r), sum(all_b_m), sum(all_b_p)]
-    rotary_res = [sum(all_r_r), sum(all_r_b), sum(all_r_m), sum(all_r_p)]
-    main_res = [sum(all_m_m), sum(all_m_b), sum(all_m_r), sum(all_m_p)]
-    plug_res = [sum(all_p_p), sum(all_p_b), sum(all_p_r), sum(all_p_m)]
-    fn_res = sum(all_false_negative)
-
-    """
-    print("------------------------------------------------------------------------------------------------------------------------------")
-    print(f"Breaker TP: {sum(all_b_b)}, FP as rotary: {sum(all_b_r)}, FP as main: {sum(all_b_m)}, FP as plug: {sum(all_b_p)}")
-    print(f"Rotary TP: {sum(all_r_r)}, FP as breaker: {sum(all_r_b)}, FP as main: {sum(all_r_m)}, FP as plug: {sum(all_r_p)}")
-    print(f"Main TP: {sum(all_m_m)}, FP as breaker: {sum(all_m_b)}, FP as rotary: {sum(all_m_r)}, FP as plug: {sum(all_m_p)}")
-    print(f"Plug TP: {sum(all_p_p)}, FP as breaker: {sum(all_p_b)}, FP as rotary: {sum(all_p_r)}, FP as main: {sum(all_p_m)}")
-    print(f"False Negatives (no match): {sum(all_false_negative)}")
-    print("================================================================================================================================")
-
-    print(breaker_res)
-    print(rotary_res)
-    print(main_res)
-    print(plug_res)
-    print(fn_res)
-    """
+    breaker_res = [sum(all_b_b), sum(all_b_r), sum(all_b_m)]
+    rotary_res = [sum(all_r_r), sum(all_r_b), sum(all_r_m)]
+    main_res = [sum(all_m_m), sum(all_m_b), sum(all_m_r)]
+    fn_breaker_res = sum(all_fn_breaker)
+    fn_rotary_res = sum(all_fn_rotary)
+    fn_main_res = sum(all_fn_main)
     
-    return breaker_res, rotary_res, main_res, plug_res, fn_res
+    return breaker_res, rotary_res, main_res, fn_breaker_res, fn_rotary_res, fn_main_res
 
 def precision_recall():
-    # Plugs are not included since, they are not classified
-    breaker_res, rotary_res, main_res, plug_res, fn_res = go_through_all_data()
+    # Plugs are not included since they are not classified
+    breaker_res, rotary_res, main_res, fn_breaker_res, fn_rotary_res, fn_main_res = go_through_all_data()
 
-    fp_b = breaker_res[1] + breaker_res[2] + breaker_res[3]
-    fp_r = rotary_res[1] + rotary_res[2] + rotary_res[3]
-    fp_m = main_res[1] + main_res[2] + main_res[3]
+    # For breaker: TP = b_b, FP = b_r + b_m (detections classified as breaker but wrong)
+    tp_breaker = breaker_res[0]  # b_b (correctly classified as breaker)
+    fp_breaker = breaker_res[1] + breaker_res[2]  # b_r + b_m (wrongly classified as breaker)
+    fn_breaker = fn_breaker_res  # GT breakers that were NOT detected
+    
+    # For rotary: TP = r_r, FP = r_b + r_m
+    tp_rotary = rotary_res[0]  # r_r (correctly classified as rotary)
+    fp_rotary = rotary_res[1] + rotary_res[2]  # r_b + r_m (wrongly classified as rotary)
+    fn_rotary = fn_rotary_res  # GT rotary switches that were NOT detected
+    
+    # For main: TP = m_m, FP = m_b + m_r
+    tp_main = main_res[0]  # m_m (correctly classified as main)
+    fp_main = main_res[1] + main_res[2]  # m_b + m_r (wrongly classified as main)
+    fn_main = fn_main_res  # GT main switches that were NOT detected
+    
+    # Calculate precision for each class: Precision = TP / (TP + FP)
+    # Precision measures: of all detections classified as X, how many are correct?
+    precision_breaker = tp_breaker / (tp_breaker + fp_breaker) if (tp_breaker + fp_breaker) > 0 else 0
+    precision_rotary = tp_rotary / (tp_rotary + fp_rotary) if (tp_rotary + fp_rotary) > 0 else 0
+    precision_main = tp_main / (tp_main + fp_main) if (tp_main + fp_main) > 0 else 0
+    
+    # Calculate recall for each class: Recall = TP / (TP + FN)
+    # Recall measures: of all GT objects of class X, how many did we detect correctly?
+    recall_breaker = tp_breaker / (tp_breaker + fn_breaker) if (tp_breaker + fn_breaker) > 0 else 0
+    recall_rotary = tp_rotary / (tp_rotary + fn_rotary) if (tp_rotary + fn_rotary) > 0 else 0
+    recall_main = tp_main / (tp_main + fn_main) if (tp_main + fn_main) > 0 else 0
 
-    true_positive = breaker_res[0] + rotary_res[0] + main_res[0] + plug_res[0]
-    false_positive = fp_b + fp_r + fp_m
-    false_negative = fn_res
-
-    precision = true_positive / (true_positive + false_positive)
-    recall = true_positive / (true_positive + false_negative)
-    f1_score = 2 * ((precision * recall)/(precision + recall))
-
-    return precision, recall, f1_score
+    return (precision_breaker, recall_breaker, precision_rotary, recall_rotary, precision_main, recall_main)
 
 
-def json_output(breaker, rotary, main, plug, false_negative, P, R, f1):
+def json_output(breaker, rotary, main, fn_breaker, fn_rotary, fn_main, P_b, R_b, P_r, R_r, P_m, R_m):
     data = {
         "confusion_score": {
             "breaker_score": breaker,
             "rotary_score": rotary,
             "main_score": main,
-            "plug_score": plug,
-            "false_negative": false_negative,
+            "false_negative": {
+                "breaker": fn_breaker,
+                "rotary": fn_rotary,
+                "main": fn_main
+            }
         },
-        "precision": P,
-        "recall": R,
-        "f1": f1,
+        "breaker": {
+            "precision": P_b,
+            "recall": R_b
+        },
+        "rotary": {
+            "precision": P_r,
+            "recall": R_r
+        },
+        "main": {
+            "precision": P_m,
+            "recall": R_m
+        }
     }
 
     # Hvor filen skal ligge
@@ -447,7 +401,7 @@ def json_output(breaker, rotary, main, plug, false_negative, P, R, f1):
     with open(path, "w") as f:
         json.dump(data, f, indent=4)
 
-breaker_res, rotary_res, main_res, plug_res, fn_res = go_through_all_data()
-precision, recall, f1_score = precision_recall()
+breaker_res, rotary_res, main_res, fn_breaker_res, fn_rotary_res, fn_main_res = go_through_all_data()
+precision_b, recall_b, precision_r, recall_r, precision_m, recall_m = precision_recall()
 
-json_output(breaker_res, rotary_res, main_res, plug_res, fn_res, precision, recall, f1_score)
+json_output(breaker_res, rotary_res, main_res, fn_breaker_res, fn_rotary_res, fn_main_res, precision_b, recall_b, precision_r, recall_r, precision_m, recall_m)
