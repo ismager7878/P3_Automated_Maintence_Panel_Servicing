@@ -28,9 +28,14 @@ def generate_launch_description():
             default_value='false'
         ),
 
+        DeclareLaunchArgument(
+            'impl_test',
+            default_value='true'
+        ),
+
         IncludeLaunchDescription(
-             PathJoinSubstitution([FindPackageShare('amps_cpp'), 'launch', 'segmentation_test.py']),
-             launch_arguments={'training_data': LaunchConfiguration('training_data')}.items(),
+                PathJoinSubstitution([FindPackageShare('amps_cpp'), 'launch', 'button_state.launch.py']),
+                launch_arguments={'use_classification': LaunchConfiguration('impl_test')}.items(),
         ),
        
        #vi skal måske lave en separat launch fil:
@@ -40,21 +45,7 @@ def generate_launch_description():
             name="state_test",
             output="screen",
             prefix=[venv_python, " "],
-        ),
-
-        Node(
-            package="amps_python",
-            executable="classified_image",
-            name="classified_image",
-            output="screen",
-            prefix=[venv_python, " "],
-        ),
-
-        Node(
-            package='amps_cpp',
-            executable='button_state_detector',
-            name='button_state_detector',
-            output='screen',
-            remappings=[('/amps/training_data', 'object_classification_topic')]
         )
+
+        
     ])
