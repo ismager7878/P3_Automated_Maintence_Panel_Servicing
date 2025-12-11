@@ -27,18 +27,18 @@ class ObjectClassificationNode(Node):
         self.declare_parameter('button_state', 'false')
         
         #subscribe til segmenteret billede
-        self.image_subscription = self.create_subscription(Image, 'amps_python/vision/transformed_color_image', self.image_callback, 10)
+        self.image_subscription = self.create_subscription(Image, 'amps/vision/transformed_color_image', self.image_callback, 10)
         #subscribe til depth billede
-        self.depth_subscription = self.create_subscription(Image, 'amps_python/vision/transformed_depth_image', self.depth_callback, 10)
+        self.depth_subscription = self.create_subscription(Image, 'amps/vision/transformed_depth_image', self.depth_callback, 10)
         #subscribe til roi fra segmentation node
-        self.roi_subscription = self.create_subscription(Float32MultiArray, 'segmentation__topic', self.roi_callback, 10)
+        self.roi_subscription = self.create_subscription(Float32MultiArray, 'amps/vision/bounding_boxes', self.roi_callback, 10)
 
         #Publicer ClassifiedButtonsArray
-        self.classification_publisher = self.create_publisher(ClassifiedButtonsArray, 'object_classification_topic', 10)
+        self.classification_publisher = self.create_publisher(ClassifiedButtonsArray, '/amps/vision/type_classification', 10)
         self.programState_sub = self.create_publisher(ProgramState, 'amps/set_program_state', 10)
 
         #publicer billede med klassificering og bounding boxes for visualisering
-        self.image_publisher = self.create_publisher(Image, 'classified_image', 10)
+        self.image_publisher = self.create_publisher(Image, 'amps/images/type_classification', 10)
 
         self.bridge = CvBridge()
         self.current_image = None

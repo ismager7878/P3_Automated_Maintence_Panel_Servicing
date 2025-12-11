@@ -20,7 +20,7 @@ class SegmentationSubscriber : public rclcpp::Node
 public:
     SegmentationSubscriber() : Node("segmentation_subscriber_node")
     {
-        subscription_ = this->create_subscription<std_msgs::msg::Float32MultiArray>("segmentation__topic",10,std::bind(&SegmentationSubscriber::topic_callback, this, std::placeholders::_1));
+        subscription_ = this->create_subscription<std_msgs::msg::Float32MultiArray>("amps/vision/bounding_boxes",10,std::bind(&SegmentationSubscriber::topic_callback, this, std::placeholders::_1));
        
         programStatePub_ = this->create_publisher<ProgramState>("amps/program_state", 10);
         programStateSub_ = this->create_subscription<ProgramState>(

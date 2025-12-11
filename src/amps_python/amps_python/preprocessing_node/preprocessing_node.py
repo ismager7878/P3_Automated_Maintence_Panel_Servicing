@@ -31,7 +31,7 @@ class PreprocessingNode(Node):
         self.current_state = 0
 
         # Subscribe to the topic publishing FrameWithPose messages
-        self.subscription = self.create_subscription(FrameWithPose, 'amps_cpp/pose_estimation/frame_with_pose', self.listener_callback, 10)
+        self.subscription = self.create_subscription(FrameWithPose, 'amps/frame_with_pose', self.listener_callback, 10)
         self.get_logger().info(self.subscription.topic_name + ' is subscribed.')
         
         # Initialize CvBridge
@@ -71,15 +71,15 @@ class PreprocessingNode(Node):
             self.publisher_ground_truth = self.create_publisher(GroundTruth, 'amps/set_ground_truth', 10)
             if(self.get_parameter('bypass_segmentation').value == True):
                 self.get_logger().info('Bypass segmentation is enabled, setting up bypass publishers.')
-                self.publisher_segmentation_bypass_points = self.create_publisher(Float32MultiArray, 'segmentation__topic', 10)
+                self.publisher_segmentation_bypass_points = self.create_publisher(Float32MultiArray, 'amps/vision/bounding_boxes', 10)
             else:
                 self.get_logger().info('Bypass segmentation is disabled.')
                 
             #self.publisher_segmentation_bypass_color = self.create_publisher(Image, 'segmentation_test_color', 1
     
         # Create publishers for transformed depth and color images
-        self.publisher_depth = self.create_publisher(Image, 'amps_python/vision/transformed_depth_image', 10)
-        self.publisher_color = self.create_publisher(Image, 'amps_python/vision/transformed_color_image', 10)
+        self.publisher_depth = self.create_publisher(Image, 'amps/vision/transformed_depth_image', 10)
+        self.publisher_color = self.create_publisher(Image, 'amps/vision/transformed_color_image', 10)
     
 
     # Program state management
@@ -109,6 +109,8 @@ class PreprocessingNode(Node):
         # Convert ROS Image message to OpenCV image
         depth_image = self.bridge.imgmsg_to_cv2(sub_msg.depth_frame, desired_encoding='passthrough')
         color_image = self.bridge.imgmsg_to_cv2(sub_msg.rgb_frame, desired_encoding='passthrough')
+
+        color_image = cv.cvtColor(color_image, cv.COLOR_RGBA2BGR)
         
         # Process the depth image
         transformed_depth_image, transform_matrix = self.transform_depth(depth_image)

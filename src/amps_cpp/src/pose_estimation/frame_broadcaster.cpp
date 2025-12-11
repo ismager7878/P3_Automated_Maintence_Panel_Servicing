@@ -13,7 +13,7 @@ class FrameBroadcaster : public rclcpp::Node
 public:
     FrameBroadcaster() : Node("frame_broadcaster"){
         transformSub_ = this->create_subscription<geometry_msgs::msg::TransformStamped>(
-            "amps_cpp/pose_estimation/broadcast_transform",
+            "amps/pose_estimation/broadcast_transform",
             10,
             std::bind(&FrameBroadcaster::transformCallback, this, _1)
         );

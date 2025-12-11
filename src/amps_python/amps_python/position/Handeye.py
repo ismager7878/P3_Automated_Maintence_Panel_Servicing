@@ -35,11 +35,11 @@ class Handeye(Node):
         # Subscriber til pose data for snapper funktionen
         self.sub_pose = self.create_subscription(
             FrameWithPose,
-            'amps_cpp/pose_estimation/frame_with_pose',
+            'amps/pose_estimation/frame_with_pose',
             self.snapper,
             sensor_qos
         )
-        self.get_logger().info("Subscribed to 'amps_cpp/pose_estimation/rgb_frame_with_pose'…")
+        self.get_logger().info("Subscribed to 'amps/rgb_frame_with_pose'…")
 
         # Timer til UI/keyboard (ikke blokér ROS)
         self.timer = self.create_timer(0.01, self.on_timer)

@@ -34,16 +34,16 @@ public:
     Segmention() : Node("segmentation_public_node"), count_(0)
     {
         this->color_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-            "amps_python/vision/transformed_color_image", 10, std::bind(&Segmention::color_callback,this,std::placeholders::_1)
+            "amps/vision/transformed_color_image", 10, std::bind(&Segmention::color_callback,this,std::placeholders::_1)
         );
 
         this->depth_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-            "amps_python/vision/transformed_depth_image", 10, std::bind(&Segmention::depth_callback,this,std::placeholders::_1)
+            "amps/vision/transformed_depth_image", 10, std::bind(&Segmention::depth_callback,this,std::placeholders::_1)
         );
 
-        this->publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("segmentation__topic", 10);
+        this->publisher_ = this->create_publisher<std_msgs::msg::Float32MultiArray>("amps/vision/bounding_boxes", 10);
 
-        this->seg_image_pub_ = this->create_publisher<sensor_msgs::msg::Image>("amps/segmented_image_topic",10);
+        this->seg_image_pub_ = this->create_publisher<sensor_msgs::msg::Image>("amps/images/segmented_image",10);
 
         // color_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_color",10,std::bind(&Segmention::color_callback,this,std::placeholders::_1));
         // depth_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_depth",10,std::bind(&Segmention::depth_callback,this,std::placeholders::_1));

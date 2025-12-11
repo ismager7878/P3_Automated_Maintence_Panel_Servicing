@@ -23,7 +23,7 @@ using RGBD = realsense2_camera_msgs::msg::RGBD;
 public:
     FPMatcherNode() : Node("fp_matcher")
     {
-        frame_with_pose_pub_ = this->create_publisher<FrameWithPose>("amps_cpp/pose_estimation/frame_with_pose", 10);
+        frame_with_pose_pub_ = this->create_publisher<FrameWithPose>("amps/frame_with_pose", 10);
 
         pose_sub_ = this->create_subscription<PoseStamped>(
             "/tcp_pose_broadcaster/pose",

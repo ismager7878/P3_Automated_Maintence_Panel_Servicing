@@ -58,7 +58,7 @@ class GUI_node(Node):
         self.is_board_reachable = False  # Track state
         self.sub_is_board_reachable = self.create_subscription(
             Bool,
-            "amps_cpp/pose_estimation/is_board_reachable",
+            "amps/pose_estimation/is_board_reachable",
             self.is_board_reachable_callback,
             10
         )

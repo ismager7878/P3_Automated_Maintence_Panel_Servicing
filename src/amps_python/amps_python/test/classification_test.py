@@ -18,7 +18,7 @@ class CallibrationTest(Node):
         # classification subscription
         self.create_subscription(
             ClassifiedButtonsArray,
-            'object_classification_topic',
+            '/amps/vision/type_classification',
             self.classification_callback,
             qos
         )

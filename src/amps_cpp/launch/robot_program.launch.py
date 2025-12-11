@@ -50,7 +50,7 @@ def generate_launch_description():
         name='button_state_detector',
         output='screen',
         arguments=['--ros-args', '--log-level', 'WARN'],
-        remappings=[('/amps/training_data', 'object_classification_topic')],
+        remappings=[('/amps/training_data', '/amps/vision/type_classification')],
     )
 
     state_set = ExecuteProcess(

@@ -23,12 +23,12 @@ public:
         RCLCPP_INFO(this->get_logger(), "Button State Detector Node has been started.");
 
         preproccesedRgbImageSub_ = this->create_subscription<sensor_msgs::msg::Image>(
-            "amps_python/vision/transformed_color_image", 10,
+            "amps/vision/transformed_color_image", 10,
             std::bind(&ButtonStateDetectorNode::preproccesedRgbImageCallback, this, std::placeholders::_1)
         );
 
         preproccesedDepthImageSub_ = this->create_subscription<sensor_msgs::msg::Image>(
-            "amps_python/vision/transformed_depth_image", 10,
+            "amps/vision/transformed_depth_image", 10,
             std::bind(&ButtonStateDetectorNode::preproccesedDepthImageCallback, this, std::placeholders::_1)
         );
 
