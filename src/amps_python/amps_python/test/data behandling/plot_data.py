@@ -4,17 +4,17 @@ import json
 from matplotlib import cm
 
 def grab_ground_truth():
-    with open("tests/Classification_test/Button_recognition_test/results/All_data/confusion matrix 2", 'r') as file:
+    with open("tests/Classification_test/Button_recognition_test/results/All_data/confusion_matrix_implementation_test.json", 'r') as file:
         data = json.load(file)
 
     breaker = data["confusion_score"]["breaker_score"]
     rotary = data["confusion_score"]["rotary_score"]
     main = data["confusion_score"]["main_score"]
-    plug = data["confusion_score"]["plug_score"]
 
-    return breaker, rotary, main, plug
 
-breaker, rotary, main, plug = grab_ground_truth()
+    return breaker, rotary, main
+
+breaker, rotary, main = grab_ground_truth()
 
 
 cm1 = np.array([
@@ -23,7 +23,7 @@ cm1 = np.array([
     [main[1],   main[2],  main[0]]
 ])
 
-classes = ["Breaker", "Rotary", "Main"]
+classes = ["Circuit breaker switch", "Rotary control switch", "Rotary power switch"]
 
 # Normalize rows into %
 row_sums = cm1.sum(axis=1, keepdims=True)

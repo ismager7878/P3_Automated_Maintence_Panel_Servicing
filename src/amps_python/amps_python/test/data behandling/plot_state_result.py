@@ -3,10 +3,13 @@ import numpy as np
 import json
 from matplotlib import cm
 
-with open("tests/Classification_test/Button_recognition_test/results/button_state_classification_results.json", 'r') as file:
-    json_data = json.load(file)
+with open("tests/Classification_test/Button_recognition_test/results/button_state_classification_results_implementation_test.json", 'r') as file1:
+    json_data_imp = json.load(file1)
 
-    print(json_data)
+with open("tests/Classification_test/Button_recognition_test/results/button_state_classification_results_module.json", 'r') as file2:
+    json_data_module = json.load(file2)
+
+    
 
 def plot_2x2(json_data, button_type):
     b_0 = json_data[button_type]["confusion_matrix"][0]
@@ -148,14 +151,14 @@ def calculate_precision_recall(json_data, button_type):
     
     return precision, recall
 
-def visualize_pr_separate_subplots(json_data):
+def visualize_pr_separate_subplots(json_data, goal_file_name):
     """Visualiser precision og recall i to subplots side om side"""
     
     plt.rcParams.update({'font.size': 18})
     
     # Beregn precision og recall for hver knaptype
     button_types = ['circuit_breaker', 'selector_switch', 'main_switch']
-    display_names = ['Breaker', 'Rotary', 'Main']
+    display_names = ['Circuit breaker switch', 'Rotary control switch', 'Rotary control switch']
     
     precision = []
     recall = []
@@ -165,16 +168,16 @@ def visualize_pr_separate_subplots(json_data):
         precision.append(p)
         recall.append(r)
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
     
     x = np.arange(len(display_names))
     width = 0.6
     
     # Precision subplot
-    bars1 = ax1.bar(x, precision, width, color='#4CAF50', edgecolor='black', alpha=0.8)
-    ax1.set_xlabel('Button Types', fontsize=20, fontweight='bold')
+    bars1 = ax1.bar(x, precision, width, color='#ff7f0e', edgecolor='black', alpha=0.6)
+    ax1.set_xlabel('Switch Types', fontsize=20, fontweight='bold')
     ax1.set_ylabel('Score (%)', fontsize=20, fontweight='bold')
-    ax1.set_title('Precision per Button Type', fontsize=22, fontweight='bold')
+    ax1.set_title('Precision per Switch Type', fontsize=22, fontweight='bold')
     ax1.set_xticks(x)
     ax1.set_xticklabels(display_names, fontsize=18)
     ax1.set_ylim(0, 1.05)
@@ -185,8 +188,8 @@ def visualize_pr_separate_subplots(json_data):
     ax1.grid(True, alpha=0.2, axis='y')
     
     # Tilføj reference linjer MED labels (opdateret tekst)
-    ax1.axhline(y=0.9, color='red', linestyle='--', alpha=0.5, linewidth=2, label='Preferred (90%)')
-    ax1.axhline(y=0.8, color='orange', linestyle='--', alpha=0.5, linewidth=2, label='Marginal (80%)')
+    ax1.axhline(y=0.9, color='red', linestyle='--', alpha=0.75, linewidth=2, label='Preferred (90%)')
+    ax1.axhline(y=0.8, color='black', linestyle='--', alpha=0.75, linewidth=2, label='Marginal (80%)')
     
     # Tilføj værdier på precision bars (nu i procent)
     for bar in bars1:
@@ -195,13 +198,13 @@ def visualize_pr_separate_subplots(json_data):
                 f'{height*100:.1f}%', ha='center', va='bottom', fontsize=16, fontweight='bold')
     
     # Tilføj legend til precision plot
-    ax1.legend(fontsize=14, loc='upper right', framealpha=0.9)
+    ax1.legend(fontsize=14, loc='lower right', framealpha=0.9)
     
     # Recall subplot
-    bars2 = ax2.bar(x, recall, width, color='#2196F3', edgecolor='black', alpha=0.8)
-    ax2.set_xlabel('Button Types', fontsize=20, fontweight='bold')
+    bars2 = ax2.bar(x, recall, width, color='#1f77b4', edgecolor='black', alpha=0.6)
+    ax2.set_xlabel('Switch Types', fontsize=20, fontweight='bold')
     ax2.set_ylabel('Score (%)', fontsize=20, fontweight='bold')
-    ax2.set_title('Recall per Button Type', fontsize=22, fontweight='bold')
+    ax2.set_title('Recall per Switch Type', fontsize=22, fontweight='bold')
     ax2.set_xticks(x)
     ax2.set_xticklabels(display_names, fontsize=18)
     ax2.set_ylim(0, 1.05)
@@ -212,8 +215,8 @@ def visualize_pr_separate_subplots(json_data):
     ax2.grid(True, alpha=0.2, axis='y')
     
     # Tilføj reference linjer MED labels (opdateret tekst)
-    ax2.axhline(y=0.75, color='red', linestyle='--', alpha=0.5, linewidth=2, label='Preferred (75%)')
-    ax2.axhline(y=0.65, color='orange', linestyle='--', alpha=0.5, linewidth=2, label='Marginal (65%)')
+    ax2.axhline(y=0.75, color='red', linestyle='--', alpha=0.75, linewidth=2, label='Preferred (75%)')
+    ax2.axhline(y=0.65, color='black', linestyle='--', alpha=0.75, linewidth=2, label='Marginal (65%)')
     
     # Tilføj værdier på recall bars (nu i procent)
     for bar in bars2:
@@ -222,29 +225,26 @@ def visualize_pr_separate_subplots(json_data):
                 f'{height*100:.1f}%', ha='center', va='bottom', fontsize=16, fontweight='bold')
     
     # Tilføj legend til recall plot
-    ax2.legend(fontsize=14, loc='upper right', framealpha=0.9)
+    ax2.legend(fontsize=14, loc='lower right', framealpha=0.9)
     
     # Overordnet titel
-    fig.suptitle('Model Performance: Precision vs Recall', fontsize=24, fontweight='bold', y=1.02)
+    #fig.suptitle('Model Performance: Precision vs Recall', fontsize=24, fontweight='bold', y=1.02)
     
     # Juster layout (øg top margin for at give plads til suptitle)
     plt.tight_layout(rect=[0, 0, 1, 0.96])  # [left, bottom, right, top]
-    plt.show()
+    #plt.show()
+    plt.savefig(goal_file_name)
 
 # Calculate precision and recall (for reference)
-precission_breaker, recall_breaker = calculate_precision_recall(json_data, "circuit_breaker")
-precission_rotary, recall_rotary = calculate_precision_recall(json_data, "selector_switch")
-precission_main, recall_main = calculate_precision_recall(json_data, "main_switch")
+#precission_breaker, recall_breaker = calculate_precision_recall(json_data, "circuit_breaker")
+#precission_rotary, recall_rotary = calculate_precision_recall(json_data, "selector_switch")
+#precission_main, recall_main = calculate_precision_recall(json_data, "main_switch")
 
 # Plot confusion matrices
-plot_2x2(json_data, "circuit_breaker")
-plot_3x3(json_data, "selector_switch")
-plot_2x2(json_data, "main_switch")
+#plot_2x2(json_data, "circuit_breaker")
+#plot_3x3(json_data, "selector_switch")
+#plot_2x2(json_data, "main_switch")
 
 # Plot the new precision-recall visualization
-visualize_pr_separate_subplots(json_data)
-
-# Print individual values
-print(f"\nCircuit Breaker - Precision: {precission_breaker:.4f}, Recall: {recall_breaker:.4f}")
-print(f"Selector Switch - Precision: {precission_rotary:.4f}, Recall: {recall_rotary:.4f}")
-print(f"Main Switch - Precision: {precission_main:.4f}, Recall: {recall_main:.4f}")
+visualize_pr_separate_subplots(json_data_imp, "/home/petur/Pictures/Raport_billeder/state_imp1_test.jpg")
+visualize_pr_separate_subplots(json_data_module, "/home/petur/Pictures/Raport_billeder/state_module1_test.jpg")
