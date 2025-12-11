@@ -40,7 +40,7 @@ public:
         );        
 
         resultPub_ = this->create_publisher<ClassifiedButtonsArray>("amps/classified_buttons_with_state", 10);
-        resultImagePub_ = this->create_publisher<sensor_msgs::msg::Image>("amps/classified_buttons_image", 10);
+        resultImagePub_ = this->create_publisher<sensor_msgs::msg::Image>("amps/images/classified_buttons_image", 10);
 
         groundTruthSub_ = this->create_subscription<GroundTruth>(
             "amps/ground_truth", 10,

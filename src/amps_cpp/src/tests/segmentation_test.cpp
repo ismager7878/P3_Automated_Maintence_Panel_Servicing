@@ -32,7 +32,7 @@ class SegmentationSubscriber : public rclcpp::Node
 public:
     SegmentationSubscriber() : Node("segmentation_subscriber_node")
     {
-        subscription_ = this->create_subscription<std_msgs::msg::Float32MultiArray>("segmentation__topic",10,std::bind(&SegmentationSubscriber::topic_callback, this, std::placeholders::_1));
+        subscription_ = this->create_subscription<std_msgs::msg::Float32MultiArray>("amps/vision/bounding_boxes",10,std::bind(&SegmentationSubscriber::topic_callback, this, std::placeholders::_1));
 
         color_subscribe_ = this->create_subscription<sensor_msgs::msg::Image>("segmentation_test_color",10,std::bind(&SegmentationSubscriber::color_callback,this,std::placeholders::_1));
 

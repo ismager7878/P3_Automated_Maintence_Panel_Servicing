@@ -110,7 +110,7 @@ namespace ur_script_wrapper{
 
      this->server_ = rclcpp_action::create_server<ExcecuteMotion>(
         this,
-        "/ur_control_test/ur_wrapper/execute_motion",
+        "amps/ur_wrapper/execute_motion",
         handle_goal,
         handle_cancel,
         handle_accepted);
@@ -119,7 +119,7 @@ namespace ur_script_wrapper{
       digitalOutClient_ = this->create_client<ur_msgs::srv::SetIO>("/io_and_status_controller/resend_robot_program");
       ioStatesSub_ = this->create_subscription<ur_msgs::msg::IOStates>("/io_and_status_controller/io_states", 10, std::bind(&UrScriptWrapper::newIOStatesCallback, this, _1));
       safetyModeSub_ = this->create_subscription<ur_dashboard_msgs::msg::SafetyMode>("/ur_dashboard/safety_mode", 10, std::bind(&UrScriptWrapper::newSaftyModeCallback, this, _1));
-      currentTargetPub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("amps_cpp/pose_estimation/current_target_pose", 10);
+      currentTargetPub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("amps/pose_estimation/current_target_pose", 10);
     };
     private:
 

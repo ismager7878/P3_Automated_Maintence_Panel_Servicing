@@ -43,7 +43,7 @@ def generate_launch_description():
         executable='button_state_detector',
         name='button_state_detector',
         output='screen',
-        remappings=[('/amps/training_data', 'object_classification_topic')],
+        remappings=[('/amps/training_data', '/amps/vision/type_classification')],
         condition=IfCondition(LaunchConfiguration('use_classification'))
     )
 

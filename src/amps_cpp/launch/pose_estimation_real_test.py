@@ -71,8 +71,8 @@ def generate_launch_description():
 
     pose_estimator = Node(
         package='amps_cpp',
-        executable='pose_estimation',
-        name='pose_estimation',
+        executable='auto_alignment',
+        name='auto_alignment',
         output='screen',
         parameters=[
             {'accurracy_test': LaunchConfiguration('accurracy_test')}

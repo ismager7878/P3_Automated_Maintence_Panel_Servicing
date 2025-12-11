@@ -90,10 +90,10 @@ add_executable(fp_matcher src/pose_estimation/fp_matcher.cpp)
 ament_target_dependencies(fp_matcher rclcpp geometry_msgs sensor_msgs realsense2_camera_msgs) 
 
 ##Pose Estimation - Aruco Detection
-add_executable(pose_estimation 
+add_executable(auto_alignment
   src/pose_estimation/pose_estimator.cpp
   src/utils/csvManager.cpp) 
-ament_target_dependencies(pose_estimation rclcpp realsense2_camera_msgs geometry_msgs sensor_msgs cv_bridge OpenCV TinyXML2 rclcpp_action control_msgs tf2 tf2_geometry_msgs)
+ament_target_dependencies(auto_alignment rclcpp realsense2_camera_msgs geometry_msgs sensor_msgs cv_bridge OpenCV TinyXML2 rclcpp_action control_msgs tf2 tf2_geometry_msgs)
 
 ##Frame Broadcaster
 add_executable(frame_broadcaster src/pose_estimation/frame_broadcaster.cpp)
@@ -136,7 +136,7 @@ rosidl_get_typesupport_target(cpp_typesupport_target
   ${PROJECT_NAME} rosidl_typesupport_cpp)
   
 target_link_libraries(fp_matcher "${cpp_typesupport_target}")
-target_link_libraries(pose_estimation "${cpp_typesupport_target}")
+target_link_libraries(auto_alignment "${cpp_typesupport_target}")
 target_link_libraries(action_client "${cpp_typesupport_target}")
 target_link_libraries(ur_wrapper "${cpp_typesupport_target}")
 target_link_libraries(segmentation "${cpp_typesupport_target}")
@@ -157,7 +157,7 @@ install(TARGETS
   button_state_detector
   state_broadcaster
   fp_matcher
-  pose_estimation
+  auto_alignment
   frame_broadcaster
   segmentation
   subscribe_segmentation

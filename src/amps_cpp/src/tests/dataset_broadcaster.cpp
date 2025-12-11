@@ -28,7 +28,7 @@ public:
             std::bind(&DatasetBroadcaster::programStateCallback, this, std::placeholders::_1)
         );
 
-        framePub_ = this->create_publisher<FrameWithPose>("amps_cpp/pose_estimation/frame_with_pose", 10);
+        framePub_ = this->create_publisher<FrameWithPose>("amps/frame_with_pose", 10);
 
         // Get parameter value
         datasetPath = this->get_parameter("dataset_path").as_string();

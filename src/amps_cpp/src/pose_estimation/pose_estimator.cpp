@@ -47,13 +47,13 @@ using ExtrinsicsMsg = realsense2_camera_msgs::msg::Extrinsics;
 class PoseEstimation : public rclcpp::Node
 {
 public:
-    PoseEstimation() : Node("pose_estimation")
+    PoseEstimation() : Node("auto_alignment")
     {
         this->declare_parameter("accurracy_test", false);
         this->declare_parameter("onRobot", false);
 
         // Publishers and Subscribers
-        this->frameSub_ = this->create_subscription<amps_cpp::msg::FrameWithPose>( "amps_cpp/pose_estimation/frame_with_pose", 10,
+        this->frameSub_ = this->create_subscription<amps_cpp::msg::FrameWithPose>( "amps/frame_with_pose", 10,
             std::bind(&PoseEstimation::frameCallback, this, _1));
         this->programStatePub_ = this->create_publisher<ProgramState>("amps/set_program_state", 10);
         this->programStateSub_ = this->create_subscription<ProgramState>(
@@ -72,18 +72,18 @@ public:
         //     std::bind(&PoseEstimation::camDepthToRGBCallback, this, _1)
         // );
 
-        this->isBoardReachablePub_ = this->create_publisher<std_msgs::msg::Bool>("amps_cpp/pose_estimation/is_board_reachable", 10);
+        this->isBoardReachablePub_ = this->create_publisher<std_msgs::msg::Bool>("amps/pose_estimation/is_board_reachable", 10);
         this->isBoardReachablePub_->publish(std_msgs::msg::Bool().set__data(false));
-        this->arucoDetectionPub_ = this->create_publisher<sensor_msgs::msg::Image>("amps_cpp/pose_estimation/aruco_detection_image", 10);
+        this->arucoDetectionPub_ = this->create_publisher<sensor_msgs::msg::Image>("amps/pose_estimation/aruco_detection_image", 10);
 
         // Action Client for robot movement
         this->moveClient_ = rclcpp_action::create_client<ExcecuteMotion>(
             this,
-            "/ur_control_test/ur_wrapper/execute_motion");
+            "amps/ur_wrapper/execute_motion");
         this->correctionActive = false;
 
         // TF Broadcaster
-        this->addToBroadcastPub_ = this->create_publisher<TransformStamped>("amps_cpp/pose_estimation/broadcast_transform", 10);
+        this->addToBroadcastPub_ = this->create_publisher<TransformStamped>("amps/pose_estimation/broadcast_transform", 10);
         this->tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
         this->tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
         this->tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);

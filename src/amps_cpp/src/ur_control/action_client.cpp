@@ -27,7 +27,7 @@ namespace ur_script_wrapper{
         {
             this->client_ptr_ = rclcpp_action::create_client<ExcecuteMotion>(
             this,
-            "/ur_control_test/ur_wrapper/execute_motion");
+            "amps/ur_wrapper/execute_motion");
 
             std::cout << "Action Client Node has been started. Press Enter to send a goal..." << std::endl;
 
