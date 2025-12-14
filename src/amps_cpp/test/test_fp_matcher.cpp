@@ -2,6 +2,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <memory>
 #include <chrono>
+#include <thread>
 
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "sensor_msgs/msg/image.hpp"
@@ -96,16 +97,24 @@ private:
 class FPMatcherTest : public ::testing::Test
 {
 protected:
-    void SetUp() override
+    static void SetUpTestSuite()
     {
         rclcpp::init(0, nullptr);
+    }
+
+    static void TearDownTestSuite()
+    {
+        rclcpp::shutdown();
+    }
+
+    void SetUp() override
+    {
         test_node_ = std::make_shared<FPMatcherNodeTest>();
     }
 
     void TearDown() override
     {
         test_node_.reset();
-        rclcpp::shutdown();
     }
 
     void spinSome(std::chrono::milliseconds duration)
