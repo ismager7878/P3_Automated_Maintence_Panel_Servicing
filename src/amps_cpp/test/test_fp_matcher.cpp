@@ -275,19 +275,19 @@ TEST_F(FPMatcherTest, FrameDataIntegrity)
 // Test 7: Test timestamp precision (nanosecond level)
 TEST_F(FPMatcherTest, NanosecondPrecisionMatch)
 {
-    // Publish poses with very close timestamps
+    // Publish poses with very close timestamps (1 nanosecond apart)
     test_node_->publishPose(1.0, 0.0, 0.0, 100, 100000000); // t=100.100000000s
     spinSome(50ms);
-    test_node_->publishPose(2.0, 0.0, 0.0, 100, 100000001); // t=100.100000001s (closest)
+    test_node_->publishPose(2.0, 0.0, 0.0, 100, 100000001); // t=100.100000001s
     spinSome(50ms);
     test_node_->publishPose(3.0, 0.0, 0.0, 100, 100000002); // t=100.100000002s
     spinSome(100ms);
     
-    // Publish frame at timestamp between first and second pose, but closer to second
+    // Publish frame at exact timestamp of second pose
     test_node_->publishRGBD(100, 100000001);
     spinSome(200ms);
     
-    // Should match with the second pose (exact match)
+    // Should match with the second pose (exact match at nanosecond precision)
     ASSERT_EQ(test_node_->getReceivedMessageCount(), 1);
     
     auto received = test_node_->getReceivedMessages()[0];
