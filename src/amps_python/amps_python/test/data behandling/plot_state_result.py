@@ -3,10 +3,10 @@ import numpy as np
 import json
 from matplotlib import cm
 
-with open("tests/Classification_test/Button_recognition_test/results/button_state_classification_results_implementation_test.json", 'r') as file1:
+with open("tests/Classification_test/Button_recognition_test/Report results/button_state_classification_results_implementation_test.json", 'r') as file1:
     json_data_imp = json.load(file1)
 
-with open("tests/Classification_test/Button_recognition_test/results/button_state_classification_results_module.json", 'r') as file2:
+with open("tests/Classification_test/Button_recognition_test/Report results/button_state_classification_results_module.json", 'r') as file2:
     json_data_module = json.load(file2)
 
     
@@ -158,7 +158,7 @@ def visualize_pr_separate_subplots(json_data, goal_file_name):
     
     # Beregn precision og recall for hver knaptype
     button_types = ['circuit_breaker', 'selector_switch', 'main_switch']
-    display_names = ['Circuit breaker switch', 'Rotary control switch', 'Rotary control switch']
+    display_names = ['Circuit breaker switch', 'Rotary control switch', 'Rotary power switch']
     
     precision = []
     recall = []
