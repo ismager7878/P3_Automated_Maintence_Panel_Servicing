@@ -35,7 +35,7 @@ def generate_launch_description():
             prefix=[venv_python, " "],  # Run using venv Python
             parameters=[{
                 'debugging': LaunchConfiguration('debugging'),
-                'bypass_segmentation': LaunchConfiguration('bypass_segmentation')
+                'bypass_segmentation': LaunchConfiguration('bypass_segmentation'),
             }]
         ),
     ])

@@ -23,14 +23,14 @@
     },
     "breaker": {
         "precision": 0.9836734693877551,
-        "recall": 1.0
+        "recall": 0.9563492063492064
     },
     "rotary": {
         "precision": 0.8686868686868687,
-        "recall": 1.0
+        "recall": 0.9555555555555556
     },
     "main": {
         "precision": 1.0,
-        "recall": 1.0
+        "recall": 0.9444444444444444
     }
 }

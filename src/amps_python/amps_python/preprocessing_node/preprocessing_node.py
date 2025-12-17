@@ -13,6 +13,7 @@ class PreprocessingNode(Node):
         super().__init__('preprocessing_node')
         self.declare_parameter('debugging', True)
         self.declare_parameter('bypass_segmentation', False)
+        self.declare_parameter('real_data', False)
 
         self.get_logger().info('Preprocessing Node has been started.')
 
@@ -110,7 +111,8 @@ class PreprocessingNode(Node):
         depth_image = self.bridge.imgmsg_to_cv2(sub_msg.depth_frame, desired_encoding='passthrough')
         color_image = self.bridge.imgmsg_to_cv2(sub_msg.rgb_frame, desired_encoding='passthrough')
 
-        color_image = cv.cvtColor(color_image, cv.COLOR_RGBA2BGR)
+        if(self.get_parameter('real_data').value == True):
+            color_image = cv.cvtColor(color_image, cv.COLOR_RGBA2BGR)
         
         # Process the depth image
         transformed_depth_image, transform_matrix = self.transform_depth(depth_image)

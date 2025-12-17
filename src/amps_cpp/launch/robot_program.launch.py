@@ -24,7 +24,11 @@ def generate_launch_description():
     preprocessing = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('amps_python'), 'launch', 'preprocessing.launch.py')]),
-        launch_arguments={'debugging': 'false'}.items()
+        launch_arguments={
+            'debugging': 'false',
+            'real_data': 'true'
+            }.items()
+            
     )
 
     segmentation_node = Node(

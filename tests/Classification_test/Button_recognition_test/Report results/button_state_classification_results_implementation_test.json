@@ -10,7 +10,9 @@
                 108
             ]
         ],
-        "false_negatives": 18
+        "false_negatives": 18,
+        "precision_avg": 0.9611618560467665,
+        "recall_avg": 0.962683284457478
     },
     "main_switch": {
         "confusion_matrix": [
@@ -23,7 +25,9 @@
                 19
             ]
         ],
-        "false_negatives": 4
+        "false_negatives": 4,
+        "precision_avg": 1.0,
+        "recall_avg": 1.0
     },
     "selector_switch": {
         "confusion_matrix": [
@@ -43,6 +47,8 @@
                 32
             ]
         ],
-        "false_negatives": 12
+        "false_negatives": 12,
+        "precision_avg": 0.9803921568627452,
+        "recall_avg": 0.9888888888888889
     }
 }
