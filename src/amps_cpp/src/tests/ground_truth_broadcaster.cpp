@@ -22,7 +22,6 @@ public:
             std::bind(&GroundTruthBroadcaster::groundTruthCallback, this, std::placeholders::_1)
         );
 
-
         timer_ = this->create_wall_timer(
             std::chrono::milliseconds(100),
             std::bind(&GroundTruthBroadcaster::publish_ground_truth, this));

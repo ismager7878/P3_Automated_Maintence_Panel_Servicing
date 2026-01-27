@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image 
-from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Float32MultiArray, UInt16MultiArray
 import os
 from ament_index_python.packages import get_package_share_directory
 import time
@@ -33,6 +33,8 @@ class ObjectClassificationNode(Node):
         #subscribe til roi fra segmentation node
         self.roi_subscription = self.create_subscription(Float32MultiArray, 'amps/vision/bounding_boxes', self.roi_callback, 10)
 
+        self.exclusion_subscription = self.create_subscription(UInt16MultiArray, 'amps/validation/feature_exclusions', self.exclusion_callback, 10)
+
         #Publicer ClassifiedButtonsArray
         self.classification_publisher = self.create_publisher(ClassifiedButtonsArray, '/amps/vision/type_classification', 10)
         self.programState_sub = self.create_publisher(ProgramState, 'amps/set_program_state', 10)
@@ -44,6 +46,8 @@ class ObjectClassificationNode(Node):
         self.current_image = None
         self.current_depth = None
 
+        self.current_exclusions = []
+
         #path to saved data
         BASE_DIR = os.path.dirname(os.path.realpath(__file__))
         WORKSPACE_ROOT = find_workspace_root(BASE_DIR)
@@ -54,12 +58,12 @@ class ObjectClassificationNode(Node):
         self.scale = np.load(os.path.join(folder, "scaler_scale.npy"))
 
         #load features and labels
-        x = np.load(os.path.join(folder, "features.npy"))
-        y = np.load(os.path.join(folder, "labels.npy"), allow_pickle=True)
+        self.x = np.load(os.path.join(folder, "features.npy"))
+        self.y = np.load(os.path.join(folder, "labels.npy"), allow_pickle=True)
 
   
         self.knn = KNeighborsClassifier(n_neighbors=5, weights='distance')
-        self.knn.fit(x, y)
+        self.knn.fit(self.x, self.y)
 
         self.get_logger().info("Object Classification Node has been started.")
 
@@ -75,6 +79,20 @@ class ObjectClassificationNode(Node):
         program_state_msg.state_str = state_str
         self.programState_sub.publish(program_state_msg)
 
+    def exclusion_callback(self, msg):
+        self.current_exclusions = list(msg.data)
+        self.get_logger().info(f"Updated exclusion zones: {self.current_exclusions}")
+        
+        # Retrain KNN with excluded features
+        if len(self.current_exclusions) > 0:
+            self.x_reduced = np.delete(self.x, self.current_exclusions, axis=1)
+            self.knn = KNeighborsClassifier(n_neighbors=5, weights='distance')
+            self.knn.fit(self.x_reduced, self.y)
+            self.get_logger().info(f"Retrained KNN with shape: {self.x_reduced.shape}")
+        else:
+            # Reset to original if no exclusions
+            self.knn = KNeighborsClassifier(n_neighbors=5, weights='distance')
+            self.knn.fit(self.x, self.y)
 
     #fremvisning billede som bruges til debugging
     def image_callback(self, msg):
@@ -257,6 +275,10 @@ class ObjectClassificationNode(Node):
                     #scale features
                     features = (features - self.mean) / self.scale
 
+                     # Apply exclusions to features if any exist
+                    if len(self.current_exclusions) > 0:
+                        features = np.delete(features, self.current_exclusions)
+
                     #giver classificering
                     sub_pred = self.knn.predict([features])[0]
 
@@ -308,6 +330,12 @@ class ObjectClassificationNode(Node):
             #scale features
             features = (features - self.mean) / self.scale
 
+            # Apply exclusions to features if any exist
+            if len(self.current_exclusions) > 0:
+                features = np.delete(features, self.current_exclusions)
+
+            
+           
             #giver classificering
             pred = self.knn.predict([features])[0]
 

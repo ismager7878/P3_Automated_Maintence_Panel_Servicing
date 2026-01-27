@@ -42,6 +42,14 @@ public:
             std::bind(&DatasetBroadcaster::replay_data, this));          
     }
 private:
+    void setProgramState(int state, const string& stateStr)
+    {
+        ProgramState msg;
+        msg.state = state;
+        msg.state_str = stateStr;
+        statePub_->publish(msg);
+    }
+
     void programStateCallback(const ProgramState::SharedPtr msg)
     {
         RCLCPP_INFO(this->get_logger(), "Received program state: %d", msg->state);
@@ -99,6 +107,9 @@ private:
 
         if(currentFrameIndex >= rgbFrames.size()){
             RCLCPP_WARN(this->get_logger(), "All frames have been published, restarting from beginning.");
+            
+            setProgramState(ProgramState::CLASSIFICATION_DONE, "Classification Done");
+            currentFrameIndex = 0;
             return;
         }
 

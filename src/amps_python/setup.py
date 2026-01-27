@@ -47,7 +47,8 @@ setup(
             'classified_image = amps_python.position.object_classification:main',
             "classi_test = amps_python.test.classification_test:main",
             'knn_node = amps_python.position.features_extraction:main',
-            'state_test = amps_python.test.button_state_test_data_grabber:main'
+            'state_test = amps_python.test.button_state_test_data_grabber:main',
+            'feature_validation_test = amps_python.test.feature_validation_test:main',
         ],
     },
 )

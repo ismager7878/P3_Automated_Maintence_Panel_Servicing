@@ -119,6 +119,10 @@ ament_target_dependencies(state_broadcaster rclcpp std_msgs)
 add_executable(training_data_converter src/training_data_converter.cpp)
 ament_target_dependencies(training_data_converter rclcpp sensor_msgs cv_bridge OpenCV)
 
+##Feature Validation
+add_executable(feature_validation src/tests/feature_validation_control.cpp)
+ament_target_dependencies(feature_validation rclcpp std_msgs)
+
 ##Custom Interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FrameWithPose.msg"
@@ -147,6 +151,7 @@ target_link_libraries(button_state_detector "${cpp_typesupport_target}")
 target_link_libraries(ground_truth_broadcaster "${cpp_typesupport_target}")
 target_link_libraries(dataset_broadcaster "${cpp_typesupport_target}")
 target_link_libraries(training_data_converter "${cpp_typesupport_target}")
+target_link_libraries(feature_validation "${cpp_typesupport_target}")
 
 
 ## Directories to include
@@ -165,6 +170,7 @@ install(TARGETS
   dataset_broadcaster
   ground_truth_broadcaster
   training_data_converter
+  feature_validation
   DESTINATION lib/${PROJECT_NAME})
 
 ## Install libraries

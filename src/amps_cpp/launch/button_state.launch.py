@@ -12,11 +12,15 @@ from launch.conditions import IfCondition, UnlessCondition
 
 
 def generate_launch_description():
+    launch_dir = os.path.dirname(os.path.realpath(__file__))
+    ws_root = os.path.abspath(os.path.join(launch_dir, "../../../../../"))
+    venv_python = os.path.join(ws_root, ".venv", "bin", "python3")
+
     test_data_arg = DeclareLaunchArgument(
         'test_data',
         default_value='true'
     )
-
+    
     training_data_converter = IncludeLaunchDescription(
         PathJoinSubstitution([FindPackageShare('amps_cpp'), 'launch', 'training_data.launch.py']),
         condition=UnlessCondition(LaunchConfiguration('use_classification')),
@@ -54,8 +58,10 @@ def generate_launch_description():
             description='Whether to use test data or use live data from the robot.'
         ),
         test_data_arg,
+        feature_validation_node,
         training_data_converter,
         button_state_detector,
         classificationNode,
         button_state_detector_test,
+        feature_validation_test
     ])
